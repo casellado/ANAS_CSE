@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ANAS SafeHub Suite CSE - Gestione sicurezza cantieri ANAS SpA" />
+  <title>ANAS SafeHub · Suite CSE</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    .page-transition {
+      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+    .page-hidden {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      position: absolute;
+      width: 100%;
+    }
+
+    ::-webkit-scrollbar       { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    .nav-link-active {
+      background-color: #334155;
+      color: white;
+    }
+  </style>
+
+  <!-- ── Script order: foundation prima della UI ── -->
+  <script defer src="./db.js"></script>
+  <script defer src="./storage.js"></script>
+  <script defer src="./ui.js"></script>
+  <script defer src="./navigation.js"></script>
+  <script defer src="./foto.js"></script>
+  <script defer src="./firma.js"></script>
+  <script defer src="./documenti-indexeddb.js"></script>
+  <script defer src="./documenti-preview.js"></script>
+  <script defer src="./documenti-collegamento.js"></script>
+  <script defer src="./documenti-popup.js"></script>
+  <script defer src="./documenti-imprese-lavoratori.js"></script>
+  <script defer src="./documenti.js"></script>
+  <script defer src="./documenti-fondamentali.js"></script>
+  <script defer src="./ods-ricevuti.js"></script>
+  <script defer src="./nc.js"></script>
+  <script defer src="./nc-foto-dashboard.js"></script>
+  <!-- dashboard-cantiere.js è solo per dashboard-cantiere.html, non per la SPA -->
+  <script defer src="./dashboard-docs.js"></script>
+  <script defer src="./scadenze-documenti.js"></script>
+  <script defer src="./verbali.js"></script>
+  <script defer src="./verbali-list.js"></script>
+  <script defer src="./imprese-list.js"></script>
+  <script defer src="./imprese-assegnazione.js"></script>
+  <script defer src="./lavoratori.js"></script>
+  <script defer src="./export.js"></script>
+  <script defer src="./impostazioni.js"></script>
+  <script defer src="./salvataggio.js"></script>
+  <script defer src="./email.js"></script>
+  <script defer src="./ricerca-normativa.js"></script>
+  <script defer src="./verbali-riunione.js"></script>
+  <script defer src="./verbali-pos.js"></script>
+  <script defer src="./salva-file.js"></script>
+  <script defer src="./smart-memory.js"></script>
+  <script defer src="./lettera-sospensione.js"></script>
+  <script defer src="./report-giornaliero.js"></script>
+  <script defer src="./scorciatoie.js"></script>
+  <style>
+    /* ── MOBILE SIDEBAR OVERLAY ── */
+    #sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 49;
+    }
+    #sidebar-overlay.open { display: block; }
+
+    /* Sidebar: hidden off-canvas on mobile, visible on desktop */
+    @media (max-width: 767px) {
+      aside#main-sidebar {
+        position: fixed !important;
+        left: -100%;
+        top: 0; bottom: 0;
+        width: 280px !important;
+        z-index: 50;
+        transition: left .25s ease;
+      }
+      aside#main-sidebar.open { left: 0 !important; }
+      #hamburger-btn { display: flex !important; }
+      /* Prevent main scroll when sidebar open */
+      body.sidebar-open { overflow: hidden; }
+    }
+    @media (min-width: 768px) {
+      #hamburger-btn { display: none !important; }
+      aside#main-sidebar { position: relative !important; left: 0 !important; }
+    }
+
+    /* ── iOS ZOOM FIX — input font-size >= 16px ── */
+    input, textarea, select {
+      font-size: max(16px, 0.875rem) !important;
+    }
+
+    /* ── TOUCH TARGET MIN 44px ── */
+    button, [role="button"], a[href] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* ── TAB SCROLL on mobile ── */
+    [role="tablist"] {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap !important;
+    }
+    [role="tablist"]::-webkit-scrollbar { display: none; }
+
+    /* ── FORM GRID mobile override ── */
+    @media (max-width: 640px) {
+      .md\:grid-cols-2 { grid-template-columns: 1fr !important; }
+      .sm\:grid-cols-2 { grid-template-columns: 1fr !important; }
+    }
+  </style>
+  <link rel="stylesheet" href="./animazioni.css" />
+  <link rel="stylesheet" href="./mobile.css" />
+</head>
+
+<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden pb-12">
+
+<!-- OVERLAY mobile (chiude sidebar) -->
+<div id="sidebar-overlay" aria-hidden="true"
+     onclick="chiudiSidebar()"></div>
+
+<!-- HAMBURGER mobile — visibile solo su <768px tramite CSS -->
+<button id="hamburger-btn"
+        onclick="apriSidebar()"
+        class="fixed top-3 left-3 z-[51] items-center justify-center
+               w-11 h-11 bg-slate-900 text-white rounded-xl shadow-lg
+               focus:outline-none focus:ring-2 focus:ring-slate-400"
+        aria-label="Apri menu navigazione"
+        aria-expanded="false"
+        style="display:none">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <line x1="3" y1="6"  x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
+
+<!-- ─────────────────────────────────────────────────────
+     SIDEBAR
+───────────────────────────────────────────────────── -->
+<aside id="main-sidebar" class="w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl shrink-0"
+       role="navigation"
+       aria-label="Menu principale">
+
+  <!-- Brand -->
+  <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+    <span class="text-2xl" aria-hidden="true">🚧</span>
+    <div>
+      <h1 class="font-extrabold text-base leading-tight">ANAS SafeHub</h1>
+      <p class="text-xs text-slate-400 leading-tight">Pannello Direzione CSE</p>
+    </div>
+  </div>
+
+  <!-- Nav links -->
+  <nav class="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Sezioni">
+
+    <button aria-label="Hub Cantieri" onclick="switchView('hub')"
+            data-nav="hub"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500"
+            aria-current="page">
+      <span aria-hidden="true">🏢</span> Hub Cantieri
+    </button>
+
+    <button aria-label="Anagrafiche Imprese" onclick="switchView('anagrafica')"
+            data-nav="anagrafica"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">👥</span> Anagrafiche Imprese
+    </button>
+
+    <button aria-label="Dashboard Cantiere" onclick="switchView('dashboard-cantiere')"
+            data-nav="dashboard-cantiere"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">📊</span> Dashboard Cantiere
+    </button>
+
+    <button aria-label="Nuovo Verbale" onclick="switchView('nuovo-verbale')"
+            data-nav="nuovo-verbale"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">📝</span> Nuovo Verbale
+    </button>
+
+    <button aria-label="Verb. Riunione Coordinamento" onclick="switchView('riunione-coordinamento')"
+            data-nav="riunione-coordinamento"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">📋</span> Verb. Riunione Coordinamento
+    </button>
+
+    <button aria-label="Verifica Idoneità POS" onclick="switchView('verifica-pos')"
+            data-nav="verifica-pos"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">✅</span> Verifica Idoneità POS
+    </button>
+
+    <div class="border-t border-slate-800 my-1.5" role="separator"></div>
+
+    <button aria-label="Non Conformità e ODS Inviati" onclick="switchView('nc')"
+            data-nav="nc"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">⚠️</span> Non Conf. / ODS Inviati
+    </button>
+
+    <button aria-label="Ordini di Servizio Ricevuti" onclick="switchView('ods-ricevuti')"
+            data-nav="ods-ricevuti"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">📥</span> ODS Ricevuti
+    </button>
+
+    <div class="border-t border-slate-800 my-1.5" role="separator"></div>
+
+    <button aria-label="Documenti Fondamentali Cantiere" onclick="switchView('documenti-fondamentali')"
+            data-nav="documenti-fondamentali"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">📋</span> Doc. Fondamentali
+    </button>
+
+    <button aria-label="Documenti Normative" onclick="switchView('documenti')"
+            data-nav="documenti"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">📚</span> Normative & Altri Doc
+    </button>
+
+    <button aria-label="Impostazioni Verbale" onclick="switchView('impostazioni')"
+            data-nav="impostazioni"
+            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
+                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
+                   focus:outline-none focus:ring-2 focus:ring-slate-500">
+      <span aria-hidden="true">⚙️</span> Impostazioni Verbale
+    </button>
+
+  </nav>
+
+  <!-- Info footer -->
+  <div class="p-4 border-t border-slate-800 text-xs text-slate-500 space-y-1">
+    <div>Versione 1.8 · Suite CSE</div>
+    <div class="text-slate-600">D.Lgs 81/08 · D.I. 22/01/2019</div>
+  </div>
+</aside>
+
+<!-- ─────────────────────────────────────────────────────
+     MAIN AREA
+───────────────────────────────────────────────────── -->
+<div class="flex-1 flex flex-col h-full overflow-hidden">
+
+  <!-- Top bar -->
+  <header class="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 shrink-0"
+          role="banner">
+    <div class="flex items-center gap-4 min-w-0 flex-1">
+      <h2 class="text-lg font-bold text-slate-800 shrink-0" id="header-title" aria-live="polite">
+        📂 Hub Cantieri
+      </h2>
+      <!-- P1: Selettore cantiere rapido — visibile solo se cantiere attivo -->
+      <div id="topbar-cantiere-container" class="hidden sm:flex items-center gap-2 min-w-0">
+        <span class="text-xs text-slate-400 shrink-0" aria-hidden="true">Cantiere:</span>
+        <select id="topbar-cantiere-select"
+                onchange="cambiaCantiereRapido(this.value)"
+                class="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 font-medium
+                       max-w-[200px] truncate focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                aria-label="Cambia cantiere attivo">
+        </select>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+              <button onclick="apriReportGiornaliero()"
+                class="text-xs bg-green-700 text-white px-3 py-1.5 rounded-lg
+                       hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-400
+                       flex items-center gap-1.5"
+                aria-label="Apri Diario CSE giornaliero">
+          <span aria-hidden="true">📋</span> Oggi
+        </button>
+              <button onclick="apriPannelloRicerca()"
+                class="text-xs bg-indigo-700 text-white px-3 py-1.5 rounded-lg
+                       hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400
+                       flex items-center gap-1.5"
+                aria-label="Apri ricerca normativa AI">
+          <span aria-hidden="true">📚</span> Cerca Normativa
+        </button>
+<button onclick="exportDatabaseToFile()"
+              class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+                     hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              aria-label="Salva database su USB">
+        💾 Salva dati
+      </button>
+    </div>
+  </header>
+
+  <!-- Content container (scrollabile) -->
+  <div class="flex-1 overflow-y-auto p-6 relative">
+
+    <!-- ─────────── VIEW: HUB ─────────── -->
+    <section id="view-hub"
+             class="page-transition space-y-6"
+             role="region"
+             aria-label="Hub Cantieri">
+
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">I Miei Cantieri</h3>
+          <p class="text-sm text-slate-500">Seleziona un cantiere per iniziare</p>
+        </div>
+        <button onclick="apriModalNuovoCantiere()"
+                class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg font-semibold
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                aria-label="Crea nuovo cantiere">
+          + Nuovo Cantiere
+        </button>
+      </div>
+
+      <div id="projects-grid"
+           class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+           role="list"
+           aria-label="Lista cantieri"
+           aria-live="polite"></div>
+
+      <p id="empty-state"
+         class="hidden text-sm text-slate-400 text-center py-10"
+         aria-live="polite">
+        Nessun cantiere. Crea il primo con <strong>+ Nuovo Cantiere</strong>.
+      </p>
+
+    </section>
+
+    <!-- ─────────── VIEW: ANAGRAFICA ─────────── -->
+    <section id="view-anagrafica"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Anagrafica Imprese"
+             aria-hidden="true">
+
+      <h3 class="text-xl font-bold text-slate-900">Anagrafica Soggetti</h3>
+
+      <form id="form-anagrafica"
+            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl"
+            novalidate
+            aria-label="Form inserimento anagrafica" onsubmit="return false">
+
+        <div class="md:col-span-2">
+          <label for="tipo_soggetto" class="text-xs font-semibold text-slate-600 block mb-1">Tipo soggetto</label>
+          <select id="tipo_soggetto"
+                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                         focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            <option value="affidataria">Impresa Affidataria</option>
+            <option value="esecutrice">Impresa Esecutrice / Subappalto</option>
+            <option value="dl">Direzione Lavori (D.L.)</option>
+            <option value="committente">Committente (ANAS SpA)</option>
+            <option value="rup">R.U.P.</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="ragione_sociale" class="text-xs font-semibold text-slate-600 block mb-1">
+            Ragione Sociale <span class="text-red-500">*</span>
+          </label>
+          <input id="ragione_sociale" type="text"
+                 placeholder="Es. Costruzioni Rossi S.r.l."
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                 aria-required="true" />
+        </div>
+
+        <div>
+          <label for="partita_iva" class="text-xs font-semibold text-slate-600 block mb-1">P.IVA / C.F.</label>
+          <input id="partita_iva" type="text"
+                 placeholder="Es. 01234567890"
+                 maxlength="16"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <div>
+          <label for="referente" class="text-xs font-semibold text-slate-600 block mb-1">Referente / Preposto</label>
+          <input id="referente" type="text"
+                 placeholder="Es. Ing. Mario Rossi — Direttore Tecnico"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <div>
+          <label for="contatto" class="text-xs font-semibold text-slate-600 block mb-1">PEC / Email / Telefono</label>
+          <input id="contatto" type="text"
+                 placeholder="Es. info@impresa.it · +39 06 1234567"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <div class="md:col-span-2 flex justify-end">
+          <button id="btn-save-anagrafica"
+                  type="button"
+                  class="bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold
+                         hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400">
+            ✅ Salva Anagrafica
+          </button>
+        </div>
+
+      </form>
+
+    </section>
+
+    <!-- ─────────── VIEW: DASHBOARD CANTIERE ─────────── -->
+    <section id="view-dashboard-cantiere"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Dashboard Cantiere"
+             aria-hidden="true">
+
+      <div id="alert-gravissime-spa"
+           role="alert"
+           class="hidden bg-red-50 border-l-4 border-red-600 p-4 rounded-r-xl">
+        <p class="font-bold text-red-800 text-sm">⚠️ Procedura ANAS — Azione Obbligatoria</p>
+        <p class="text-sm text-red-700 mt-1">
+          NC gravissime aperte oltre 24h. Inviare proposta sospensione lavori a RUP e D.L.
+          (D.Lgs 81/08 art. 92 c.1 lett. f).
+        </p>
+      </div>
+
+      <h3 class="text-xl font-bold text-slate-900">Dashboard Cantiere</h3>
+
+      <!-- KPI documentali e scadenze -->
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+        <div class="bg-white p-5 rounded-xl shadow border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Documenti Totali</div>
+          <div id="kpi-doc-tot" class="text-3xl font-bold text-slate-800" aria-live="polite">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Collegati a Verbali</div>
+          <div id="kpi-doc-verbali" class="text-3xl font-bold text-blue-700" aria-live="polite">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Collegati a NC</div>
+          <div id="kpi-doc-nc" class="text-3xl font-bold text-yellow-600" aria-live="polite">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow border border-red-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Documenti Scaduti</div>
+          <div id="kpi-doc-scaduti" class="text-3xl font-bold text-red-600" aria-live="polite">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow border border-yellow-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">In Scadenza (30gg)</div>
+          <div id="kpi-doc-in-scadenza" class="text-3xl font-bold text-yellow-600" aria-live="polite">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow border border-green-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Documenti Validi</div>
+          <div id="kpi-doc-validi" class="text-3xl font-bold text-green-600" aria-live="polite">0</div>
+        </div>
+
+      </div>
+
+      <!-- Scadenze documentali -->
+      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
+        <h4 class="text-base font-bold text-slate-800 mb-3">📅 Scadenze Documentali</h4>
+        <div id="lista-scadenze-doc" aria-live="polite" class="space-y-2"></div>
+      </div>
+
+      <!-- Documenti obbligatori -->
+      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
+        <h4 class="text-base font-bold text-slate-800 mb-3">✅ Documenti Obbligatori (PSC / POS / DVR)</h4>
+        <div id="doc-obbligatori-list" aria-live="polite" class="space-y-2"></div>
+      </div>
+
+      <!-- NC Aperte -->
+      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
+        <h4 class="text-base font-bold text-slate-800 mb-3">⚠️ NC Aperte</h4>
+        <div id="dashboard-nc-list" aria-live="polite" class="space-y-2"></div>
+      </div>
+
+      <!-- Esportazioni -->
+      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
+        <h4 class="text-base font-bold text-slate-800 mb-3">📤 Esportazioni</h4>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="exportArchivioJSON()"
+                  class="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
+                         hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  aria-label="Esporta archivio JSON completo">
+            📥 Esporta JSON
+          </button>
+          <button onclick="window.print()"
+                  class="bg-blue-700 text-white text-sm px-4 py-2 rounded-lg
+                         hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  aria-label="Stampa dashboard">
+            🖨️ Stampa Dashboard
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─────────── VIEW: NUOVO VERBALE ─────────── -->
+    <section id="view-nuovo-verbale"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Nuovo Verbale di Sopralluogo"
+             aria-hidden="true">
+
+      <h3 class="text-xl font-bold text-slate-900">Nuovo Verbale di Sopralluogo</h3>
+
+      <form id="form-verbale"
+            class="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-5 max-w-3xl"
+            novalidate
+            aria-label="Form verbale di sopralluogo" onsubmit="return false">
+
+        <!-- Riga 1: Data e KM -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div>
+            <label for="verbale-data" class="text-xs font-semibold text-slate-600 block mb-1">
+              Data Sopralluogo <span class="text-red-500">*</span>
+            </label>
+            <input id="verbale-data"
+                   name="verbale-data"
+                   type="date"
+                   class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                   aria-required="true" />
+          </div>
+
+          <div>
+            <label for="verbale-km" class="text-xs font-semibold text-slate-600 block mb-1">
+              Progressiva Chilometrica
+            </label>
+            <input id="verbale-km"
+                   name="verbale-km"
+                   type="text"
+                   placeholder="Es. KM 42+350 — KM 43+100"
+                   class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                   aria-describedby="km-hint" />
+            <div id="km-hint" class="text-xs text-slate-400 mt-1">
+              Progressiva iniziale e finale dell'area ispezionata
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Riga 2: Oggetto -->
+        <div>
+          <label for="verbale-oggetto" class="text-xs font-semibold text-slate-600 block mb-1">
+            Oggetto del Sopralluogo
+          </label>
+          <input id="verbale-oggetto"
+                 name="verbale-oggetto"
+                 type="text"
+                 placeholder="Es. Verifica DPI lavoratori, controllo segnaletica cantiere, ispezione ponteggi"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <!-- Riga 3: Meteo e Imprese -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div>
+            <label for="verbale-meteo" class="text-xs font-semibold text-slate-600 block mb-1">
+              Condizioni Meteo
+            </label>
+            <select id="verbale-meteo"
+                    name="verbale-meteo"
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none">
+              <option value="">— Seleziona —</option>
+              <option value="Soleggiato">☀️ Soleggiato</option>
+              <option value="Nuvoloso">⛅ Nuvoloso</option>
+              <option value="Pioggia">🌧️ Pioggia</option>
+              <option value="Vento forte">💨 Vento forte</option>
+              <option value="Nebbia">🌫️ Nebbia</option>
+              <option value="Neve">❄️ Neve</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="verbale-imprese" class="text-xs font-semibold text-slate-600 block mb-1">
+              Imprese Presenti
+            </label>
+            <select id="verbale-imprese"
+                    name="verbale-imprese"
+                    multiple
+                    class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    style="height: 80px"
+                    aria-describedby="imprese-hint">
+              <!-- Popolato dinamicamente da JS -->
+            </select>
+            <div id="imprese-hint" class="text-xs text-slate-400 mt-1">
+              Tieni premuto Ctrl (o ⌘ su Mac) per selezionare più imprese
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Referenti -->
+        <div>
+          <label for="verbale-referenti" class="text-xs font-semibold text-slate-600 block mb-1">
+            Referenti / Preposti Presenti
+          </label>
+          <textarea id="verbale-referenti"
+                    name="verbale-referenti"
+                    rows="2"
+                    placeholder="Es. Geom. Bianchi (Preposto Impresa Rossi) · Ing. Verdi (D.L.) · Sig. Neri (Capocantiere)"
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- Stato dei luoghi -->
+        <div>
+          <label for="verbale-stato-luoghi" class="text-xs font-semibold text-slate-600 block mb-1">
+            Stato dei Luoghi / Lavorazioni in Corso
+          </label>
+          <textarea id="verbale-stato-luoghi"
+                    name="verbale-stato-luoghi"
+                    rows="3"
+                    placeholder="Es. Fresatura del manto bituminoso in carreggiata nord tra KM 42+350 e KM 42+800.
+Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2019."
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- Note CSE -->
+        <div>
+          <label for="verbale-note" class="text-xs font-semibold text-slate-600 block mb-1">
+            Note CSE / Prescrizioni
+          </label>
+          <textarea id="verbale-note"
+                    name="verbale-note"
+                    rows="2"
+                    placeholder="Es. Si prescrive integrazione segnaletica verticale entro 48h. Si richiama impresa all'obbligo DPI."
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- Sezione NC da Verbale -->
+        <fieldset class="border border-slate-200 rounded-xl p-4 space-y-3">
+          <legend class="text-xs font-bold text-slate-600 px-2 uppercase tracking-wide">
+            ⚠️ Genera Non Conformità da questo Verbale (opzionale)
+          </legend>
+
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Livello Non Conformità">
+            <button type="button" id="btn-nc-lieve"
+                    onclick="selezionaNC('lieve')"
+                    class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-blue-300 text-blue-700
+                           hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400
+                           transition font-semibold"
+                    aria-label="Seleziona NC lieve (7 giorni)">
+              🔵 Lieve (7 gg)
+            </button>
+            <button type="button" id="btn-nc-grave"
+                    onclick="selezionaNC('grave')"
+                    class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-orange-300 text-orange-700
+                           hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-400
+                           transition font-semibold"
+                    aria-label="Seleziona NC grave (72 ore)">
+              🟠 Grave (72 h)
+            </button>
+            <button type="button" id="btn-nc-gravissima"
+                    onclick="selezionaNC('gravissima')"
+                    class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-red-400 text-red-700
+                           hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400
+                           transition font-semibold"
+                    aria-label="Seleziona NC gravissima (24 ore — sospensione lavori)">
+              🔴 Gravissima (24 h)
+            </button>
+            <button aria-label="b.classList.remove ring-2 class px-3 py-1.5 rounded-lg text-sm border border-sla" type="button"
+                    onclick="document.getElementById('livello-nc').value=''; document.getElementById('descrizione-nc').value=''; document.querySelectorAll('.nc-btn').forEach(b=>b.classList.remove('ring-2'))"
+                    class="px-3 py-1.5 rounded-lg text-sm border border-slate-200 text-slate-500
+                           hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400
+                           transition"
+                    aria-label="Rimuovi selezione NC">
+              ✕ Nessuna NC
+            </button>
+          </div>
+
+          <input type="hidden" id="livello-nc" name="livello-nc" value="" />
+
+          <div id="nc-descrizione-container">
+            <label for="descrizione-nc" class="text-xs font-semibold text-slate-600 block mb-1">
+              Descrizione Non Conformità
+            </label>
+            <textarea id="descrizione-nc"
+                      name="descrizione-nc"
+                      rows="3"
+                      placeholder="Descrivi la non conformità riscontrata. Il testo verrà precompilato automaticamente in base al livello selezionato."
+                      class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                             focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+          </div>
+        </fieldset>
+
+        <!-- Documenti collegati al verbale -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide">
+              📎 Documenti Allegati al Verbale
+            </h4>
+            <button aria-label="Allega Documento" type="button"
+                    onclick="collegaDocumentoDaSelettore('verbale', window._currentVerbaleId || 'temp')"
+                    class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+                           hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400">
+              + Allega Documento
+            </button>
+          </div>
+          <div id="documenti-verbale" class="space-y-2" aria-live="polite"></div>
+        </div>
+
+        <!-- ── FIRMA CSE ── -->
+        <div>
+          <div class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
+            ✍️ Firma del CSE
+          </div>
+          <div id="firma-verbale-container"></div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex justify-end pt-2">
+          <button type="submit"
+                  class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  aria-label="Salva verbale di sopralluogo">
+            ✅ Salva Verbale
+          </button>
+        </div>
+
+      </form>
+
+    </section>
+
+    <!-- ─────────── VIEW: RIUNIONE DI COORDINAMENTO ─────────── -->
+    <section id="view-riunione-coordinamento"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Riunione di Coordinamento"
+             aria-hidden="true">
+
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">📋 Verbale Riunione di Coordinamento</h3>
+        <p class="text-sm text-slate-500 mt-1">
+          Mod.RE.01-10 · Vers. 3.0 del 22/01/2024 · art. 92 D.Lgs 81/08
+        </p>
+      </div>
+
+      <form id="form-riunione"
+            onsubmit="salvaRiunione(event)"
+            class="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-5 max-w-3xl"
+            novalidate>
+
+        <!-- DATA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="riunione-data" class="text-xs font-semibold text-slate-600 block mb-1">
+              Data Riunione <span class="text-red-500">*</span>
+            </label>
+            <input id="riunione-data" type="date"
+                   class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                   aria-required="true" />
+          </div>
+
+          <!-- TIPO RIUNIONE -->
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-2">Tipo Riunione</label>
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="tipo-riunione" value="preliminare"
+                       class="rounded accent-blue-600" />
+                Preliminare
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="tipo-riunione" value="in corso d'opera"
+                       class="rounded accent-blue-600" />
+                In corso d'opera
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="tipo-riunione" value="ingresso nuove imprese"
+                       class="rounded accent-blue-600" />
+                Ingresso nuove imprese
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="tipo-riunione" value="coordinamento RLS"
+                       class="rounded accent-blue-600" />
+                Coordinamento RLS
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRESENTI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="riunione-presenti-anas"
+                   class="text-xs font-semibold text-slate-600 block mb-1">
+              Presenti ANAS (firma leggibile)
+            </label>
+            <textarea id="riunione-presenti-anas" rows="4"
+                      placeholder="Es. Geom. Dogano Casella (CSE)&#10;Ing. Mario Rossi (DL)&#10;Dott. Bianchi (RUP)"
+                      class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                             focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+          </div>
+          <div>
+            <label for="riunione-presenti-imprese-select"
+                   class="text-xs font-semibold text-slate-600 block mb-1">
+              Imprese presenti al cantiere
+            </label>
+            <!-- P3: Multi-select imprese assegnate al cantiere corrente -->
+            <select id="riunione-presenti-imprese-select" multiple
+                    class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    style="height: 90px"
+                    aria-describedby="riu-imprese-hint"
+                    aria-label="Imprese assegnate al cantiere">
+              <!-- Popolato dinamicamente da _popolaImpreseRiunione() -->
+            </select>
+            <div id="riu-imprese-hint" class="text-xs text-slate-400 mt-1">
+              Tieni premuto Ctrl (⌘ su Mac) per selezionare più imprese
+            </div>
+
+            <label for="riunione-presenti-imprese"
+                   class="text-xs font-semibold text-slate-600 block mb-1 mt-3">
+              Referenti impresa (firma leggibile) — opzionale
+            </label>
+            <textarea id="riunione-presenti-imprese" rows="3"
+                      placeholder="Es. Sig. Verdi — Costruzioni Rossi Srl (Capo cantiere)&#10;Sig. Neri — Elettrica Sud Srl (Preposto)"
+                      class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                             focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+          </div>
+        </div>
+
+        <!-- ARGOMENTI FISSI (info) -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div class="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">
+            Argomenti fissi (inclusi automaticamente nel documento)
+          </div>
+          <ul class="text-xs text-slate-500 space-y-0.5 list-disc list-inside">
+            <li>Illustrazione piano di sicurezza e coordinamento</li>
+            <li>Piano operativo di sicurezza dell'impresa</li>
+            <li>Attribuzione incarichi e competenze all'interno del cantiere</li>
+            <li>Individuazione dei responsabili di cantiere</li>
+            <li>Modalità di gestione dei servizi e degli impianti comuni</li>
+            <li>Sorveglianza sanitaria</li>
+            <li>Coordinamento tra i Rappresentanti dei lavoratori per la sicurezza (RLS)</li>
+          </ul>
+        </div>
+
+        <!-- ARGOMENTI AGGIUNTIVI -->
+        <div>
+          <label for="riunione-argomenti-liberi"
+                 class="text-xs font-semibold text-slate-600 block mb-1">
+            Argomenti aggiuntivi discussi
+          </label>
+          <textarea id="riunione-argomenti-liberi" rows="3"
+                    placeholder="Es. Gestione delle interferenze con il traffico veicolare&#10;Aggiornamento piano segnaletica temporanea"
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- CRITICITÀ -->
+        <div>
+          <label for="riunione-criticita"
+                 class="text-xs font-semibold text-slate-600 block mb-1">
+            Criticità riscontrate ed Osservazioni Emerse
+          </label>
+          <textarea id="riunione-criticita" rows="3"
+                    placeholder="Es. Carenza DPI in alcune lavorazioni. Segnaletica incompleta nel tratto nord."
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- DECISIONI -->
+        <div>
+          <label for="riunione-decisioni"
+                 class="text-xs font-semibold text-slate-600 block mb-1">
+            Istruzioni operative e Decisioni Intraprese
+          </label>
+          <textarea id="riunione-decisioni" rows="3"
+                    placeholder="Es. Si dispone integrazione immediata DPI entro 24h. Si richiama impresa a rispettare il PSC, art. 6."
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- BOTTONI -->
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button type="submit"
+                  class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  aria-label="Salva riunione di coordinamento">
+            ✅ Salva Riunione
+          </button>
+          <button type="button"
+                  onclick="apriSalvataggioRiunione(null)"
+                  class="bg-slate-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                  aria-label="Salva e esporta Word o PDF">
+            💾 Salva / Esporta
+          </button>
+          <button type="button"
+                  onclick="exportRiunioneWord(null)"
+                  class="bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+                  aria-label="Scarica come Word">
+            📄 Word
+          </button>
+          <button type="button"
+                  onclick="if(typeof mostraPannelloEmail==='function') mostraPannelloEmail({tipo:'generico'})"
+                  class="bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                  aria-label="Invia via email">
+            ✉️ Email
+          </button>
+        </div>
+
+      </form>
+
+    </section>
+
+    <!-- ─────────── VIEW: VERIFICA IDONEITÀ POS ─────────── -->
+    <section id="view-verifica-pos"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Verifica Idoneità POS"
+             aria-hidden="true">
+
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">✅ Verifica Idoneità POS</h3>
+        <p class="text-sm text-slate-500 mt-1">
+          Mod.RE.01-5 · Vers. 3.0 del 22/01/2024 · art. 92 c.1 lett. b) D.Lgs 81/08
+        </p>
+      </div>
+
+      <form id="form-pos"
+            onsubmit="salvaVerificaPOS(event)"
+            class="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-5 max-w-3xl"
+            novalidate>
+
+        <!-- DATA + IMPRESA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="pos-data" class="text-xs font-semibold text-slate-600 block mb-1">
+              Data <span class="text-red-500">*</span>
+            </label>
+            <input id="pos-data" type="date"
+                   class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                   aria-required="true" />
+          </div>
+          <div>
+            <label for="pos-impresa" class="text-xs font-semibold text-slate-600 block mb-1">
+              Nome Impresa Affidataria <span class="text-red-500">*</span>
+            </label>
+            <input id="pos-impresa" type="text"
+                   placeholder="Es. Costruzioni Rossi S.r.l."
+                   class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                   aria-required="true" />
+          </div>
+        </div>
+
+        <!-- PEC -->
+        <div>
+          <label for="pos-pec" class="text-xs font-semibold text-slate-600 block mb-1">
+            PEC Impresa
+          </label>
+          <input id="pos-pec" type="text"
+                 placeholder="Es. costruzionirossi@pec.it"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <!-- ESITO — 3 radio con stile card -->
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-2">
+            Giudizio di Idoneità <span class="text-red-500">*</span>
+          </label>
+          <div class="space-y-2" role="radiogroup" aria-label="Esito verifica POS">
+
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200
+                          hover:border-green-400 hover:bg-green-50 cursor-pointer transition
+                          has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+              <input type="radio" name="pos-esito" value="idoneo"
+                     class="mt-0.5 accent-green-600"
+                     onchange="document.getElementById('pos-integrazioni-block').classList.add('hidden')" />
+              <div>
+                <div class="text-sm font-semibold text-green-700">✅ Idoneo</div>
+                <div class="text-xs text-slate-500">Il POS è conforme al D.Lgs 81/08</div>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200
+                          hover:border-amber-400 hover:bg-amber-50 cursor-pointer transition
+                          has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+              <input type="radio" name="pos-esito" value="idoneo-con-integrazioni"
+                     class="mt-0.5 accent-amber-600"
+                     onchange="document.getElementById('pos-integrazioni-block').classList.remove('hidden')" />
+              <div>
+                <div class="text-sm font-semibold text-amber-700">⚠️ Idoneo con integrazioni</div>
+                <div class="text-xs text-slate-500">
+                  Il POS è accettabile ma richiede le integrazioni indicate sotto
+                </div>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200
+                          hover:border-red-400 hover:bg-red-50 cursor-pointer transition
+                          has-[:checked]:border-red-500 has-[:checked]:bg-red-50">
+              <input type="radio" name="pos-esito" value="non-idoneo"
+                     class="mt-0.5 accent-red-600"
+                     onchange="document.getElementById('pos-integrazioni-block').classList.add('hidden')" />
+              <div>
+                <div class="text-sm font-semibold text-red-700">❌ Non Idoneo</div>
+                <div class="text-xs text-slate-500">
+                  Non conforme all'Allegato XV D.Lgs 81/08 — ripresentare il POS
+                </div>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- INTEGRAZIONI (visibile solo se idoneo-con-integrazioni) -->
+        <div id="pos-integrazioni-block" class="hidden">
+          <label for="pos-integrazioni"
+                 class="text-xs font-semibold text-slate-600 block mb-1">
+            Integrazioni richieste <span class="text-red-500">*</span>
+          </label>
+          <textarea id="pos-integrazioni" rows="3"
+                    placeholder="Es. Integrare il capitolo 4 con le misure antirumore per l'operazione di fresatura.&#10;Aggiornare l'elenco DPI con le schede tecniche delle imbracature."
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <!-- CSE -->
+        <div>
+          <label for="pos-cse" class="text-xs font-semibold text-slate-600 block mb-1">
+            Il Coordinatore per l'Esecuzione (CSE)
+          </label>
+          <input id="pos-cse" type="text"
+                 placeholder="Es. Geom. Dogano Casella"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <!-- BOTTONI -->
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button type="submit"
+                  class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  aria-label="Salva verifica idoneità POS">
+            ✅ Salva Verifica
+          </button>
+          <button type="button"
+                  onclick="apriSalvataggioVerificaPOS(null)"
+                  class="bg-slate-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                  aria-label="Salva e esporta Word o PDF">
+            💾 Salva / Esporta
+          </button>
+          <button type="button"
+                  onclick="exportPOSWord(null)"
+                  class="bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+                  aria-label="Scarica come Word">
+            📄 Word
+          </button>
+          <button type="button"
+                  onclick="if(typeof mostraPannelloEmail==='function') mostraPannelloEmail({tipo:'generico'})"
+                  class="bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+                         hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                  aria-label="Invia via email">
+            ✉️ Email
+          </button>
+        </div>
+
+      </form>
+
+    </section>
+
+    <!-- ─────────── VIEW: NC ─────────── -->
+    <section id="view-nc"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Non Conformità e Ordini di Servizio inviati"
+             aria-hidden="true">
+
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">Non Conformità / ODS Inviati</h3>
+          <div class="text-xs text-slate-500 mt-1">
+            Rilievi al cantiere: Non Conformità formali o Ordini di Servizio alle imprese
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="nuovaNC('nc')"
+                  class="bg-red-600 text-white text-sm px-3 py-2 rounded-lg font-semibold
+                         hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
+                  aria-label="Crea nuova Non Conformità">
+            ⚠️ Nuova NC
+          </button>
+          <button onclick="nuovaNC('ods')"
+                  class="bg-amber-600 text-white text-sm px-3 py-2 rounded-lg font-semibold
+                         hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  aria-label="Emetti nuovo Ordine di Servizio all'impresa">
+            📋 Nuovo ODS
+          </button>
+        </div>
+      </div>
+
+      <!-- Form modifica NC -->
+      <div class="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-4 max-w-2xl">
+
+        <h4 class="text-base font-semibold text-slate-700">Modifica NC selezionata</h4>
+
+        <div>
+          <label for="nc-titolo" class="text-xs font-semibold text-slate-600 block mb-1">Titolo NC</label>
+          <input id="nc-titolo"
+                 type="text"
+                 placeholder="Es. DPI assenti — Mancanza casco protezione"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
+        <div>
+          <label for="nc-descrizione" class="text-xs font-semibold text-slate-600 block mb-1">Descrizione</label>
+          <textarea id="nc-descrizione"
+                    rows="4"
+                    placeholder="Descrizione dettagliata della non conformità riscontrata, con riferimento normativo (D.Lgs 81/08, art. …)"
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="nc-stato" class="text-xs font-semibold text-slate-600 block mb-1">Stato</label>
+            <select id="nc-stato"
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none">
+              <option value="aperta">🔴 Aperta</option>
+              <option value="in-corso">🟡 In Corso di Risoluzione</option>
+              <option value="chiusa">✅ Chiusa</option>
+            </select>
+          </div>
+          <div>
+            <label for="nc-livello" class="text-xs font-semibold text-slate-600 block mb-1">
+              Livello <span class="text-xs text-slate-400">(modifica scadenza automaticamente)</span>
+            </label>
+            <select id="nc-livello"
+                    class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none">
+              <option value="lieve">🔵 Lieve (7 giorni)</option>
+              <option value="media">🟡 Media (7 giorni)</option>
+              <option value="grave">🟠 Grave (72 ore)</option>
+              <option value="gravissima">🔴 Gravissima (24 ore)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="salvaNC()"
+                  class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold
+                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  aria-label="Salva modifiche Non Conformità">
+            💾 Salva NC
+          </button>
+        </div>
+
+        <!-- Documenti collegati alla NC -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide">
+              📎 Documenti Collegati
+            </h4>
+            <button aria-label="Allega Documento" type="button"
+                    onclick="collegaDocumentoDaSelettore('nc', window.currentNcId)"
+                    class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+                           hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400">
+              + Allega Documento
+            </button>
+          </div>
+          <div id="documenti-nc" class="space-y-2" aria-live="polite"></div>
+        </div>
+
+      </div>
+
+      <!-- Lista NC -->
+      <div>
+        <h4 class="text-base font-semibold text-slate-700 mb-3">Tutte le NC</h4>
+        <div id="nc-list-spa" role="list" aria-label="Lista Non Conformità" aria-live="polite"></div>
+      </div>
+
+    </section>
+
+    <!-- ─────────── VIEW: DOCUMENTI ─────────── -->
+    <section id="view-documenti"
+             class="page-transition page-hidden space-y-5"
+             role="region"
+             aria-label="Archivio Documentale"
+             aria-hidden="true">
+
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">Archivio Documentale</h3>
+        <p class="text-sm text-slate-500 mt-1">
+          Documenti cantiere · Normative & Circolari · Ordini di Servizio (ODS)
+        </p>
+      </div>
+
+      <!-- TAB: Documenti / Normative / ODS -->
+      <nav role="tablist" aria-label="Categorie documenti" class="flex flex-wrap gap-2">
+        <button aria-label="Tutti" data-doc-tab="tutti"
+                role="tab" aria-selected="true" tabindex="0"
+                class="doc-tab-btn doc-tab-active px-4 py-2 rounded-lg text-sm font-semibold
+                       focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                onclick="switchDocTab('tutti')">
+          📁 Tutti
+        </button>
+        <button aria-label="Documenti Cantiere" data-doc-tab="cantiere"
+                role="tab" aria-selected="false" tabindex="-1"
+                class="doc-tab-btn px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold
+                       hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                onclick="switchDocTab('cantiere')">
+          🏗️ Documenti Cantiere
+        </button>
+        <button aria-label="Normative Circolari" data-doc-tab="normative"
+                role="tab" aria-selected="false" tabindex="-1"
+                class="doc-tab-btn px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold
+                       hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                onclick="switchDocTab('normative')">
+          📚 Normative & Circolari
+        </button>
+        <button aria-label="Ordini di Servizio 0" data-doc-tab="ods"
+                role="tab" aria-selected="false" tabindex="-1"
+                class="doc-tab-btn px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold
+                       hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                onclick="switchDocTab('ods')">
+          📋 Ordini di Servizio
+          <span id="badge-ods" class="ml-1 bg-indigo-600 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+      </nav>
+
+      <!-- RICERCA GLOBALE -->
+      <input id="search-doc"
+             type="search"
+             placeholder="🔍 Cerca per nome, tag, articolo (es. PSC, art.92, circolare, ODS-2025…)"
+             class="w-full p-3 rounded-xl border border-slate-300 bg-white shadow-sm text-sm
+                    focus:ring-2 focus:ring-blue-400 focus:outline-none"
+             aria-label="Cerca documento" />
+
+      <!-- ═══ DROP AREA — DOCUMENTI CANTIERE ═══ -->
+      <div id="panel-doc-tutti" data-doc-panel="tutti">
+        <div id="drop-area"
+             role="button" tabindex="0"
+             class="border-2 border-dashed border-slate-300 bg-white p-8 rounded-2xl text-center
+                    cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition"
+             aria-label="Trascina documenti cantiere (PSC, POS, DVR, Verbali…)"
+             onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fileElem').click()">
+          <div class="text-3xl mb-2">📄</div>
+          <p class="text-sm text-slate-600 font-semibold">Trascina qui i documenti cantiere</p>
+          <p class="text-xs text-slate-400 mt-1">PSC · POS · DVR · Segnaletica · Verbali · NC</p>
+          <p class="text-xs text-slate-400">Oppure <span class="text-blue-600 underline cursor-pointer font-semibold"
+               onclick="document.getElementById('fileElem').click()">clicca per selezionare</span></p>
+          <input type="file" id="fileElem" multiple class="hidden"
+                 aria-label="Seleziona documenti cantiere" />
+        </div>
+      </div>
+
+      <!-- ═══ DROP AREA — NORMATIVE ═══ -->
+      <div id="panel-doc-normative" data-doc-panel="normative" class="hidden">
+        <div id="drop-area-normative"
+             role="button" tabindex="0"
+             class="border-2 border-dashed border-indigo-300 bg-indigo-50 p-8 rounded-2xl text-center
+                    cursor-pointer hover:border-indigo-500 hover:bg-indigo-100 transition"
+             aria-label="Trascina normative e circolari"
+             onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fileElem-normative').click()">
+          <div class="text-3xl mb-2">📚</div>
+          <p class="text-sm text-indigo-800 font-semibold">Trascina normative e circolari</p>
+          <p class="text-xs text-indigo-500 mt-1">D.Lgs 81/08 · D.I. 22/01/2019 · Circolari ANAS · Istruzioni Tecniche · Capitolati</p>
+          <p class="text-xs text-indigo-500">Oppure <span class="text-indigo-700 underline cursor-pointer font-semibold"
+               onclick="document.getElementById('fileElem-normative').click()">clicca per selezionare</span></p>
+          <input type="file" id="fileElem-normative" multiple class="hidden"
+                 accept=".pdf,.doc,.docx,.txt"
+                 aria-label="Seleziona normative" />
+        </div>
+      </div>
+
+      <!-- ═══ DROP AREA — ODS ═══ -->
+      <div id="panel-doc-ods" data-doc-panel="ods" class="hidden">
+        <div id="drop-area-ods"
+             role="button" tabindex="0"
+             class="border-2 border-dashed border-green-300 bg-green-50 p-8 rounded-2xl text-center
+                    cursor-pointer hover:border-green-500 hover:bg-green-100 transition"
+             aria-label="Trascina Ordini di Servizio (ODS)"
+             onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fileElem-ods').click()">
+          <div class="text-3xl mb-2">📋</div>
+          <p class="text-sm text-green-800 font-semibold">Trascina gli Ordini di Servizio</p>
+          <p class="text-xs text-green-600 mt-1">ODS · Ordini di Lavoro · Disposizioni di Servizio · Comunicazioni ANAS</p>
+          <p class="text-xs text-green-600">Oppure <span class="text-green-700 underline cursor-pointer font-semibold"
+               onclick="document.getElementById('fileElem-ods').click()">clicca per selezionare</span></p>
+          <input type="file" id="fileElem-ods" multiple class="hidden"
+                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.ods,.xls,.xlsx"
+                 aria-label="Seleziona ODS" />
+        </div>
+
+        <!-- Ricerca ODS specifica -->
+        <div class="mt-4 flex gap-2 items-center">
+          <input id="search-ods"
+                 type="search"
+                 placeholder="🔍 Cerca ODS per numero, data, oggetto…"
+                 class="flex-1 p-2.5 rounded-xl border border-slate-300 bg-white text-sm
+                        focus:ring-2 focus:ring-green-400 focus:outline-none"
+                 aria-label="Cerca ordine di servizio" />
+          <button aria-label="Cerca" onclick="renderDocumenti('ods')"
+                  class="bg-green-600 text-white text-xs px-3 py-2.5 rounded-xl
+                         hover:bg-green-700 focus:outline-none font-semibold">
+            Cerca
+          </button>
+        </div>
+      </div>
+
+      <!-- LISTA DOCUMENTI (condivisa, filtrata per tab attivo) -->
+      <div id="documenti-list"
+           role="list"
+           aria-label="Lista documenti"
+           aria-live="polite"
+           class="space-y-3"></div>
+
+    </section>
+
+    <!-- ─────────── VIEW: ODS RICEVUTI ─────────── -->
+    <section id="view-ods-ricevuti"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Ordini di Servizio Ricevuti"
+             aria-hidden="true">
+
+      <div id="view-ods-ricevuti-container"></div>
+    </section>
+
+    <!-- ─────────── VIEW: DOCUMENTI FONDAMENTALI ─────────── -->
+    <section id="view-documenti-fondamentali"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Documenti Fondamentali Cantiere"
+             aria-hidden="true">
+
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">📋 Documenti Fondamentali Cantiere</h3>
+        <p class="text-sm text-slate-500 mt-1">
+          Documenti obbligatori senza i quali il cantiere non può partire.
+          Trascina i file sulle rispettive righe per caricarli.
+        </p>
+      </div>
+
+      <div id="view-documenti-fondamentali-container"></div>
+    </section>
+
+    <!-- ─────────── VIEW: IMPOSTAZIONI ─────────── -->
+    <section id="view-impostazioni"
+             class="page-transition page-hidden space-y-6"
+             role="region"
+             aria-label="Impostazioni Verbale"
+             aria-hidden="true">
+
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">⚙️ Impostazioni Verbale PDF</h3>
+        <p class="text-sm text-slate-500 mt-1">
+          Personalizza loghi, intestazione, firma e footer che appariranno su ogni verbale stampato.
+          Le modifiche vengono salvate localmente nel browser.
+        </p>
+      </div>
+
+      <div id="view-impostazioni-inner" aria-live="polite">
+        <div class="text-slate-400 text-sm">Caricamento impostazioni…</div>
+      </div>
+
+    </section>
+
+  </div><!-- /overflow-y-auto -->
+</div><!-- /main area -->
+
+<!-- ─────────────────────────────────────────────────────
+     SCRIPT INLINE — switchView + init
+───────────────────────────────────────────────────── -->
+<script>
+// Elenco completo delle view
+const VIEWS = ['hub', 'anagrafica', 'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento', 'verifica-pos', 'nc', 'ods-ricevuti', 'documenti-fondamentali', 'documenti', 'impostazioni'];
+
+const VIEW_TITLES = {
+  'hub':                       '📂 Hub Cantieri',
+  'anagrafica':                '👥 Anagrafica Imprese',
+  'dashboard-cantiere':        '📊 Dashboard Cantiere',
+  'nuovo-verbale':             '📝 Nuovo Verbale di Sopralluogo',
+  'riunione-coordinamento':    '📋 Verbale Riunione di Coordinamento',
+  'verifica-pos':              '✅ Verifica Idoneità POS',
+  'nc':                        '⚠️ Non Conformità / ODS Inviati',
+  'ods-ricevuti':              '📥 ODS Ricevuti',
+  'documenti-fondamentali':    '📋 Documenti Fondamentali Cantiere',
+  'documenti':                 '📚 Normative & Altri Documenti',
+  'impostazioni':              '⚙️ Impostazioni Verbale PDF'
+};
+
+// appState globale (usato da nc.js, dashboard-docs.js, verbali.js etc.)
+window.appState = {
+  currentView:    'hub',
+  currentProject: null,
+  projectName:    null
+};
+
+// ── Guard: view che richiedono cantiere attivo ──
+const VIEWS_REQUIRE_PROJECT = [
+  'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento',
+  'verifica-pos', 'nc', 'documenti', 'documenti-fondamentali'
+  // 'ods-ricevuti' NON richiede cantiere: gli ODS possono essere generici
+];
+
+function _mostraMessaggioNoCantiere(viewId) {
+  const el = document.getElementById('view-' + viewId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="bg-amber-50 border border-amber-300 rounded-xl p-6 max-w-2xl">
+      <div class="flex items-start gap-3">
+        <div class="text-3xl">⚠️</div>
+        <div class="flex-1">
+          <h3 class="font-bold text-amber-900 text-base mb-1">
+            Nessun cantiere selezionato
+          </h3>
+          <p class="text-sm text-amber-800">
+            Per accedere a questa sezione devi prima selezionare un cantiere.
+            Vai all'Hub e scegli il cantiere su cui vuoi lavorare.
+          </p>
+          <button aria-label="Vai all Hub Cantieri" onclick="switchView('hub')"
+                  class="mt-3 bg-amber-600 text-white text-sm px-4 py-2 rounded-lg
+                         hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400
+                         font-semibold">
+            🏢 Vai all'Hub Cantieri
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── switchView: cambia view e chiama le funzioni render appropriate ──
+function switchView(viewId) {
+  // Guard: se la view richiede cantiere e non c'è → mostra messaggio e stop
+  if (VIEWS_REQUIRE_PROJECT.includes(viewId) && !window.appState?.currentProject) {
+    VIEWS.forEach(v => {
+      const el = document.getElementById(`view-${v}`);
+      if (!el) return;
+      el.classList.toggle('page-hidden', v !== viewId);
+      el.setAttribute('aria-hidden', v === viewId ? 'false' : 'true');
+    });
+    const titleEl = document.getElementById('header-title');
+    if (titleEl) titleEl.textContent = VIEW_TITLES[viewId] || viewId;
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      const isActive = btn.dataset.nav === viewId;
+      btn.classList.toggle('nav-link-active', isActive);
+    });
+    _mostraMessaggioNoCantiere(viewId);
+    return;
+  }
+  VIEWS.forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    if (!el) return;
+    if (v === viewId) {
+      el.classList.remove('page-hidden');
+      el.removeAttribute('aria-hidden');
+      // Restart animazione fade-in
+      el.classList.remove('page-fade-in');
+      void el.offsetWidth; // force reflow → riavvia animazione
+      el.classList.add('page-fade-in');
+    } else {
+      el.classList.add('page-hidden');
+      el.classList.remove('page-fade-in');
+      el.setAttribute('aria-hidden', 'true');
+    }
+  });
+
+  // Aggiorna titolo header
+  const titleEl = document.getElementById('header-title');
+  if (titleEl) titleEl.textContent = VIEW_TITLES[viewId] || viewId;
+
+  // Aggiorna stato nav
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    const isActive = btn.dataset.nav === viewId;
+    btn.classList.toggle('nav-link-active', isActive);
+    btn.classList.toggle('text-slate-300', !isActive);
+    btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+  });
+
+  window.appState.currentView = viewId;
+
+  // P1: Aggiorna selettore cantiere in topbar (ri-popolato ad ogni cambio view
+  // per catturare nuovi cantieri creati nel frattempo)
+  if (typeof popolaTopbarCantieri === 'function') popolaTopbarCantieri();
+
+  // ── Render on-enter per ogni view ──
+  switch(viewId) {
+    case 'hub':
+      refreshProjectsGrid();
+      break;
+
+    case 'anagrafica':
+      // Pre-seleziona il cantiere corrente nel select di assegnazione
+      (async () => {
+        const sel = document.getElementById('assegna-cantiere-spa');
+        if (!sel || !window.appState?.currentProject) return;
+        // Lascia il tempo al select di essere già popolato
+        setTimeout(() => {
+          if (window.appState?.currentProject) {
+            const opt = sel.querySelector(`option[value="${window.appState.currentProject}"]`);
+            if (opt) opt.selected = true;
+          }
+        }, 50);
+      })();
+      break;
+
+    case 'dashboard-cantiere':
+      // Render KPI documentali, scadenze e documenti obbligatori
+      if (typeof calcolaKPIDocumenti === 'function') {
+        calcolaKPIDocumenti().then(kpi => {
+          const set = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+          set('kpi-doc-tot',        kpi.totali);
+          set('kpi-doc-verbali',    kpi.collegatiVerbali);
+          set('kpi-doc-nc',         kpi.collegatiNC);
+        }).catch(() => {});
+      }
+      if (typeof renderKPIscadenze         === 'function') renderKPIscadenze();
+      if (typeof renderListaScadenze       === 'function') renderListaScadenze('lista-scadenze-doc');
+      if (typeof renderDocumentiObbligatori=== 'function') renderDocumentiObbligatori();
+      if (typeof renderNCList              === 'function') renderNCList('dashboard-nc-list');
+      if (typeof alertScadenze             === 'function') alertScadenze();
+      break;
+
+    case 'nuovo-verbale':
+      // Pre-popola data odierna
+      (() => {
+        const dataInput = document.getElementById('verbale-data');
+        if (dataInput && !dataInput.value) {
+          dataInput.value = new Date().toISOString().slice(0, 10);
+        }
+      })();
+      // Popola select imprese
+      _popolaSelectImprese();
+      // Inizializza firma canvas (si resetta ogni volta che entri nella view)
+      if (typeof renderFirmaCanvas === 'function') {
+        window._firmaCorrente = null;
+        renderFirmaCanvas('firma-verbale-container', (firmaData) => {
+          window._firmaCorrente = firmaData;
+        });
+        // P2: pre-compila con firma persistente se disponibile
+        (async () => {
+          if (typeof getFirmaPersistente === 'function') {
+            const firmaPers = await getFirmaPersistente();
+            if (firmaPers && typeof caricaFirmaSuCanvas === 'function') {
+              caricaFirmaSuCanvas('firma-verbale-container', firmaPers);
+              // Setta anche la firma corrente in memoria, così il form la salva
+              window._firmaCorrente = {
+                png:       firmaPers,
+                timestamp: new Date().toISOString(),
+                firmante:  'Geom. Dogano Casella — CSE'
+              };
+            }
+          }
+        })();
+      }
+      break;
+
+    case 'riunione-coordinamento':
+      // Pre-popola data odierna e campo CSE
+      (async () => {
+        const dataInput = document.getElementById('riunione-data');
+        if (dataInput && !dataInput.value) {
+          dataInput.value = new Date().toISOString().slice(0, 10);
+        }
+        if (typeof caricaImpostazioni === 'function') {
+          const imp = await caricaImpostazioni().catch(() => ({}));
+        }
+        // P3: popola multi-select imprese del cantiere corrente
+        if (typeof _popolaImpreseRiunione === 'function') {
+          await _popolaImpreseRiunione();
+        }
+      })();
+      break;
+
+    case 'verifica-pos':
+      // Pre-popola campo CSE e data odierna
+      (async () => {
+        const cseInput = document.getElementById('pos-cse');
+        const dataInput = document.getElementById('pos-data');
+        if (dataInput && !dataInput.value) {
+          dataInput.value = new Date().toISOString().slice(0, 10);
+        }
+        if (cseInput && !cseInput.value && typeof caricaImpostazioni === 'function') {
+          const imp = await caricaImpostazioni().catch(() => ({}));
+          if (imp.firmaNome) cseInput.value = imp.firmaNome;
+        }
+      })();
+      break;
+
+    case 'nc':
+      if (typeof renderNCList === 'function') renderNCList('nc-list-spa');
+      break;
+
+    case 'ods-ricevuti':
+      if (typeof renderOdsRicevuti === 'function') {
+        renderOdsRicevuti('view-ods-ricevuti-container', window.appState?.currentProject);
+      }
+      break;
+
+    case 'documenti-fondamentali':
+      if (typeof renderDocumentiFondamentali === 'function') {
+        renderDocumentiFondamentali('view-documenti-fondamentali-container', window.appState?.currentProject);
+      }
+      break;
+
+    case 'documenti':
+      if (typeof renderDocumenti   === 'function') renderDocumenti();
+      if (typeof aggiornaBadgeODS  === 'function') aggiornaBadgeODS();
+      // Assicura che il primo tab (Tutti) sia attivo
+      if (typeof switchDocTab === 'function') switchDocTab('tutti');
+      break;
+
+    case 'impostazioni':
+      if (typeof renderViewImpostazioni === 'function') renderViewImpostazioni('view-impostazioni-inner');
+      break;
+  }
+}
+
+// ─────────────────────────────────────────────
+// P1 — Selettore cantiere rapido in topbar
+// ─────────────────────────────────────────────
+async function popolaTopbarCantieri() {
+  const container = document.getElementById('topbar-cantiere-container');
+  const sel       = document.getElementById('topbar-cantiere-select');
+  if (!container || !sel) return;
+
+  const currentId = window.appState?.currentProject;
+  if (!currentId) {
+    container.classList.add('hidden');
+    return;
+  }
+
+  const projects = await getAll('projects').catch(() => []);
+  if (!projects.length) {
+    container.classList.add('hidden');
+    return;
+  }
+
+  sel.innerHTML = projects.map(p => {
+    const nome = escapeHtml(p.nome || p.id);
+    const id   = escapeHtml(p.id);
+    return `<option value="${id}" ${p.id === currentId ? 'selected' : ''}>
+              ${id} — ${nome}
+            </option>`;
+  }).join('');
+
+  container.classList.remove('hidden');
+  container.classList.add('flex');
+}
+
+async function cambiaCantiereRapido(newProjectId) {
+  if (!newProjectId || newProjectId === window.appState?.currentProject) return;
+
+  const projects = await getAll('projects').catch(() => []);
+  const proj     = projects.find(p => p.id === newProjectId);
+  if (!proj) { showToast('Cantiere non trovato.', 'error'); return; }
+
+  // Aggiorna appState + sessionStorage (coerente con navigation.js)
+  window.appState.currentProject = proj.id;
+  window.appState.projectName    = proj.nome;
+  sessionStorage.setItem('currentProjectId',   proj.id);
+  sessionStorage.setItem('currentProjectName', proj.nome);
+
+  showToast(`Cantiere attivo: ${proj.id}`, 'success');
+
+  // Ri-render la view corrente per riflettere il nuovo cantiere
+  const currentView = window.appState.currentView || 'hub';
+  switchView(currentView);
+}
+
+// Popola la select delle imprese nel form verbale
+async function _popolaSelectImprese() {
+  const sel = document.getElementById('verbale-imprese');
+  if (!sel) return;
+  try {
+    const imprese = await getAll('imprese');
+    sel.innerHTML = imprese.length > 0
+      ? imprese.map(i => { const n = escapeHtml(i.nome || i.id); return `<option value="${n}">${n}</option>`; }).join('')
+      : '<option disabled>Nessuna impresa in anagrafica</option>';
+  } catch(_) {}
+}
+
+// ─────────────────────────────────────────────
+// P3 — Popola multi-select imprese del cantiere corrente per Riunione
+// ─────────────────────────────────────────────
+async function _popolaImpreseRiunione() {
+  const sel = document.getElementById('riunione-presenti-imprese-select');
+  if (!sel) return;
+
+  const projectId = window.appState?.currentProject;
+  if (!projectId) {
+    sel.innerHTML = '<option disabled>Nessun cantiere selezionato</option>';
+    return;
+  }
+
+  try {
+    // Prendi TUTTE le imprese e le assegnazioni di questo cantiere
+    const [imprese, assegnazioni] = await Promise.all([
+      getAll('imprese').catch(() => []),
+      getAll('imprese_cantieri').catch(() => [])
+    ]);
+
+    // Filtra solo le imprese assegnate al cantiere corrente
+    const impresaIds = new Set(
+      assegnazioni
+        .filter(a => a.projectId === projectId)
+        .map(a => a.impresaId)
+    );
+
+    const impreseAssegnate = imprese.filter(i => impresaIds.has(i.id));
+
+    if (impreseAssegnate.length === 0) {
+      sel.innerHTML = `<option disabled>Nessuna impresa assegnata al cantiere ${escapeHtml(projectId)}</option>`;
+      return;
+    }
+
+    // Popola le opzioni con nome + ruolo
+    sel.innerHTML = impreseAssegnate.map(i => {
+      const assegn = assegnazioni.find(a => a.impresaId === i.id && a.projectId === projectId);
+      const ruolo  = assegn?.ruolo || i.ruolo || '';
+      const nome   = escapeHtml(i.nome || i.id);
+      const etich  = ruolo ? `${nome} (${escapeHtml(ruolo)})` : nome;
+      return `<option value="${nome}">${etich}</option>`;
+    }).join('');
+
+    // Default: preseleziona tutte (il CSE solitamente le vuole tutte alle riunioni)
+    Array.from(sel.options).forEach(o => o.selected = true);
+  } catch(err) {
+    console.error('Errore popolamento imprese riunione:', err);
+    sel.innerHTML = '<option disabled>Errore nel caricamento</option>';
+  }
+}
+
+// ── Bootstrap ──
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await initDB();
+
+    // Carica dati da USB / data/database.json se presente
+    await tryLoadDatabaseJsonFromDataFolder();
+
+    // Controlla se ci sono cantieri — se vuoto, inserisce seed
+    const existing = await getAll('projects');
+    if (!existing || existing.length === 0) {
+      const seeds = [
+        { id: 'CZ399', nome: 'Manutenzione Viadotto S. Giorgio',
+          loc: 'S.S. 106 Jonica · KM 42+000', status: 'warning',
+          createdAt: new Date().toISOString() },
+        { id: 'AN202', nome: 'Galleria San Francesco',
+          loc: 'A2 Autostrada del Mediterraneo · KM 88+500', status: 'ok',
+          createdAt: new Date().toISOString() }
+      ];
+      for (const p of seeds) await saveItem('projects', p);
+    }
+
+    // Collega form anagrafica
+    // Popola select cantieri all'avvio
+    const _aggiornaCantSel = async () => {
+      const sel = document.getElementById('assegna-cantiere-spa');
+      if (!sel) return;
+      const projects = await getAll('projects').catch(() => []);
+      sel.innerHTML = '<option value="">— Solo registro globale (senza cantiere) —</option>';
+      projects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.id} — ${p.nome}`;
+        // Pre-seleziona cantiere corrente se presente
+        if (window.appState?.currentProject === p.id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    };
+    await _aggiornaCantSel();
+
+    document.getElementById('btn-save-anagrafica')?.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const piva  = (document.getElementById('partita_iva')?.value    || '').trim();
+      const nome  = (document.getElementById('ragione_sociale')?.value || '').trim();
+      if (!nome) { showToast('La ragione sociale è obbligatoria.', 'warning'); return; }
+      const impresa = {
+        id:        piva || ('IMP-' + Date.now()),
+        nome, piva,
+        ruolo:     document.getElementById('tipo_soggetto')?.value || '',
+        referente: document.getElementById('referente')?.value     || '',
+        contatto:  document.getElementById('contatto')?.value      || '',
+        createdAt: new Date().toISOString()
+      };
+      await saveItem('imprese', impresa);
+
+      // Assegnazione automatica al cantiere (se selezionato)
+      const cantiereSel = document.getElementById('assegna-cantiere-spa')?.value || '';
+      if (cantiereSel) {
+        await saveItem('imprese_cantieri', {
+          id:        'ass_' + Date.now(),
+          projectId: cantiereSel,
+          impresaId: impresa.id,
+          ruolo:     impresa.ruolo || 'esecutrice',
+          createdAt: new Date().toISOString()
+        });
+        showToast(`"${nome}" salvata e assegnata al cantiere ${cantiereSel} ✓`, 'success');
+      } else {
+        showToast('Anagrafica salvata nel registro globale ✓', 'success');
+      }
+      document.getElementById('form-anagrafica')?.reset();
+      await _aggiornaCantSel(); // ripopola select dopo reset
+    });
+
+    // Controlla se arriva da dashboard con una view specifica
+    const openView = (typeof ripristinaStatoSuiteCSE === 'function')
+      ? ripristinaStatoSuiteCSE()
+      : null;
+
+    // Mostra la view richiesta o l'hub di default
+    switchView(openView || 'hub');
+
+  } catch(err) {
+    console.error('Errore avvio ANAS SafeHub:', err);
+    showToast('Errore avvio: ' + err, 'error');
+  }
+});
+</script>
+
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+    <div class="flex items-end justify-between px-4 py-2 pointer-events-auto">
+
+      <!-- Firma autore — sinistra -->
+      <div class="text-[11px] text-slate-400 select-none">
+        by <strong class="text-slate-500">Geom. Dogano Casella</strong> · CSE ANAS SpA
+      </div>
+
+      <!-- Pulsante installa PWA — destra -->
+      <button id="btn-pwa-install"
+              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+                     px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
+                     focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              aria-label="Installa ANAS SafeHub come app">
+        <span aria-hidden="true">📲</span> Installa App
+      </button>
+
+    </div>
+  </footer>
+
+  <!-- ═══════════ PWA + SW REGISTRATION ═══════════ -->
+  <script>
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[PWA] SW registrato:', reg.scope))
+          .catch(err => console.warn('[PWA] SW fallito:', err));
+      });
+    }
+
+    // Install prompt
+    let _deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.classList.remove('hidden');
+      if (btn) btn.classList.add('flex');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-pwa-install') && _deferredPrompt) {
+        _deferredPrompt.prompt();
+        _deferredPrompt.userChoice.then(choice => {
+          if (choice.outcome === 'accepted') {
+            const btn = document.getElementById('btn-pwa-install');
+            if (btn) btn.classList.add('hidden');
+          }
+          _deferredPrompt = null;
+        });
+      }
+    });
+
+    // Nasconde il pulsante se già installata
+    window.addEventListener('appinstalled', () => {
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.classList.add('hidden');
+    });
+  </script>
+
+<script>
+function apriSidebar() {
+  const s = document.getElementById('main-sidebar');
+  const o = document.getElementById('sidebar-overlay');
+  const b = document.getElementById('hamburger-btn');
+  s?.classList.add('open');
+  o?.classList.add('open');
+  b?.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('sidebar-open');
+}
+function chiudiSidebar() {
+  const s = document.getElementById('main-sidebar');
+  const o = document.getElementById('sidebar-overlay');
+  const b = document.getElementById('hamburger-btn');
+  s?.classList.remove('open');
+  o?.classList.remove('open');
+  b?.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('sidebar-open');
+}
+// Chiudi sidebar quando si cambia view su mobile
+// IMPORTANTE: chiamare _origSwitch, NON switchView (causava recursion infinita)
+(function () {
+  const _origSwitch = window.switchView;
+  if (typeof _origSwitch !== 'function') return;
+  window.switchView = function(v) {
+    if (window.innerWidth < 768) chiudiSidebar();
+    return _origSwitch(v);
+  };
+})();
+// Chiudi con swipe sinistra
+let _tsX = 0;
+document.getElementById('main-sidebar')?.addEventListener('touchstart', e => {
+  _tsX = e.touches[0].clientX;
+}, { passive: true });
+document.getElementById('main-sidebar')?.addEventListener('touchend', e => {
+  if (_tsX - e.changedTouches[0].clientX > 60) chiudiSidebar();
+}, { passive: true });
+</script>
+</body>
+</html>

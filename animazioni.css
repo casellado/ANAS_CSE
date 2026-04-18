@@ -1,0 +1,174 @@
+/* ───────────────────────────────────────────────────────────
+   ANAS SafeHub — Animazioni v1.5
+   Microanimazioni mirate per comunicare stato all'utente
+   senza appesantire l'UX.
+─────────────────────────────────────────────────────────── */
+
+/* Rispetta le preferenze di movimento ridotto del sistema */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ──────────────────────────────────────────
+   1. Toast progress bar
+   ────────────────────────────────────────── */
+@keyframes toastProgress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* ──────────────────────────────────────────
+   2. Pulse attenzione — NC gravissime
+   ────────────────────────────────────────── */
+@keyframes pulseAlert {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+}
+
+.alert-pulse {
+  animation: pulseAlert 2s infinite;
+}
+
+/* ──────────────────────────────────────────
+   3. Conferma salvataggio — flash + check
+   ────────────────────────────────────────── */
+@keyframes btnFlashSuccess {
+  0%   { background-color: inherit; transform: scale(1); }
+  20%  { background-color: #16a34a; transform: scale(1.05); }
+  100% { background-color: inherit; transform: scale(1); }
+}
+
+.btn-flash-success {
+  animation: btnFlashSuccess 500ms ease-out;
+}
+
+@keyframes checkmarkDraw {
+  0%   { stroke-dashoffset: 100; opacity: 0; }
+  40%  { opacity: 1; }
+  100% { stroke-dashoffset: 0;   opacity: 1; }
+}
+
+.checkmark-icon {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(22, 163, 74, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  pointer-events: none;
+  animation: fadeOut 1s ease-out forwards;
+}
+
+.checkmark-icon svg {
+  width: 50px;
+  height: 50px;
+  stroke: #16a34a;
+  stroke-width: 4;
+  fill: none;
+  stroke-dasharray: 100;
+  animation: checkmarkDraw 600ms ease-out forwards;
+}
+
+@keyframes fadeOut {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+/* ──────────────────────────────────────────
+   4. Skeleton loading (dashboard)
+   ────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f1f5f9 0%,
+    #e2e8f0 50%,
+    #f1f5f9 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+.skeleton-card {
+  padding: 1.25rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+}
+
+.skeleton-line {
+  height: 12px;
+  margin-bottom: 8px;
+}
+
+.skeleton-line-sm   { width: 40%; }
+.skeleton-line-md   { width: 70%; }
+.skeleton-line-lg   { width: 90%; }
+.skeleton-line-full { width: 100%; }
+
+/* ──────────────────────────────────────────
+   5. Transition fade tra view SPA
+   ────────────────────────────────────────── */
+.page-transition {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.page-hidden {
+  display: none !important;
+}
+
+/* Fade-in per view visibile (aggiunto da switchView) */
+.page-fade-in {
+  animation: fadeInUp 250ms ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ──────────────────────────────────────────
+   BONUS: hover elevazione card cantiere
+   ────────────────────────────────────────── */
+.card-hover {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus visible accessibile */
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

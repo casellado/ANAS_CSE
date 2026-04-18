@@ -1,0 +1,265 @@
+/* ───────────────────────────────────────────────────────────
+   ANAS SafeHub — Mobile CSS v1.6
+   Ottimizzazioni specifiche per phone + tablet
+─────────────────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────
+   VIEWPORT SAFE — padding per notch/home indicator iOS
+   ────────────────────────────────────────── */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top:    env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left:   env(safe-area-inset-left);
+    padding-right:  env(safe-area-inset-right);
+  }
+}
+
+/* ──────────────────────────────────────────
+   INPUT: iOS zoom fix (16px minimum per evitare zoom automatico)
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="search"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* ──────────────────────────────────────────
+   TOUCH TARGETS — minimo 44x44px (WCAG 2.5.5)
+   ────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a.btn,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width:  44px;
+  }
+}
+
+/* ──────────────────────────────────────────
+   MODAL FULL-SCREEN su phone (< 640px)
+   I modal centrati con margini sprecano spazio su schermi piccoli.
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  [role="dialog"] > div,
+  .modal-content {
+    max-width:  100% !important;
+    width:      100% !important;
+    margin:     0 !important;
+    border-radius: 0 !important;
+    min-height: 100vh;
+  }
+
+  /* Il wrapper del modal non deve più centrare ma riempire */
+  [role="dialog"][aria-modal="true"] {
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+}
+
+/* ──────────────────────────────────────────
+   TABELLE RESPONSIVE — scroll orizzontale su mobile
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+  }
+  .table-responsive table {
+    min-width: 500px;
+  }
+}
+
+/* ──────────────────────────────────────────
+   TOPBAR SELETTORE CANTIERE visibile anche su mobile
+   Attualmente hidden sm:flex → lo rendiamo flex su mobile
+   ma con dimensioni ridotte
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  #topbar-cantiere-container {
+    display: flex !important;
+  }
+  #topbar-cantiere-select {
+    max-width: 140px !important;
+    font-size: 11px !important;
+  }
+  /* Nascondi label "Cantiere:" su mobile, è ridondante */
+  #topbar-cantiere-container > span:first-child {
+    display: none;
+  }
+}
+
+/* ──────────────────────────────────────────
+   TOPBAR: bottoni icon-only su mobile
+   Nascondi il testo, tieni solo l'emoji
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Bottoni topbar con struttura "emoji testo" → mostra solo emoji */
+  header button[aria-label] {
+    gap: 0 !important;
+    padding-left:  8px !important;
+    padding-right: 8px !important;
+  }
+  /* Nascondi il testo dei bottoni topbar ma mantieni aria-label */
+  header .hide-on-mobile {
+    display: none;
+  }
+}
+
+/* ──────────────────────────────────────────
+   CARD CANTIERE — full width su mobile (già tailwind grid)
+   Aggiungiamo spaziatura migliore
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .card-hover {
+    margin-bottom: 8px;
+  }
+}
+
+/* ──────────────────────────────────────────
+   STICKY HEADER su scroll per tenere contesto
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  header[role="banner"]:not(.no-sticky) {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: white;
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* ──────────────────────────────────────────
+   FLOATING ACTION BUTTON — azioni rapide mobile
+   ────────────────────────────────────────── */
+.fab {
+  position: fixed;
+  bottom:   calc(16px + env(safe-area-inset-bottom, 0));
+  right:    16px;
+  z-index:  40;
+  width:    56px;
+  height:   56px;
+  border-radius: 50%;
+  background: #2563eb;
+  color:    white;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 150ms;
+}
+
+.fab:active {
+  transform: scale(0.92);
+}
+
+@media (min-width: 640px) {
+  .fab.mobile-only { display: none; }
+}
+
+/* ──────────────────────────────────────────
+   IMAGE CAROUSEL — foto NC scroll mobile-friendly
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .foto-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    display: flex;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  .foto-container img {
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+    width:  128px !important;
+    height: 128px !important;
+  }
+}
+
+/* ──────────────────────────────────────────
+   TEXTAREA — autogrowth + altezza utile su mobile
+   ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  textarea {
+    min-height: 80px;
+  }
+}
+
+/* ──────────────────────────────────────────
+   SIDEBAR SPA — overlay full-screen su mobile
+   ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  aside.sidebar-mobile-overlay {
+    position: fixed;
+    top:  0;
+    left: 0;
+    height: 100vh;
+    width: 85%;
+    max-width: 320px;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 250ms ease-out;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+  }
+  aside.sidebar-mobile-overlay.open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 49;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms;
+  }
+  .sidebar-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ──────────────────────────────────────────
+   PULL-TO-REFRESH affordance (visual only, non funzionale)
+   Evita che il browser mostri refresh iOS quando scroll in cima
+   ────────────────────────────────────────── */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* ──────────────────────────────────────────
+   TAP HIGHLIGHT — rimuovi il rettangolo blu iOS
+   ────────────────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.1);
+}
+
+/* ──────────────────────────────────────────
+   SELEZIONE TESTO su mobile — disabilitata su UI elements
+   ────────────────────────────────────────── */
+button, .nav-btn, [role="tab"] {
+  -webkit-user-select: none;
+  user-select: none;
+}

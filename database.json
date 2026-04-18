@@ -1,0 +1,28 @@
+{
+  "exportedAt": "2025-01-01T00:00:00.000Z",
+  "_note": "File master USB-first. Sovrascrivere con 'Salva su USB' dall'app dopo ogni sessione.",
+
+  "projects": [
+    {
+      "id": "CZ399",
+      "nome": "Manutenzione Viadotto S. Giorgio",
+      "loc": "S.S. 106 Jonica · KM 42+000",
+      "status": "warning",
+      "createdAt": "2025-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "AN202",
+      "nome": "Galleria San Francesco",
+      "loc": "A2 Autostrada del Mediterraneo · KM 88+500",
+      "status": "ok",
+      "createdAt": "2025-01-01T08:00:00.000Z"
+    }
+  ],
+
+  "verbali": [],
+  "nc": [],
+  "imprese": [],
+  "lavoratori": [],
+  "imprese_cantieri": [],
+  "doc_links": []
+}

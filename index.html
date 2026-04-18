@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="ANAS SafeHub - Pannello CSE per la gestione della sicurezza nei cantieri ANAS SpA" />
+  <title>ANAS SafeHub · Hub Cantieri CSE</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    body           { font-family: Inter, system-ui, -apple-system, sans-serif; }
+    .page-hidden   { opacity: 0; transform: translateY(8px); pointer-events: none; }
+    .page-transition { transition: opacity .2s ease, transform .2s ease; }
+    [aria-hidden="true"] { display: none; }
+  </style>
+
+  <!-- Core -->
+  <script defer src="./db.js"></script>
+  <script defer src="./storage.js"></script>
+  <!-- UI (showToast usato anche da storage) -->
+  <script defer src="./ui.js"></script>
+  <!-- Bootstrap -->
+  <script defer src="./app.js"></script>
+  <!-- Navigation (sovrascrive enterProject di ui.js) -->
+  <script defer src="./navigation.js"></script>
+  <!-- Foto (senza apertura DB extra) -->
+  <script defer src="./foto.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <!-- firma.js -->
+  <script defer src="./firma.js"></script>
+  <script defer src="./ricerca-normativa.js"></script>
+  <script defer src="./smart-memory.js"></script>
+  <style>
+    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
+    button, [role="button"] { min-height: 44px; }
+    [role="tablist"] {
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-wrap: nowrap !important;
+    }
+    [role="tablist"]::-webkit-scrollbar { display: none; }
+  </style>
+  <link rel="stylesheet" href="./animazioni.css" />
+  <link rel="stylesheet" href="./mobile.css" />
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+
+  <div class="min-h-screen flex">
+
+    <!-- ───── SIDEBAR ───── -->
+    <aside class="w-60 bg-slate-900 text-white flex flex-col shrink-0"
+           role="navigation"
+           aria-label="Menu principale">
+
+      <!-- Brand -->
+      <div class="p-4 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">🚧</span>
+          <div>
+            <div class="font-extrabold text-base leading-tight">ANAS SafeHub</div>
+            <div class="text-xs text-slate-400 leading-tight">Pannello CSE · Offline-first</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav links -->
+      <nav class="flex-1 p-3 space-y-1" aria-label="Sezioni">
+        <button id="btn-hub"
+                data-view-btn="hub-view"
+                class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-800 font-semibold
+                       hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500
+                       transition text-sm flex items-center gap-2"
+                aria-pressed="true"
+                aria-controls="hub-view">
+          <span aria-hidden="true">📂</span> Hub Cantieri
+        </button>
+
+        <button id="btn-anagrafica"
+                data-view-btn="anagrafica-view"
+                class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
+                       hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
+                       transition text-sm flex items-center gap-2"
+                aria-pressed="false"
+                aria-controls="anagrafica-view">
+          <span aria-hidden="true">👥</span> Anagrafiche
+        </button>
+
+        <button onclick="window.location.href='ANAS_CSE_html.html'"
+                class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
+                       hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
+                       transition text-sm flex items-center gap-2 text-blue-400"
+                aria-label="Apri Suite CSE completa">
+          <span aria-hidden="true">🚀</span> Suite CSE Completa
+        </button>
+
+        <button id="btn-sync"
+                data-view-btn="sync-view"
+                class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
+                       hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
+                       transition text-sm flex items-center gap-2"
+                aria-pressed="false"
+                aria-controls="sync-view">
+          <span aria-hidden="true">⚙️</span> Gestione Dati
+        </button>
+      </nav>
+
+      <!-- Footer info -->
+      <div class="p-4 border-t border-slate-800 text-xs text-slate-500 space-y-1">
+        <div>Versione 1.2 · USB Mode</div>
+        <div>Master: <code class="text-slate-400">data/database.json</code></div>
+        <div class="mt-2 text-slate-600">
+          D.Lgs 81/08 · D.I. 22/01/2019<br>
+          Coord. Sicurezza in Esecuzione
+        </div>
+      </div>
+    </aside>
+
+    <!-- ───── MAIN ───── -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- HEADER -->
+      <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
+        <div>
+          <h1 class="text-xl font-bold text-slate-800">Hub Globale di Coordinamento (CSE)</h1>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Offline-first · IndexedDB cache · USB master
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-load-usb"
+                  class="flex items-center gap-2 bg-slate-800 text-white text-sm px-3 py-2 rounded-lg
+                         hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+                  aria-label="Carica database da file USB">
+            <span aria-hidden="true">📂</span> Carica da USB
+          </button>
+          <button onclick="apriPannelloRicerca()"
+                  class="flex items-center gap-1.5 bg-indigo-700 text-white text-sm px-3 py-2
+                         rounded-lg hover:bg-indigo-800 focus:outline-none focus:ring-2
+                         focus:ring-indigo-400 transition"
+                  aria-label="Apri ricerca normativa AI">
+            <span aria-hidden="true">📚</span> Normativa
+          </button>
+          <button id="btn-save-usb"
+                  class="flex items-center gap-2 bg-green-600 text-white text-sm px-3 py-2 rounded-lg
+                         hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+                  aria-label="Salva database su USB">
+            <span aria-hidden="true">💾</span> Salva su USB
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT AREA -->
+      <div class="flex-1 overflow-auto p-6 space-y-6">
+
+        <!-- ── HUB VIEW ── -->
+        <section id="hub-view"
+                 class="page-transition"
+                 role="region"
+                 aria-label="Hub Cantieri"
+                 aria-live="polite">
+
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-base font-semibold text-slate-700">Seleziona o crea un cantiere</h2>
+            <button id="btn-new-project"
+                    class="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2
+                           rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                    aria-label="Crea un nuovo cantiere">
+              <span aria-hidden="true">+</span> Nuovo Cantiere
+            </button>
+          </div>
+
+          <!-- P5: Alert globale NC scadenza (nascosto se nulla da segnalare) -->
+          <div id="hub-nc-alert" class="hidden" role="region" aria-label="Alert non conformità"></div>
+
+          <div id="projects-grid"
+               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+               role="list"
+               aria-label="Lista cantieri"></div>
+
+          <p id="empty-state"
+             class="mt-6 text-sm text-slate-400 text-center py-10 hidden"
+             aria-live="polite">
+            Nessun cantiere presente.<br>
+            Clicca <strong>+ Nuovo Cantiere</strong> oppure carica un file
+            <code>database.json</code> dalla USB.
+          </p>
+        </section>
+
+        <!-- ── ANAGRAFICA VIEW ── -->
+        <section id="anagrafica-view"
+                 class="page-transition"
+                 role="region"
+                 aria-label="Gestione Anagrafiche"
+                 aria-hidden="true">
+
+          <h2 class="text-base font-semibold text-slate-700 mb-4">
+            Anagrafica Soggetti (Imprese, D.L., RUP…)
+          </h2>
+
+          <form id="form-anagrafica"
+                class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200
+                       grid grid-cols-1 md:grid-cols-2 gap-4"
+                novalidate
+                aria-label="Form anagrafica soggetto" onsubmit="return false">
+
+            <div class="md:col-span-2">
+              <label for="tipo_soggetto" class="text-xs font-semibold text-slate-600 block mb-1">
+                Tipo soggetto
+              </label>
+              <select id="tipo_soggetto"
+                      name="tipo_soggetto"
+                      class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                             focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                <option value="affidataria">Impresa Affidataria</option>
+                <option value="esecutrice">Impresa Esecutrice / Subappalto</option>
+                <option value="dl">Direzione Lavori (D.L.)</option>
+                <option value="committente">Committente (ANAS SpA)</option>
+                <option value="rup">R.U.P.</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="ragione_sociale" class="text-xs font-semibold text-slate-600 block mb-1">
+                Ragione Sociale / Nome <span class="text-red-500">*</span>
+              </label>
+              <input id="ragione_sociale"
+                     name="ragione_sociale"
+                     type="text"
+                     placeholder="Es. Costruzioni Rossi S.r.l."
+                     autocomplete="organization"
+                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                     aria-required="true" />
+            </div>
+
+            <div>
+              <label for="partita_iva" class="text-xs font-semibold text-slate-600 block mb-1">
+                P.IVA / Codice Fiscale
+              </label>
+              <input id="partita_iva"
+                     name="partita_iva"
+                     type="text"
+                     placeholder="Es. 01234567890"
+                     maxlength="16"
+                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                     aria-describedby="piva-hint" />
+              <div id="piva-hint" class="text-xs text-slate-400 mt-1">
+                11 cifre per P.IVA · 16 caratteri per Codice Fiscale
+              </div>
+            </div>
+
+            <div>
+              <label for="referente" class="text-xs font-semibold text-slate-600 block mb-1">
+                Referente / Preposto
+              </label>
+              <input id="referente"
+                     name="referente"
+                     type="text"
+                     placeholder="Es. Ing. Mario Rossi (Direttore Tecnico)"
+                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+            </div>
+
+            <div>
+              <label for="contatto" class="text-xs font-semibold text-slate-600 block mb-1">
+                PEC / Email / Telefono
+              </label>
+              <input id="contatto"
+                     name="contatto"
+                     type="text"
+                     placeholder="Es. info@costruzionirossi.it · +39 06 1234567"
+                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+            </div>
+
+            <!-- Campo assegnazione cantiere — opzionale -->
+            <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <label for="assegna-cantiere"
+                     class="text-xs font-semibold text-blue-800 block mb-1">
+                📍 Assegna subito a un cantiere
+                <span class="font-normal text-blue-600">(opzionale)</span>
+              </label>
+              <select id="assegna-cantiere"
+                      class="w-full border border-blue-300 rounded-lg p-2.5 text-sm bg-white
+                             focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                <option value="">— Solo registro globale (senza cantiere) —</option>
+              </select>
+              <div class="text-xs text-blue-600 mt-1.5">
+                Se selezioni un cantiere, l'impresa viene associata automaticamente
+                al momento del salvataggio.
+              </div>
+            </div>
+
+            <div class="md:col-span-2 flex justify-end">
+              <button id="btn-save-anagrafica"
+                      type="button"
+                      class="bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold
+                             hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+                      aria-label="Salva anagrafica soggetto">
+                ✅ Salva Anagrafica
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ── SYNC VIEW ── -->
+        <section id="sync-view"
+                 class="page-transition"
+                 role="region"
+                 aria-label="Gestione dati USB"
+                 aria-hidden="true">
+
+          <h2 class="text-base font-semibold text-slate-700 mb-4">Gestione Dati USB</h2>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-5 max-w-2xl">
+
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+              <strong>Come funziona:</strong> Il file <code>data/database.json</code> sulla chiavetta
+              è il <strong>master</strong>. L'app carica automaticamente i dati da quel file
+              all'avvio. Usa i pulsanti qui sotto per importare ed esportare manualmente.
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <span class="text-2xl" aria-hidden="true">📂</span>
+                <div>
+                  <div class="font-semibold text-slate-800 text-sm">Carica database da USB</div>
+                  <div class="text-xs text-slate-500 mb-3">
+                    Seleziona manualmente il file <code>database.json</code> dalla chiavetta.
+                    I dati verranno uniti a quelli già presenti.
+                  </div>
+                  <button id="btn-load-usb-2"
+                          class="bg-slate-800 text-white text-xs px-4 py-2 rounded-lg
+                                 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          onclick="document.getElementById('btn-load-usb').click()"
+                          aria-label="Carica database da file JSON">
+                    Scegli file JSON…
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <span class="text-2xl" aria-hidden="true">💾</span>
+                <div>
+                  <div class="font-semibold text-slate-800 text-sm">Salva database su USB</div>
+                  <div class="text-xs text-slate-500 mb-3">
+                    Esporta lo stato corrente in un file <code>database.json</code> da copiare
+                    sulla chiavetta USB.
+                  </div>
+                  <button class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg
+                                 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+                          onclick="exportDatabaseToFile()"
+                          aria-label="Scarica database come file JSON">
+                    Scarica database.json
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div><!-- /content area -->
+    </main>
+  </div>
+
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+    <div class="flex items-end justify-between px-4 py-2 pointer-events-auto">
+
+      <!-- Firma autore — sinistra -->
+      <div class="text-[11px] text-slate-400 select-none">
+        by <strong class="text-slate-500">Geom. Dogano Casella</strong> · CSE ANAS SpA
+      </div>
+
+      <!-- Pulsante installa PWA — destra -->
+      <button id="btn-pwa-install"
+              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+                     px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
+                     focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              aria-label="Installa ANAS SafeHub come app">
+        <span aria-hidden="true">📲</span> Installa App
+      </button>
+
+    </div>
+  </footer>
+
+  <!-- ═══════════ PWA + SW REGISTRATION ═══════════ -->
+  <script>
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[PWA] SW registrato:', reg.scope))
+          .catch(err => console.warn('[PWA] SW fallito:', err));
+      });
+    }
+
+    // Install prompt
+    let _deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.classList.remove('hidden');
+      if (btn) btn.classList.add('flex');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-pwa-install') && _deferredPrompt) {
+        _deferredPrompt.prompt();
+        _deferredPrompt.userChoice.then(choice => {
+          if (choice.outcome === 'accepted') {
+            const btn = document.getElementById('btn-pwa-install');
+            if (btn) btn.classList.add('hidden');
+          }
+          _deferredPrompt = null;
+        });
+      }
+    });
+
+    // Nasconde il pulsante se già installata
+    window.addEventListener('appinstalled', () => {
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.classList.add('hidden');
+    });
+  </script>
+
+</body>
+</html>

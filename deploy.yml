@@ -1,0 +1,96 @@
+# .github/workflows/deploy.yml
+# ANAS SafeHub — Deploy automatico
+#
+# Flusso:
+#   Push su repo PRIVATO (sorgente)
+#     → Build + Obfuscation
+#       → Deploy su repo PUBBLICO (solo dist/)
+#         → GitHub Pages serve i file offuscati
+#
+# Setup necessario (una tantum):
+#   1. Crea un repo PUBBLICO separato es. "anas-safehub-pages"
+#   2. Vai su repo PRIVATO → Settings → Secrets → Actions
+#   3. Aggiungi secret: DEPLOY_TOKEN = Personal Access Token
+#      (GitHub → Settings → Developer settings → Tokens → classic)
+#      Permessi necessari: repo (full)
+#   4. Modifica PAGES_REPO sotto con il tuo username/repo
+
+name: Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:      # permette lancio manuale dalla UI GitHub
+
+env:
+  NODE_VERSION: '20'
+  PAGES_REPO: 'TUO_USERNAME/anas-safehub-pages'   # ← MODIFICA QUESTO
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Build offuscato e deploy su Pages
+
+    steps:
+      # ── 1. Checkout del repo privato (sorgente) ──
+      - name: Checkout sorgente
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Node.js ──
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # ── 3. Installa dipendenze build ──
+      - name: Installa dipendenze
+        run: npm ci
+
+      # ── 4. Build (obfusca + minifica) ──
+      - name: Build
+        run: npm run build
+
+      # ── 5. Verifica che dist/ sia stata creata ──
+      - name: Verifica dist/
+        run: |
+          echo "File in dist/:"
+          ls -la dist/
+          echo ""
+          echo "Totale file: $(find dist/ -type f | wc -l)"
+
+      # ── 6. Deploy su repo pubblico separato ──
+      - name: Deploy su GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          # Token con accesso al repo pubblico
+          personal_token: ${{ secrets.DEPLOY_TOKEN }}
+
+          # Repo pubblico dove vanno i file offuscati
+          external_repository: ${{ env.PAGES_REPO }}
+
+          # Branch del repo pubblico
+          publish_branch: gh-pages
+
+          # Cartella da pubblicare
+          publish_dir: ./dist
+
+          # Commit message nel repo pubblico
+          commit_message: |
+            Deploy build ${{ github.sha }} — ${{ github.event.head_commit.message }}
+
+          # Non mantenere la history del repo pubblico
+          # (ogni deploy è un commit pulito)
+          force_orphan: false
+
+          # Crea automaticamente .nojekyll (evita problemi con _)
+          enable_jekyll: false
+
+      # ── 7. Notifica risultato ──
+      - name: Riepilogo deploy
+        if: success()
+        run: |
+          echo "✅ Deploy completato!"
+          echo "🌐 URL: https://TUO_USERNAME.github.io/anas-safehub-pages/"
+          echo "📦 Commit: ${{ github.sha }}"
+          echo "⏰ Data: $(date)"

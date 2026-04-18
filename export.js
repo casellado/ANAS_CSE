@@ -1,0 +1,244 @@
+// export.js - Esportazione PDF / JSON per ANAS SafeHub
+
+// ─────────────────────────────────────────────
+// 0. Download blob generico — delega a salvaDocumento
+//    per picker nativo su desktop / share su mobile / fallback
+// ─────────────────────────────────────────────
+function downloadBlob(blob, filename, opts = {}) {
+  if (typeof salvaDocumento === 'function') {
+    return salvaDocumento({
+      filename,
+      blob,
+      cantiereId:    opts.cantiereId   || window.appState?.currentProject,
+      cantiereNome:  opts.cantiereNome || window.appState?.projectName,
+      tipoDoc:       opts.tipoDoc      || 'documento',
+      titoloCondivisione: opts.titolo  || filename
+    });
+  }
+  // Fallback se salva-file.js non caricato
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href    = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ─────────────────────────────────────────────
+// 1. Raccolta dati cantiere corrente
+// ─────────────────────────────────────────────
+async function raccogliDatiCantiere() {
+  const projectId = window.appState?.currentProject || null;
+
+  const stores = ['verbali', 'nc', 'imprese', 'lavoratori', 'doc_links'];
+  const result  = { meta: { esportatoIl: new Date().toISOString(), projectId } };
+
+  for (const store of stores) {
+    try { result[store] = await getAll(store); } catch (_) { result[store] = []; }
+  }
+
+  if (projectId) {
+    const byProject = item => item.projectId === projectId;
+    ['verbali', 'nc'].forEach(store => {
+      if (result[store].length) result[store] = result[store].filter(byProject);
+    });
+  }
+
+  return result;
+}
+
+// ─────────────────────────────────────────────
+// 2. Export JSON archivio completo
+// ─────────────────────────────────────────────
+async function exportArchivioJSON() {
+  const dati = await raccogliDatiCantiere();
+  const blob  = new Blob([JSON.stringify(dati, null, 2)], { type: 'application/json' });
+  const nome  = `ANAS_SafeHub_${dati.meta.projectId || 'globale'}_${new Date().toISOString().slice(0,10)}.json`;
+  downloadBlob(blob, nome);
+  showToast('Archivio JSON esportato ✓', 'success');
+}
+
+// ─────────────────────────────────────────────
+// 3. Export JSON singoli record
+// ─────────────────────────────────────────────
+async function exportVerbaleJSON(id) {
+  const list = await getAll('verbali').catch(() => []);
+  const v    = list.find(x => x.id === id);
+  if (!v) { showToast('Verbale non trovato.', 'error'); return; }
+  downloadBlob(new Blob([JSON.stringify(v, null, 2)], { type: 'application/json' }), `verbale_${id}.json`);
+}
+
+async function exportNCJSON(id) {
+  const list = await getAll('nc').catch(() => []);
+  const n    = list.find(x => x.id === id);
+  if (!n) { showToast('NC non trovata.', 'error'); return; }
+  downloadBlob(new Blob([JSON.stringify(n, null, 2)], { type: 'application/json' }), `nc_${id}.json`);
+}
+
+async function exportImpresaJSON(id) {
+  const list    = await getAll('imprese').catch(() => []);
+  const impresa = list.find(x => x.id === id);
+  if (!impresa) { showToast('Impresa non trovata.', 'error'); return; }
+  downloadBlob(new Blob([JSON.stringify(impresa, null, 2)], { type: 'application/json' }), `impresa_${id}.json`);
+}
+
+async function exportLavoratoreJSON(id) {
+  const list = await getAll('lavoratori').catch(() => []);
+  const l    = list.find(x => x.id === id);
+  if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
+  downloadBlob(new Blob([JSON.stringify(l, null, 2)], { type: 'application/json' }), `lavoratore_${id}.json`);
+}
+
+// ─────────────────────────────────────────────
+// 4. Export PDF (finestra di stampa)
+// ─────────────────────────────────────────────
+function apriFinestraStampa(titolo, htmlContenuto) {
+  const win = window.open('', '_blank');
+  if (!win) {
+    showToast('Impossibile aprire la finestra di stampa (popup bloccato?).', 'warning');
+    return;
+  }
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html lang="it">
+    <head>
+      <meta charset="UTF-8">
+      <title>${titolo} - ANAS SafeHub</title>
+      <style>
+        body        { font-family: Arial, sans-serif; padding: 24px; color: #1e293b; }
+        h1          { font-size: 20px; margin-bottom: 4px; color: #0f172a; }
+        h2, h3      { margin: 16px 0 4px; font-size: 14px; text-transform: uppercase;
+                      letter-spacing: .05em; color: #475569; }
+        .meta       { font-size: 11px; color: #94a3b8; margin-bottom: 16px; }
+        .campo      { margin-bottom: 12px; }
+        .label      { font-size: 11px; font-weight: bold; text-transform: uppercase;
+                      letter-spacing: .05em; color: #64748b; }
+        .valore     { font-size: 13px; margin-top: 2px; }
+        table       { border-collapse: collapse; width: 100%; margin-top: 8px; }
+        th, td      { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 12px; }
+        th          { background: #f1f5f9; font-weight: bold; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="meta">ANAS SafeHub · Stampato il ${new Date().toLocaleString('it-IT')}</div>
+      ${htmlContenuto}
+      <script>window.onload = () => window.print();<\/script>
+    </body>
+    </html>
+  `);
+  win.document.close();
+}
+
+async function exportVerbalePDF(id) {
+  const list = await getAll('verbali').catch(() => []);
+  const v    = list.find(x => x.id === id);
+  if (!v) { showToast('Verbale non trovato.', 'error'); return; }
+
+  // Usa template personalizzato se impostazioni.js è caricato
+  if (typeof caricaImpostazioni === 'function' &&
+      typeof apriStampaVerbaleConImpostazioni === 'function') {
+    const imp = await caricaImpostazioni();
+    apriStampaVerbaleConImpostazioni(v, imp);
+    return;
+  }
+
+  // Fallback base
+  const firmaHtml = v.firma
+    ? `<div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px;">
+         <div class="label">Firma CSE</div>
+         <img src="${v.firma}" style="max-width:300px; max-height:100px; border:1px solid #e2e8f0; border-radius:6px; margin-top:6px;" alt="Firma CSE">
+         <div class="label" style="margin-top:4px;">${v.firmante || 'Geom. Dogano Casella — CSE'}</div>
+         <div style="font-size:11px; color:#94a3b8;">
+           Firmato il: ${v.firmaTimestamp ? new Date(v.firmaTimestamp).toLocaleString('it-IT') : '–'}
+         </div>
+       </div>`
+    : `<div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px;">
+         <div class="label">Firma CSE</div>
+         <div style="width:300px;height:80px;border:1px solid #cbd5e1;border-radius:6px;
+                     display:flex;align-items:flex-end;padding:8px;margin-top:6px;">
+           <div style="font-size:11px;color:#94a3b8;">Geom. Dogano Casella — CSE</div>
+         </div>
+       </div>`;
+
+  apriFinestraStampa('Verbale', `
+    <h1>Verbale di Sopralluogo</h1>
+    <div class="campo"><div class="label">Data</div><div class="valore">${v.data || '–'}</div></div>
+    <div class="campo"><div class="label">Cantiere</div><div class="valore">${v.projectId || '–'}</div></div>
+    <div class="campo"><div class="label">Progressiva KM</div><div class="valore">${v.km || '–'}</div></div>
+    <div class="campo"><div class="label">Condizioni Meteo</div><div class="valore">${v.meteo || '–'}</div></div>
+    <div class="campo"><div class="label">Oggetto</div><div class="valore">${v.oggetto || '–'}</div></div>
+    <div class="campo"><div class="label">Imprese Presenti</div><div class="valore">${(v.impresePresenti || []).join(', ') || '–'}</div></div>
+    <div class="campo"><div class="label">Referenti</div><div class="valore">${(v.referenti || '–').replace(/\n/g,'<br>')}</div></div>
+    <div class="campo"><div class="label">Stato dei Luoghi</div><div class="valore">${(v.statoLuoghi || '–').replace(/\n/g,'<br>')}</div></div>
+    <div class="campo"><div class="label">Note CSE</div><div class="valore">${(v.note || '–').replace(/\n/g,'<br>')}</div></div>
+    ${firmaHtml}
+  `);
+}
+
+async function exportNCPDF(id) {
+  const list = await getAll('nc').catch(() => []);
+  const n    = list.find(x => x.id === id);
+  if (!n) { showToast('NC non trovata.', 'error'); return; }
+
+  apriFinestraStampa('Non Conformità', `
+    <h1>Non Conformità — ${(n.livello || '').toUpperCase()}</h1>
+    <div class="campo"><div class="label">Cantiere</div><div class="valore">${n.projectId || '–'}</div></div>
+    <div class="campo"><div class="label">Livello</div><div class="valore">${n.livello || '–'}</div></div>
+    <div class="campo"><div class="label">Stato</div><div class="valore">${n.stato || '–'}</div></div>
+    <div class="campo"><div class="label">Data Apertura</div><div class="valore">${n.dataApertura ? new Date(n.dataApertura).toLocaleString('it-IT') : '–'}</div></div>
+    <div class="campo"><div class="label">Scadenza</div><div class="valore">${n.dataScadenza ? new Date(n.dataScadenza).toLocaleString('it-IT') : '–'}</div></div>
+    <div class="campo"><div class="label">Descrizione</div><div class="valore">${(n.descrizione || '–').replace(/\n/g,'<br>')}</div></div>
+  `);
+}
+
+async function exportImpresaPDF(id) {
+  const list    = await getAll('imprese').catch(() => []);
+  const impresa = list.find(x => x.id === id);
+  if (!impresa) { showToast('Impresa non trovata.', 'error'); return; }
+
+  apriFinestraStampa('Scheda Impresa', `
+    <h1>${impresa.nome || '–'}</h1>
+    <div class="campo"><div class="label">P.IVA / C.F.</div><div class="valore">${impresa.piva || impresa.id || '–'}</div></div>
+    <div class="campo"><div class="label">Ruolo</div><div class="valore">${impresa.ruolo || '–'}</div></div>
+    <div class="campo"><div class="label">Referente</div><div class="valore">${impresa.referente || '–'}</div></div>
+    <div class="campo"><div class="label">Contatto</div><div class="valore">${impresa.contatto || '–'}</div></div>
+  `);
+}
+
+async function exportLavoratorePDF(id) {
+  const list = await getAll('lavoratori').catch(() => []);
+  const l    = list.find(x => x.id === id);
+  if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
+
+  apriFinestraStampa('Scheda Lavoratore', `
+    <h1>${l.nome || ''} ${l.cognome || ''}</h1>
+    <div class="campo"><div class="label">Codice Fiscale</div><div class="valore">${l.cf || '–'}</div></div>
+    <div class="campo"><div class="label">Mansione</div><div class="valore">${l.mansione || '–'}</div></div>
+    <div class="campo"><div class="label">Idoneità</div><div class="valore">${l.idoneita || '–'}</div></div>
+    <h3>DPI Consegnati</h3>
+    <ul>${(l.dpi || []).map(d => `<li>${d}</li>`).join('') || '<li>Nessuno</li>'}</ul>
+    <h3>Formazione</h3>
+    <ul>${(l.formazione || []).map(f => `<li>${f}</li>`).join('') || '<li>Nessuna formazione registrata</li>'}</ul>
+  `);
+}
+
+// ─────────────────────────────────────────────
+// 5. Export ZIP (richiede JSZip)
+// ─────────────────────────────────────────────
+async function exportArchivioZIP() {
+  if (!window.JSZip) {
+    showToast('JSZip non disponibile. Usa "Esporta JSON".', 'warning');
+    return;
+  }
+  const zip  = new JSZip();
+  const dati = await raccogliDatiCantiere();
+  zip.file('archivio.json', JSON.stringify(dati, null, 2));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const nome = `ANAS_SafeHub_${dati.meta.projectId || 'globale'}_${new Date().toISOString().slice(0,10)}.zip`;
+  downloadBlob(blob, nome);
+  showToast('Archivio ZIP esportato ✓', 'success');
+}

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheda Impresa · ANAS SafeHub</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>body { font-family: Inter, sans-serif; }</style>
+
+  <script defer src="./db.js"></script>
+  <script defer src="./storage.js"></script>
+  <script defer src="./ui.js"></script>
+  <script defer src="./navigation.js"></script>
+  <script defer src="./documenti-indexeddb.js"></script>
+  <script defer src="./documenti-preview.js"></script>
+  <script defer src="./documenti-collegamento.js"></script>
+  <script defer src="./documenti-popup.js"></script>
+  <script defer src="./documenti-imprese-lavoratori.js"></script>
+  <script defer src="./imprese-list.js"></script>
+  <script defer src="./lavoratori.js"></script>
+  <script defer src="./impostazioni.js"></script>
+  <script defer src="./salvataggio.js"></script>
+  <script defer src="./email.js"></script>
+  <script defer src="./export.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <!-- firma.js -->
+  <script defer src="./firma.js"></script>
+  <script defer src="./smart-memory.js"></script>
+  <style>
+    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
+    button, [role="button"] { min-height: 44px; }
+    [role="tablist"] {
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-wrap: nowrap !important;
+    }
+    [role="tablist"]::-webkit-scrollbar { display: none; }
+  </style>
+  <link rel="stylesheet" href="./animazioni.css" />
+  <link rel="stylesheet" href="./mobile.css" />
+</head>
+
+<body class="bg-slate-50 text-slate-800 pb-12">
+
+  <div class="max-w-4xl mx-auto px-4 py-6 space-y-8">
+
+    <!-- HEADER -->
+    <header class="flex justify-between items-start gap-4" role="banner">
+      <div>
+        <div class="text-xs text-slate-400 font-mono mb-1" id="impresa-breadcrumb">–</div>
+        <h1 class="text-2xl font-bold text-slate-800">Scheda Impresa</h1>
+        <p class="text-sm text-slate-500">Dettaglio, documenti e lavoratori dell'impresa</p>
+      </div>
+      <div class="shrink-0 flex gap-2">
+        <button id="btn-salva-impresa"
+                class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                aria-label="Salva o esporta scheda impresa">
+          💾 Salva
+        </button>
+        <button onclick="window.location.href='dashboard-cantiere.html'"
+                class="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
+                       hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label="Torna alla Dashboard Cantiere">
+          ← Dashboard
+        </button>
+      </div>
+    </header>
+
+    <!-- DETTAGLIO IMPRESA -->
+    <section aria-label="Dettaglio impresa">
+      <div id="impresa-dettaglio-container" class="min-h-[120px]" aria-live="polite">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 text-slate-400 text-sm animate-pulse">
+          Caricamento…
+        </div>
+      </div>
+    </section>
+
+    <!-- DOCUMENTI IMPRESA -->
+    <section aria-labelledby="h-doc-impresa">
+      <div class="flex items-center justify-between mb-3">
+        <h2 id="h-doc-impresa" class="text-base font-semibold text-slate-700">
+          📎 Documenti Impresa
+        </h2>
+        <button id="btn-collega-doc-impresa"
+                class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+                       hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label="Collega documento all'impresa">
+          + Collega Documento
+        </button>
+      </div>
+      <div id="documenti-impresa" aria-live="polite" class="space-y-2"></div>
+    </section>
+
+    <!-- LAVORATORI -->
+    <section aria-labelledby="h-lavoratori">
+      <h2 id="h-lavoratori" class="text-base font-semibold text-slate-700 mb-3">
+        👷 Lavoratori dell'Impresa
+      </h2>
+      <div id="lavoratori-list" aria-live="polite" class="space-y-3"></div>
+    </section>
+
+    <!-- DOCUMENTI LAVORATORE (visibile solo dopo selezione) -->
+    <section id="documenti-lavoratore-section"
+             class="hidden"
+             aria-labelledby="h-doc-lavoratore">
+      <div class="flex items-center justify-between mb-3">
+        <h2 id="h-doc-lavoratore" class="text-base font-semibold text-slate-700">
+          📎 Documenti Lavoratore
+        </h2>
+        <button id="btn-collega-doc-lavoratore"
+                class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+                       hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label="Collega documento al lavoratore">
+          + Collega Documento
+        </button>
+      </div>
+      <div id="documenti-lavoratore" aria-live="polite" class="space-y-2"></div>
+    </section>
+
+  </div>
+
+  <script>
+    let currentImpresaId   = null;
+    let currentLavoratoreId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Legge ID da sessionStorage (impostato da imprese-list.js → apriSchedaImpresa)
+      currentImpresaId = sessionStorage.getItem('currentImpresaId');
+
+      if (!currentImpresaId) {
+        document.getElementById('impresa-dettaglio-container').innerHTML =
+          '<p class="text-red-600 font-semibold">⚠️ Errore: nessuna impresa selezionata.</p>';
+        return;
+      }
+
+      // Ripristina DB
+      await initDB();
+
+      // Breadcrumb
+      const breadcrumb = document.getElementById('impresa-breadcrumb');
+      if (breadcrumb) breadcrumb.textContent = `ID: ${currentImpresaId}`;
+
+      // Carica dettaglio impresa
+      await renderDettaglioImpresa('impresa-dettaglio-container');
+
+      // Aggiorna breadcrumb col nome reale
+      const container = document.getElementById('impresa-dettaglio-container');
+      const h2 = container?.querySelector('h2');
+      if (h2 && breadcrumb) breadcrumb.textContent = h2.textContent;
+
+      // Carica documenti impresa
+      await renderDocumentiImpresa('documenti-impresa', currentImpresaId);
+
+      // Carica lavoratori impresa
+      await renderLavoratoriImpresa('lavoratori-list', currentImpresaId);
+
+      // Collega documento impresa
+      document.getElementById('btn-collega-doc-impresa')?.addEventListener('click', () => {
+        collegaDocumentoAImpresaDaPopup(currentImpresaId);
+      });
+
+      // Bottone Salva scheda impresa
+      document.getElementById('btn-salva-impresa')?.addEventListener('click', () => {
+        if (typeof mostraPannelloSalvataggio === 'function') {
+          mostraPannelloSalvataggio({
+            titolo:  'Scheda Impresa',
+            onPDF:   () => exportImpresaPDF(currentImpresaId),
+            onWord:  () => exportImpresaWord(currentImpresaId),
+            onEmail: () => mostraPannelloEmail({ tipo: 'generico' }),
+            nascondJSON: true
+          });
+        } else {
+          exportImpresaPDF(currentImpresaId);
+        }
+      });
+
+      // Collega documento lavoratore
+      document.getElementById('btn-collega-doc-lavoratore')?.addEventListener('click', () => {
+        if (currentLavoratoreId) collegaDocumentoALavoratoreDaPopup(currentLavoratoreId);
+        else showToast('Seleziona prima un lavoratore.', 'warning');
+      });
+    });
+
+    // Apri sezione documenti lavoratore
+    async function apriLavoratore(id) {
+      currentLavoratoreId = id;
+      document.getElementById('documenti-lavoratore-section').classList.remove('hidden');
+      await renderDocumentiLavoratore('documenti-lavoratore', currentLavoratoreId);
+      document.getElementById('documenti-lavoratore-section').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+    <div class="flex items-end justify-between px-4 py-2 pointer-events-auto">
+
+      <!-- Firma autore — sinistra -->
+      <div class="text-[11px] text-slate-400 select-none">
+        by <strong class="text-slate-500">Geom. Dogano Casella</strong> · CSE ANAS SpA
+      </div>
+
+      <!-- Pulsante installa PWA — destra -->
+      <button id="btn-pwa-install"
+              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+                     px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
+                     focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              aria-label="Installa ANAS SafeHub come app">
+        <span aria-hidden="true">📲</span> Installa App
+      </button>
+
+    </div>
+  </footer>
+
+  <!-- ═══════════ PWA + SW REGISTRATION ═══════════ -->
+  <script>
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[PWA] SW registrato:', reg.scope))
+          .catch(err => console.warn('[PWA] SW fallito:', err));
+      });
+    }
+
+    // Install prompt
+    let _deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.classList.remove('hidden');
+      if (btn) btn.classList.add('flex');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-pwa-install') && _deferredPrompt) {
+        _deferredPrompt.prompt();
+        _deferredPrompt.userChoice.then(choice => {
+          if (choice.outcome === 'accepted') {
+            const btn = document.getElementById('btn-pwa-install');
+            if (btn) btn.classList.add('hidden');
+          }
+          _deferredPrompt = null;
+        });
+      }
+    });
+
+    // Nasconde il pulsante se già installata
+    window.addEventListener('appinstalled', () => {
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.classList.add('hidden');
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Cantiere · ANAS SafeHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: Inter, sans-serif; }
+    .tab-active { background-color: #1e293b; color: white; }
+  </style>
+
+  <!-- ORDINE CRITICO: db.js PRIMA di tutto -->
+  <script defer src="./db.js"></script>
+  <script defer src="./storage.js"></script>
+  <script defer src="./ui.js"></script>
+  <script defer src="./navigation.js"></script>
+  <script defer src="./firma.js"></script>
+  <script defer src="./foto.js"></script>
+  <script defer src="./nc.js"></script>
+  <script defer src="./nc-foto-dashboard.js"></script>
+  <script defer src="./verbali.js"></script>
+  <script defer src="./verbali-list.js"></script>
+  <script defer src="./imprese-list.js"></script>
+  <script defer src="./imprese-assegnazione.js"></script>
+  <script defer src="./lavoratori.js"></script>
+  <script defer src="./documenti-fondamentali.js"></script>
+  <script defer src="./dashboard-cantiere.js"></script>
+  <script defer src="./ui-dashboard.js"></script>
+  <script defer src="./impostazioni.js"></script>
+  <script defer src="./documenti-indexeddb.js"></script>
+  <script defer src="./dashboard-docs.js"></script>
+  <script defer src="./scadenze-documenti.js"></script>
+  <script defer src="./salvataggio.js"></script>
+  <script defer src="./email.js"></script>
+  <script defer src="./export.js"></script>
+  <script defer src="./ricerca-normativa.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <script defer src="./salva-file.js"></script>
+  <script defer src="./smart-memory.js"></script>
+  <script defer src="./lettera-sospensione.js"></script>
+  <style>
+    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
+    button, [role="button"] { min-height: 44px; }
+    [role="tablist"] {
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-wrap: nowrap !important;
+    }
+    [role="tablist"]::-webkit-scrollbar { display: none; }
+  </style>
+  <link rel="stylesheet" href="./animazioni.css" />
+  <link rel="stylesheet" href="./mobile.css" />
+</head>
+
+<body class="bg-slate-50 text-slate-800 pb-16">
+
+  <!-- LOADING OVERLAY — skeleton cards (v1.5 animazioni) -->
+  <div id="dashboard-loading"
+       class="fixed inset-0 bg-slate-50 z-[9999] overflow-auto"
+       role="status" aria-live="polite" aria-label="Caricamento dashboard">
+    <div class="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      <!-- Header skeleton -->
+      <div class="flex justify-between items-start gap-3">
+        <div class="space-y-2 flex-1">
+          <div class="skeleton skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton skeleton-line skeleton-line-md"></div>
+        </div>
+        <div class="skeleton" style="width:100px; height:36px"></div>
+      </div>
+      <!-- KPI cards skeleton -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="skeleton-card space-y-2">
+          <div class="skeleton skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton skeleton-line skeleton-line-lg" style="height:28px"></div>
+        </div>
+        <div class="skeleton-card space-y-2">
+          <div class="skeleton skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton skeleton-line skeleton-line-lg" style="height:28px"></div>
+        </div>
+        <div class="skeleton-card space-y-2">
+          <div class="skeleton skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton skeleton-line skeleton-line-lg" style="height:28px"></div>
+        </div>
+        <div class="skeleton-card space-y-2">
+          <div class="skeleton skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton skeleton-line skeleton-line-lg" style="height:28px"></div>
+        </div>
+        <div class="skeleton-card space-y-2">
+          <div class="skeleton skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton skeleton-line skeleton-line-lg" style="height:28px"></div>
+        </div>
+      </div>
+      <!-- Content skeleton -->
+      <div class="skeleton-card space-y-3">
+        <div class="skeleton skeleton-line skeleton-line-md"></div>
+        <div class="skeleton skeleton-line skeleton-line-full"></div>
+        <div class="skeleton skeleton-line skeleton-line-full"></div>
+        <div class="skeleton skeleton-line skeleton-line-lg"></div>
+      </div>
+      <div class="text-center text-xs text-slate-400 mt-4">Caricamento dashboard…</div>
+    </div>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-4 py-6 space-y-5">
+
+    <!-- HEADER -->
+    <header class="flex flex-wrap justify-between items-start gap-3" role="banner">
+      <div>
+        <div class="text-xs text-slate-400 font-mono mb-1 cantiere-nome">–</div>
+        <h1 class="text-xl font-bold text-slate-800">Dashboard Cantiere</h1>
+        <p class="text-xs text-slate-500 mt-0.5">KPI Sicurezza · NC · Verbali · Imprese</p>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <button onclick="apriPannelloRicerca()"
+                class="flex items-center gap-1.5 bg-indigo-700 text-white text-xs px-3 py-2
+                       rounded-lg hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                aria-label="Apri ricerca normativa AI">
+          📚 Normativa
+        </button>
+        <button onclick="apriSuiteCSE('documenti')"
+                class="flex items-center gap-1.5 bg-slate-600 text-white text-xs px-3 py-2
+                       rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label="Apri archivio documenti">
+          📁 Documenti
+        </button>
+        <button onclick="window.location.href='index.html'"
+                class="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg
+                       hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label="Torna all'Hub Cantieri">
+          ← Hub
+        </button>
+      </div>
+    </header>
+
+    <!-- ALERT: Documenti Fondamentali mancanti -->
+    <div id="alert-doc-fondamentali" role="alert" aria-live="polite" class="hidden"></div>
+
+    <!-- ALERT ANAS NC Gravissime -->
+    <div id="alert-gravissime" role="alert" aria-live="assertive"
+         class="hidden bg-red-50 border-l-4 border-red-600 p-4 rounded-r-xl">
+      <p class="font-bold text-red-800 text-sm">⚠️ Procedura ANAS — Azione Obbligatoria</p>
+      <p class="text-sm text-red-700 mt-1">
+        NC gravissime aperte oltre 24h. Inviare proposta sospensione lavori a RUP e D.L.
+        (D.Lgs 81/08 art. 92 c.1 lett. f).
+      </p>
+    </div>
+
+    <!-- TABS -->
+    <nav role="tablist" aria-label="Sezioni dashboard" class="flex flex-wrap gap-2">
+      <button data-tab="kpi" role="tab" aria-selected="true" tabindex="0"
+              class="tab-active px-4 py-2 rounded-lg text-sm font-semibold
+                     focus:outline-none focus:ring-2 focus:ring-slate-400">
+        📊 KPI
+      </button>
+      <button data-tab="nc" role="tab" aria-selected="false" tabindex="-1"
+              class="px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold
+                     hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 flex items-center gap-2">
+        ⚠️ NC
+        <span id="badge-nc" class="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+      </button>
+      <button data-tab="verbali" role="tab" aria-selected="false" tabindex="-1"
+              class="px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold
+                     hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 flex items-center gap-2">
+        📋 Verbali
+        <span id="badge-verbali" class="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+      </button>
+      <button data-tab="imprese" role="tab" aria-selected="false" tabindex="-1"
+              class="px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold
+                     hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 flex items-center gap-2">
+        🏗️ Imprese
+        <span id="badge-imprese" class="bg-slate-600 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+      </button>
+    </nav>
+
+    <!-- KPI PANEL -->
+    <section data-panel="kpi" class="space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">NC Aperte</div>
+          <div id="kpi-nc-aperte" class="text-3xl font-bold text-red-600">–</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Gravissime</div>
+          <div id="kpi-gravissime" class="text-3xl font-bold text-red-800">–</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">NC Scadute</div>
+          <div id="kpi-scadute" class="text-3xl font-bold text-orange-600">–</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Tempo Medio</div>
+          <div id="kpi-tempo" class="text-2xl font-bold text-slate-700">–</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+          <div class="text-xs text-slate-400 mb-1">Indice Sicurezza</div>
+          <div id="kpi-score" class="text-3xl font-bold text-blue-600">–</div>
+        </div>
+      </div>
+      <!-- Azioni rapide da KPI -->
+      <div class="flex flex-wrap gap-2">
+        <button aria-label="Nuovo Verbale" onclick="apriSuiteCSE('nuovo-verbale')"
+                class="bg-blue-600 text-white text-xs px-4 py-2 rounded-lg
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          📝 Nuovo Verbale
+        </button>
+        <button aria-label="Nuova NC" onclick="apriSuiteCSE('nc')"
+                class="bg-red-600 text-white text-xs px-4 py-2 rounded-lg
+                       hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400">
+          ⚠️ Nuova NC
+        </button>
+        <button aria-label="Esporta JSON" onclick="exportArchivioJSON()"
+                class="bg-slate-700 text-white text-xs px-4 py-2 rounded-lg
+                       hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
+          📥 Esporta JSON
+        </button>
+      </div>
+    </section>
+
+    <!-- NC PANEL -->
+    <section data-panel="nc" class="hidden space-y-4">
+      <div class="flex flex-wrap justify-between items-center gap-2">
+        <div class="flex flex-wrap gap-2" role="group" aria-label="Filtri NC">
+          <button data-filter-nc="tutte"
+                  class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-white font-semibold">Tutte</button>
+          <button data-filter-nc="aperte"
+                  class="px-3 py-1.5 text-xs rounded-lg bg-slate-200 font-semibold hover:bg-slate-300">Aperte</button>
+          <button data-filter-nc="chiuse"
+                  class="px-3 py-1.5 text-xs rounded-lg bg-slate-200 font-semibold hover:bg-slate-300">Chiuse</button>
+          <button data-filter-nc="gravissime"
+                  class="px-3 py-1.5 text-xs rounded-lg bg-red-100 text-red-800 font-semibold hover:bg-red-200">⚠️ Gravissime</button>
+        </div>
+        <!-- BOTTONE NUOVA NC -->
+        <button aria-label="Nuova NC" onclick="apriSuiteCSE('nc')"
+                class="bg-red-600 text-white text-xs px-4 py-2 rounded-lg font-semibold
+                       hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400">
+          + Nuova NC
+        </button>
+      </div>
+      <div id="nc-list" role="list" aria-label="Lista Non Conformità" aria-live="polite"></div>
+    </section>
+
+    <!-- VERBALI PANEL -->
+    <section data-panel="verbali" class="hidden space-y-4">
+      <div class="flex justify-between items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-700">Verbali di Sopralluogo</h2>
+        <!-- BOTTONE NUOVO VERBALE -->
+        <button aria-label="Nuovo Verbale" onclick="apriSuiteCSE('nuovo-verbale')"
+                class="bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-semibold
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          + Nuovo Verbale
+        </button>
+      </div>
+      <div id="verbali-list" role="list" aria-label="Lista verbali" aria-live="polite"></div>
+    </section>
+
+    <!-- IMPRESE PANEL -->
+    <section data-panel="imprese" class="hidden space-y-4">
+      <div class="flex justify-between items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-700">Imprese Assegnate al Cantiere</h2>
+        <button aria-label="Assegna Impresa" onclick="mostraPopupAssegnaImpresa()"
+                class="bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-semibold
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          + Assegna Impresa
+        </button>
+      </div>
+      <div id="imprese-list" role="list" aria-label="Lista imprese" aria-live="polite"></div>
+    </section>
+
+  </div>
+
+  <!-- UNICO DOMContentLoaded — initDB PRIMA di tutto -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // 1. CRITICO: inizializza IndexedDB prima di qualsiasi render
+        await initDB();
+
+        // 2. Ripristina stato cantiere da sessionStorage
+        const ok = ripristinaStatoDashboard();
+        if (!ok) return; // reindirizza a index.html se nessun cantiere
+
+        // 3. KPI
+        await renderKPI();
+
+        // 4. Lista NC
+        await renderNCListWithFoto('nc-list');
+
+        // 5. Lista Verbali
+        await renderVerbaliList('verbali-list');
+
+        // 6. Lista Imprese
+        await renderImpreseList('imprese-list');
+
+        // 7. Badge sui tab
+        await aggiornaBadgeDashboard();
+        await aggiornaBadgeImprese();
+
+        // 8. Init tabs — UNA SOLA VOLTA qui (rimosso da ui-dashboard.js)
+        if (typeof initDashboardTabs === 'function') initDashboardTabs();
+
+        // 9. Filtri NC — UNA SOLA VOLTA qui (rimosso da ui-dashboard.js)
+        document.querySelectorAll('[data-filter-nc]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-filter-nc]').forEach(b =>
+              b.classList.remove('bg-slate-800', 'text-white')
+            );
+            btn.classList.add('bg-slate-800', 'text-white');
+            if (typeof filtraNC === 'function') filtraNC(btn.dataset.filterNc);
+          });
+        });
+
+      } catch (err) {
+        console.error('Errore dashboard:', err);
+        if (typeof showToast === 'function') showToast('Errore caricamento: ' + err, 'error');
+      } finally {
+        // Nascondi sempre il loading overlay, anche in caso di errore
+        const loader = document.getElementById('dashboard-loading');
+        if (loader) {
+          loader.style.opacity = '0';
+          loader.style.transition = 'opacity 200ms';
+          setTimeout(() => loader.remove(), 250);
+        }
+      }
+    });
+  </script>
+
+  <!-- FOOTER -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+    <div class="flex items-end justify-between px-4 py-2 pointer-events-auto">
+      <div class="text-[11px] text-slate-400 select-none">
+        by <strong class="text-slate-500">Geom. Dogano Casella</strong> · CSE ANAS SpA
+      </div>
+      <button id="btn-pwa-install"
+              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+                     px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none"
+              aria-label="Installa ANAS SafeHub come app">
+        📲 Installa App
+      </button>
+    </div>
+  </footer>
+
+  <!-- PWA + SW -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+    let _deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault(); _deferredPrompt = e;
+      const btn = document.getElementById('btn-pwa-install');
+      if (btn) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-pwa-install') && _deferredPrompt) {
+        _deferredPrompt.prompt();
+        _deferredPrompt.userChoice.then(() => {
+          document.getElementById('btn-pwa-install')?.classList.add('hidden');
+          _deferredPrompt = null;
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>

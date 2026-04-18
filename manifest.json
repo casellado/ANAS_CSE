@@ -1,0 +1,40 @@
+{
+  "name": "ANAS SafeHub — Suite CSE",
+  "short_name": "SafeHub CSE",
+  "description": "Pannello di coordinamento sicurezza cantieri ANAS SpA — Geom. Dogano Casella",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "it",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Hub Cantieri",
+      "url": "./index.html",
+      "description": "Apri l'Hub principale dei cantieri"
+    },
+    {
+      "name": "Suite CSE",
+      "url": "./ANAS_CSE_html.html",
+      "description": "Apri la Suite CSE completa"
+    }
+  ]
+}
