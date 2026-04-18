@@ -23,57 +23,20 @@ const DIST = path.resolve(__dirname, 'dist');
 
 const COPYRIGHT = `/* ANAS SafeHub v1.2 | © ${new Date().getFullYear()} Geom. Dogano Casella | Tutti i diritti riservati | Licenza commerciale richiesta */`;
 
-// File JS da offuscare (in ordine di dipendenza)
-const JS_FILES = [
-  'db.js',
-  'storage.js',
-  'ui.js',
-  'firma.js',
-  'impostazioni.js',
-  'foto.js',
-  'documenti-indexeddb.js',
-  'documenti-preview.js',
-  'documenti-collegamento.js',
-  'documenti-popup.js',
-  'documenti-imprese-lavoratori.js',
-  'documenti.js',
-  'nc.js',
-  'verbali.js',
-  'verbali-list.js',
-  'imprese-list.js',
-  'imprese-assegnazione.js',
-  'lavoratori.js',
-  'dashboard-cantiere.js',
-  'dashboard-docs.js',
-  'scadenze-documenti.js',
-  'ui-dashboard.js',
-  'nc-foto-dashboard.js',
-  'export.js',
-  'salvataggio.js',
-  'email.js',
-  'verbali-riunione.js',
-  'verbali-pos.js',
-  'smart-memory.js',
-  'ricerca-normativa.js',
-  'navigation.js',
-  'app.js'
-  // NOTA: sw.js NON va offuscato — il browser lo richiede leggibile per il Service Worker
-];
+// File JS da offuscare: tutti i .js in root, esclusi script di build/SW
+const JS_FILES = fs.readdirSync(SRC)
+  .filter((f) => f.endsWith('.js'))
+  .filter((f) => !['build.js', 'sw.js'].includes(f));
 
-// File HTML da minificare
-const HTML_FILES = [
-  'index.html',
-  'ANAS_CSE_html.html',
-  'dashboard-cantiere.html',
-  'impresa-dettaglio.html',
-  'lavoratore-dettaglio.html',
-  'verbale-dettaglio.html'
-];
+// File HTML da minificare: tutti gli .html in root
+const HTML_FILES = fs.readdirSync(SRC)
+  .filter((f) => f.endsWith('.html'));
 
 // File statici da copiare invariati
 const STATIC_FILES = [
   'manifest.json',
-  'sw.js'          // il SW deve restare leggibile per funzionare
+  'sw.js',
+  'database.json'
 ];
 
 // Cartelle da copiare
@@ -81,6 +44,9 @@ const STATIC_DIRS = [
   'data',
   'icons'
 ];
+
+// Altri file statici in root (es. CSS, immagini, PDF, DOCX)
+const ROOT_STATIC_EXTENSIONS = ['.css', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico', '.pdf', '.docx'];
 
 // ─────────────────────────────────────────────
 // OPZIONI OBFUSCATOR
@@ -246,7 +212,31 @@ async function build() {
     log('✅', `  ${dir}/`);
   }
 
-  // 6. Aggiorna sw.js nella dist — lista cache aggiornata
+  // 6. Copia file statici extra dalla root (css, immagini, allegati)
+  log('\n🧩', 'Copia statici root...');
+  const rootEntries = fs.readdirSync(SRC, { withFileTypes: true });
+  for (const entry of rootEntries) {
+    if (!entry.isFile()) continue;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!ROOT_STATIC_EXTENSIONS.includes(ext)) continue;
+
+    const srcFile = path.join(SRC, entry.name);
+    const distFile = path.join(DIST, entry.name);
+    await fse.copy(srcFile, distFile);
+    log('✅', `  ${entry.name}`);
+  }
+
+  // 7. Fallback: se manca data/database.json ma esiste database.json in root, crealo in data/
+  const distDataDir = path.join(DIST, 'data');
+  const distRootDb = path.join(DIST, 'database.json');
+  const distDataDb = path.join(distDataDir, 'database.json');
+  if (!fs.existsSync(distDataDb) && fs.existsSync(distRootDb)) {
+    await fse.ensureDir(distDataDir);
+    await fse.copy(distRootDb, distDataDb);
+    log('🔁', '  creato data/database.json da database.json');
+  }
+
+  // 8. Aggiorna sw.js nella dist — lista cache aggiornata
   // (il sw.js viene copiato invariato perché deve essere leggibile dal browser)
   const swPath = path.join(DIST, 'sw.js');
   if (fs.existsSync(swPath)) {
@@ -261,7 +251,7 @@ async function build() {
     log('🔄', `  sw.js aggiornato con cache: anas-safehub-${buildDate}`);
   }
 
-  // 7. Riepilogo
+  // 9. Riepilogo
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   const distFiles = fs.readdirSync(DIST);
 
