@@ -90,6 +90,20 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
+  // Navigazione HTML → Network-first per evitare pagine stale dopo deploy
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/ANAS_CSE/' || url.pathname === '/ANAS_CSE') {
+    event.respondWith(
+      fetch(event.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(event.request).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
   // data/database.json → Network-first (aggiornamento USB)
   if (url.pathname.endsWith('database.json')) {
     event.respondWith(

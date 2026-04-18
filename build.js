@@ -124,11 +124,24 @@ function minifyHTML(html) {
   return safe;
 }
 
+function addAssetVersionToHtml(html, buildId) {
+  return html.replace(
+    /(<(?:script|link)\b[^>]*\b(?:src|href)=["'])(\.\/[^"']+)(["'])/gi,
+    (full, prefix, url, suffix) => {
+      // Evita doppio versionamento e ancora/hash già presenti
+      if (url.includes('?v=') || url.includes('#')) return full;
+      const sep = url.includes('?') ? '&' : '?';
+      return `${prefix}${url}${sep}v=${buildId}${suffix}`;
+    }
+  );
+}
+
 // ─────────────────────────────────────────────
 // MAIN BUILD
 // ─────────────────────────────────────────────
 async function build() {
   const start = Date.now();
+  const buildId = new Date().toISOString().replace(/[-:.TZ]/g, '');
   console.log('\n╔════════════════════════════════════════╗');
   console.log('║    ANAS SafeHub — Build Pipeline       ║');
   console.log('║    Geom. Dogano Casella © 2025         ║');
@@ -192,7 +205,8 @@ async function build() {
       `<head>\n<!-- © ${new Date().getFullYear()} Geom. Dogano Casella - Tutti i diritti riservati -->`
     );
 
-    const minified = minifyHTML(withCopyright);
+    const versioned = addAssetVersionToHtml(withCopyright, buildId);
+    const minified = minifyHTML(versioned);
     fs.writeFileSync(distPath, minified, 'utf8');
 
     const srcSize = (source.length   / 1024).toFixed(1);
@@ -262,7 +276,7 @@ async function build() {
   if (fs.existsSync(swPath)) {
     let sw = fs.readFileSync(swPath, 'utf8');
     // Aggiorna il CACHE_NAME con timestamp di build per forzare aggiornamento
-    const buildDate = new Date().toISOString().slice(0, 10);
+    const buildDate = buildId;
     sw = sw.replace(
       /const CACHE_NAME\s*=\s*'[^']+'/,
       `const CACHE_NAME = 'anas-safehub-${buildDate}'`
