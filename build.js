@@ -92,16 +92,36 @@ function log(emoji, msg) {
 }
 
 function minifyHTML(html) {
-  return html
+  const blocks = [];
+  const protect = (source, regex, prefix) =>
+    source.replace(regex, (m) => {
+      const token = `___${prefix}_${blocks.length}___`;
+      blocks.push({ token, value: m });
+      return token;
+    });
+
+  let safe = html;
+  // Proteggi contenuti sensibili: script/style/pre/textarea
+  safe = protect(safe, /<script\b[\s\S]*?<\/script>/gi, 'SCRIPT');
+  safe = protect(safe, /<style\b[\s\S]*?<\/style>/gi, 'STYLE');
+  safe = protect(safe, /<pre\b[\s\S]*?<\/pre>/gi, 'PRE');
+  safe = protect(safe, /<textarea\b[\s\S]*?<\/textarea>/gi, 'TEXTAREA');
+
+  safe = safe
     // Rimuovi commenti HTML (ma NON i commenti condizionali IE)
     .replace(/<!--(?!\[if)[\s\S]*?-->/g, '')
     // Rimuovi spazi multipli
     .replace(/\s{2,}/g, ' ')
-    // Rimuovi spazi attorno ai tag
+    // Rimuovi spazi tra tag HTML
     .replace(/>\s+</g, '><')
-    // Rimuovi spazi a inizio/fine riga
+    // Trim righe
     .replace(/^\s+|\s+$/gm, '')
     .trim();
+
+  for (const b of blocks) {
+    safe = safe.replace(b.token, b.value);
+  }
+  return safe;
 }
 
 // ─────────────────────────────────────────────
