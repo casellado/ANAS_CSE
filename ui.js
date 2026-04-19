@@ -149,23 +149,63 @@ if (typeof window !== 'undefined') {
       if (m.type === 'childList') {
         m.addedNodes.forEach(node => {
           if (node.nodeType === 1) {
-            // Controlla se è un modal basandosi su classi tipiche o role
-            if (
-              node.getAttribute('role') === 'dialog' ||
-              node.id?.includes('modal') ||
-              node.id?.includes('pannello') ||
-              (typeof node.className === 'string' && node.className.includes('fixed inset-0'))
-            ) {
+            const isModal = node.getAttribute('role') === 'dialog' ||
+                            node.id?.includes('modal') ||
+                            node.id?.includes('pannello') ||
+                            (typeof node.className === 'string' && node.className.includes('fixed inset-0'));
+            if (isModal) {
               trapFocus(node);
+              // History API per Android Back Button (su mobile/tablet)
+              if (window.innerWidth < 1024) {
+                history.pushState({ isModalElement: true, modalId: node.id || 'unnamed' }, '', '#modal');
+              }
+            }
+          }
+        });
+        
+        m.removedNodes.forEach(node => {
+          if (node.nodeType === 1) {
+            const isModal = node.getAttribute('role') === 'dialog' ||
+                            node.id?.includes('modal') ||
+                            node.id?.includes('pannello') ||
+                            (typeof node.className === 'string' && node.className.includes('fixed inset-0'));
+            // Se chiuso da pulsante (non tasto indietro) rimuoviamo lo stato
+            if (isModal && window.innerWidth < 1024 && !window._isPoppingState) {
+              if (history.state && history.state.isModalElement) {
+                history.back();
+              }
             }
           }
         });
       }
     }
   });
-  // Avvia l'osservatore al DOMContentLoaded
+  
+  // Avvia l'osservatore
   document.addEventListener('DOMContentLoaded', () => {
     observer.observe(document.body, { childList: true, subtree: false });
+  });
+
+  // Intercetta Tasto Indietro per i modali dinamici
+  window.addEventListener('popstate', (e) => {
+    window._isPoppingState = true;
+    
+    // Trova l'ultimo modale nel DOM
+    const modals = Array.from(document.body.children).filter(node => 
+      node.nodeType === 1 && (
+        node.getAttribute('role') === 'dialog' ||
+        node.id?.includes('modal') ||
+        node.id?.includes('pannello') ||
+        (typeof node.className === 'string' && node.className.includes('fixed inset-0'))
+      )
+    );
+    
+    // Rimuovi l'ultimo (il più in alto)
+    if (modals.length > 0) {
+      modals[modals.length - 1].remove();
+    }
+    
+    setTimeout(() => { window._isPoppingState = false; }, 50);
   });
 }
 
@@ -189,6 +229,87 @@ function show(viewId) {
   // Aggiorna aria-pressed sui bottoni sidebar
   els('[data-view-btn]').forEach(btn => {
     btn.setAttribute('aria-pressed', btn.dataset.viewBtn === viewId ? 'true' : 'false');
+  });
+}
+
+// ─────────────────────────────────────────────
+// Inizializza layout masonry
+// ─────────────────────────────────────────────
+function inizializzaMasonry(containerId) {
+  // Lasciamo la gestione a CSS grid o flexbox per semplicità
+}
+
+// ─────────────────────────────────────────────
+// PULL-TO-REFRESH ELASTICO
+// ─────────────────────────────────────────────
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const scrollArea = document.querySelector('.flex-1.overflow-y-auto.p-5');
+    if (!scrollArea) return;
+    
+    const ptrIndicator = document.createElement('div');
+    ptrIndicator.id = 'ptr-indicator';
+    ptrIndicator.className = 'absolute top-0 left-0 w-full flex justify-center items-center pointer-events-none z-50 transition-transform duration-200';
+    ptrIndicator.style.transform = 'translateY(-60px)';
+    ptrIndicator.innerHTML = `
+      <div class="bg-white rounded-full shadow-lg p-2 flex items-center justify-center w-10 h-10 border border-slate-100">
+        <svg class="w-5 h-5 text-blue-600 ptr-spinner" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+      </div>`;
+    scrollArea.appendChild(ptrIndicator);
+
+    let startY = 0, isPulling = false, ptrDistance = 0;
+    const spinner = ptrIndicator.querySelector('.ptr-spinner');
+
+    scrollArea.addEventListener('touchstart', (e) => {
+      if (scrollArea.scrollTop <= 0) {
+        startY = e.touches[0].clientY;
+        isPulling = true;
+        ptrIndicator.style.transition = 'none';
+        spinner.classList.remove('animate-spin');
+      }
+    }, { passive: true });
+
+    scrollArea.addEventListener('touchmove', (e) => {
+      if (!isPulling) return;
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - startY;
+      
+      if (diff > 0 && scrollArea.scrollTop <= 0) {
+        ptrDistance = Math.min(diff * 0.45, 80);
+        ptrIndicator.style.transform = `translateY(${ptrDistance - 60}px)`;
+        spinner.style.transform = `rotate(${ptrDistance * 4}deg)`;
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
+    scrollArea.addEventListener('touchend', () => {
+      if (!isPulling) return;
+      isPulling = false;
+      
+      if (ptrDistance >= 60) {
+        ptrIndicator.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        ptrIndicator.style.transform = 'translateY(16px)';
+        spinner.classList.add('animate-spin');
+        
+        setTimeout(async () => {
+          const currentView = Array.from(document.querySelectorAll('section.page-transition'))
+            .find(el => !el.classList.contains('page-hidden'))?.id;
+            
+          if (currentView === 'view-hub' && typeof caricaProgetti === 'function') await caricaProgetti();
+          else if (currentView === 'view-nc' && typeof renderNc === 'function') await renderNc();
+          else if (currentView === 'view-documenti' && typeof renderDocumenti === 'function') await renderDocumenti();
+          
+          ptrIndicator.style.transform = 'translateY(-60px)';
+          setTimeout(() => spinner.classList.remove('animate-spin'), 300);
+        }, 800);
+      } else {
+        ptrIndicator.style.transition = 'transform 0.3s ease-out';
+        ptrIndicator.style.transform = 'translateY(-60px)';
+      }
+      ptrDistance = 0;
+    });
   });
 }
 

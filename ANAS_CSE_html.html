@@ -333,7 +333,7 @@
       </div>
 
       <div id="projects-grid"
-           class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+           class="grid grid-cols-1 min-[500px]:grid-cols-2 lg:grid-cols-3 gap-4"
            role="list"
            aria-label="Lista cantieri"
            aria-live="polite"></div>
@@ -356,7 +356,7 @@
       <h3 class="text-xl font-bold text-slate-900">Anagrafica Soggetti</h3>
 
       <form id="form-anagrafica"
-            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl"
+            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl"
             novalidate
             aria-label="Form inserimento anagrafica" onsubmit="return false">
 
@@ -535,7 +535,7 @@
             aria-label="Form verbale di sopralluogo" onsubmit="return false">
 
         <!-- Riga 1: Data e KM -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
 
           <div>
             <label for="verbale-data" class="text-xs font-semibold text-slate-600 block mb-1">
@@ -581,7 +581,7 @@
         </div>
 
         <!-- Riga 3: Meteo e Imprese -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
 
           <div>
             <label for="verbale-meteo" class="text-xs font-semibold text-slate-600 block mb-1">
@@ -775,7 +775,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             novalidate>
 
         <!-- DATA -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
           <div>
             <label for="riunione-data" class="text-xs font-semibold text-slate-600 block mb-1">
               Data Riunione <span class="text-red-500">*</span>
@@ -815,7 +815,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
         </div>
 
         <!-- PRESENTI -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
           <div>
             <label for="riunione-presenti-anas"
                    class="text-xs font-semibold text-slate-600 block mb-1">
@@ -962,7 +962,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             novalidate>
 
         <!-- DATA + IMPRESA -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
           <div>
             <label for="pos-data" class="text-xs font-semibold text-slate-600 block mb-1">
               Data <span class="text-red-500">*</span>
@@ -1156,7 +1156,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
           <div>
             <label for="nc-stato" class="text-xs font-semibold text-slate-600 block mb-1">Stato</label>
             <select id="nc-stato"
@@ -1925,20 +1925,41 @@ function apriSidebar() {
   const s = document.getElementById('main-sidebar');
   const o = document.getElementById('sidebar-overlay');
   const b = document.getElementById('hamburger-btn');
+  if (s?.classList.contains('open')) return;
   s?.classList.add('open');
   o?.classList.add('open');
   b?.setAttribute('aria-expanded', 'true');
   document.body.classList.add('sidebar-open');
+  
+  // History API per Android Back Button
+  if (window.innerWidth < 768) {
+    history.pushState({ modal: 'sidebar' }, '', '#sidebar');
+  }
 }
-function chiudiSidebar() {
+
+function chiudiSidebar(fromPopState = false) {
   const s = document.getElementById('main-sidebar');
   const o = document.getElementById('sidebar-overlay');
   const b = document.getElementById('hamburger-btn');
+  if (!s?.classList.contains('open')) return;
   s?.classList.remove('open');
   o?.classList.remove('open');
   b?.setAttribute('aria-expanded', 'false');
   document.body.classList.remove('sidebar-open');
+  
+  // Rimuovi lo state se chiuso manualmente
+  if (!fromPopState && history.state && history.state.modal === 'sidebar') {
+    history.back();
+  }
 }
+
+// Intercetta Tasto Indietro (Android)
+window.addEventListener('popstate', (e) => {
+  const s = document.getElementById('main-sidebar');
+  if (s?.classList.contains('open')) {
+    chiudiSidebar(true);
+  }
+});
 // Chiudi sidebar quando si cambia view su mobile
 // IMPORTANTE: chiamare _origSwitch, NON switchView (causava recursion infinita)
 (function () {

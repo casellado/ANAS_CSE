@@ -195,16 +195,116 @@ async function renderFotoNC(containerId, ncId) {
 // ─────────────────────────────────────────────
 function apriLightbox(url) {
   const lb = document.createElement('div');
-  lb.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] cursor-pointer';
+  lb.className = 'fixed inset-0 bg-black flex items-center justify-center z-[9999] overflow-hidden';
   lb.setAttribute('role', 'dialog');
   lb.setAttribute('aria-modal', 'true');
   lb.setAttribute('aria-label', 'Anteprima foto');
-  lb.innerHTML = `<img src="${url}" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl" alt="Anteprima foto">`;
-  lb.addEventListener('click', () => lb.remove());
+  
+  lb.innerHTML = `
+    <div id="lb-close" class="absolute top-4 right-4 text-white text-3xl p-4 cursor-pointer z-50">✕</div>
+    <div id="lb-img-container" class="w-full h-full flex items-center justify-center relative touch-none">
+      <img id="lb-img" src="${url}" class="max-h-full max-w-full object-contain transition-transform duration-100 ease-out origin-center" alt="Anteprima foto">
+    </div>
+  `;
+  
+  document.body.appendChild(lb);
+  
+  const imgContainer = document.getElementById('lb-img-container');
+  const img = document.getElementById('lb-img');
+  
+  // Close buttons
+  document.getElementById('lb-close').addEventListener('click', () => lb.remove());
   document.addEventListener('keydown', function esc(e) {
     if (e.key === 'Escape') { lb.remove(); document.removeEventListener('keydown', esc); }
   });
-  document.body.appendChild(lb);
+
+  // Gestures (Pinch to Zoom, Swipe Down to Close, Pan)
+  let scale = 1, panning = false, pointX = 0, pointY = 0, start = { x: 0, y: 0 }, zoomParams = { distance: 0, initialScale: 1 };
+  let isSwipingDown = false;
+  
+  function setTransform() {
+    img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+  }
+
+  // Double tap to zoom
+  let lastTap = 0;
+  imgContainer.addEventListener('touchend', (e) => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    if (tapLength < 500 && tapLength > 0 && e.touches.length === 0) {
+      // Toggle zoom
+      if (scale > 1) { scale = 1; pointX = 0; pointY = 0; }
+      else { scale = 2.5; pointX = 0; pointY = 0; } // center zoom
+      img.style.transition = 'transform 0.3s ease-out';
+      setTransform();
+      setTimeout(() => img.style.transition = 'none', 300);
+      e.preventDefault();
+    }
+    lastTap = currentTime;
+  });
+
+  imgContainer.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    img.style.transition = 'none';
+    if (e.touches.length === 2) {
+      // Start Pinch
+      panning = false;
+      isSwipingDown = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      zoomParams.distance = Math.hypot(dx, dy);
+      zoomParams.initialScale = scale;
+    } else if (e.touches.length === 1) {
+      // Start Pan or Swipe
+      panning = true;
+      start = { x: e.touches[0].clientX - pointX, y: e.touches[0].clientY - pointY };
+      if (scale === 1) isSwipingDown = true; // Solo se non zoomata, permetti chiusura swipe
+    }
+  });
+
+  imgContainer.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!panning && e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.hypot(dx, dy);
+      scale = Math.max(1, Math.min(zoomParams.initialScale * (distance / zoomParams.distance), 5));
+      setTransform();
+    } else if (panning && e.touches.length === 1) {
+      pointX = e.touches[0].clientX - start.x;
+      pointY = e.touches[0].clientY - start.y;
+      
+      // Swipe down to close logic
+      if (scale === 1 && isSwipingDown) {
+        pointX = 0; // blocca asse X
+        if (pointY < 0) pointY = 0; // blocca swipe up
+        lb.style.backgroundColor = `rgba(0,0,0, ${Math.max(0, 1 - (pointY / 300))})`;
+      } else {
+        // Bounds for panning
+        const maxPanX = (img.clientWidth * scale - imgContainer.clientWidth) / 2;
+        const maxPanY = (img.clientHeight * scale - imgContainer.clientHeight) / 2;
+        if (maxPanX > 0) pointX = Math.max(-maxPanX, Math.min(maxPanX, pointX)); else pointX = 0;
+        if (maxPanY > 0) pointY = Math.max(-maxPanY, Math.min(maxPanY, pointY)); else pointY = 0;
+      }
+      setTransform();
+    }
+  });
+
+  imgContainer.addEventListener('touchend', (e) => {
+    if (scale === 1 && isSwipingDown && pointY > 100) {
+      // Chiudi lightbox
+      lb.style.transition = 'opacity 0.2s';
+      lb.style.opacity = '0';
+      setTimeout(() => lb.remove(), 200);
+    } else if (scale === 1) {
+      // Resetta pos
+      pointY = 0; pointX = 0;
+      img.style.transition = 'transform 0.2s ease-out';
+      setTransform();
+      lb.style.backgroundColor = 'rgba(0,0,0,1)';
+    }
+    if (e.touches.length < 2) panning = false;
+  });
 }
 
 // ─────────────────────────────────────────────

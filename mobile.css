@@ -35,16 +35,20 @@
 }
 
 /* ──────────────────────────────────────────
-   TOUCH TARGETS — minimo 44x44px (WCAG 2.5.5)
+   TOUCH TARGETS — minimo 48x48px (Material Design & HIG)
    ────────────────────────────────────────── */
 @media (hover: none) and (pointer: coarse) {
   button,
   a.btn,
   [role="button"],
   input[type="submit"],
-  input[type="button"] {
-    min-height: 44px;
-    min-width:  44px;
+  input[type="button"],
+  select {
+    min-height: 48px;
+    min-width:  48px;
+    display: flex; /* Helps align content in larger targets */
+    align-items: center;
+    justify-content: center;
   }
 }
 
