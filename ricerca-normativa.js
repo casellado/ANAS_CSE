@@ -75,7 +75,7 @@ async function cercaNormativa(domanda, history = []) {
     contents,
     generationConfig: {
       temperature:     0.2,   // bassa — risposte fattuali, non creative
-      maxOutputTokens: 1024,
+      maxOutputTokens: 8192,  // gemini-2.5-flash usa token per thinking interno
       topP:            0.8
     },
     safetySettings: [
@@ -97,11 +97,22 @@ async function cercaNormativa(domanda, history = []) {
 
     if (response.status === 400) throw new Error('API_KEY_INVALID');
     if (response.status === 429) throw new Error('QUOTA_EXCEEDED');
+    if (response.status === 404) throw new Error('MODEL_NOT_FOUND');
     throw new Error(msg);
   }
 
-  const data     = await response.json();
-  const text     = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const data = await response.json();
+  // Gemini 2.5 può restituire più parti (thinking + risposta)
+  // Prendiamo l'ultima parte testuale non-thought
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  let text = '';
+  for (const part of parts) {
+    if (part.text && !part.thought) text = part.text;
+  }
+  // Fallback: se non troviamo parti non-thought, prendi la prima con testo
+  if (!text) {
+    text = parts.find(p => p.text)?.text || '';
+  }
 
   if (!text) throw new Error('EMPTY_RESPONSE');
   return text;
@@ -592,6 +603,7 @@ function _tradErrore(code) {
     'API_KEY_INVALID':  'API key non valida o scaduta. Clicca ⚙️ per aggiornarla.',
     'QUOTA_EXCEEDED':   'Limite giornaliero raggiunto (1500 richieste). Riprova domani.',
     'EMPTY_RESPONSE':   'Risposta vuota ricevuta. Riprova tra qualche secondo.',
+    'MODEL_NOT_FOUND':  'Modello AI non disponibile. Aggiorna la pagina (Ctrl+Shift+R).',
     'Failed to fetch':  'Nessuna connessione internet. Controlla la rete e riprova.'
   };
   return messaggi[code] || `Errore: ${code}`;

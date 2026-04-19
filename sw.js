@@ -1,7 +1,9 @@
-// sw.js — Service Worker ANAS SafeHub v1.2
-// Cache-first per file statici, network-first per database.json
+// sw.js — Service Worker ANAS SafeHub v2.0
+// Network-first per file app (deploy sempre fresco), cache-fallback offline
+// Geom. Dogano Casella — ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v1.8';
+const CACHE_NAME = 'anas-safehub-v2.0';
+
 const CACHE_STATIC = [
   './',
   './index.html',
@@ -24,13 +26,11 @@ const CACHE_STATIC = [
   './verbali-riunione.js',
   './verbali-pos.js',
   './smart-memory.js',
-  './mobile.css',
+  './ricerca-normativa.js',
   './salva-file.js',
   './scorciatoie.js',
   './report-giornaliero.js',
   './lettera-sospensione.js',
-  './animazioni.css',
-  './ricerca-normativa.js',
   // JS moduli
   './nc.js',
   './nc-foto-dashboard.js',
@@ -53,6 +53,10 @@ const CACHE_STATIC = [
   './export.js',
   './ods-inviati.js',
   './ods-ricevuti.js',
+  './ai-assistente.js',
+  // CSS
+  './animazioni.css',
+  './mobile.css',
   // Icone PWA
   './icon-192.png',
   './icon-512.png',
@@ -60,23 +64,21 @@ const CACHE_STATIC = [
   './manifest.json'
 ];
 
-// ── INSTALL: precache tutti i file statici ──
+// ── INSTALL: precache file statici (resiliente — singoli file) ──
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('[SW] Pre-caching static assets...');
-      // addAll è atomico: se un file manca il SW non si installa
-      // Usiamo add() singolo per resilienza
       return Promise.allSettled(
-        CACHE_STATIC.map(url => cache.add(url).catch(() => {
-          console.warn('[SW] Impossibile cachare:', url);
+        CACHE_STATIC.map(url => cache.add(url).catch(err => {
+          console.warn('[SW] Impossibile cachare:', url, err.message || '');
         }))
       );
     }).then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE: rimuove cache vecchie ──
+// ── ACTIVATE: rimuove TUTTE le cache vecchie e prende controllo ──
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -94,46 +96,59 @@ self.addEventListener('activate', event => {
 
 // ── FETCH: strategia ibrida ──
 self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+  const request = event.request;
 
-  // data/database.json → Network-first (aggiornamento USB)
+  // ▸ IGNORA richieste non-GET (POST, PUT, etc.)
+  //   Le richieste POST (es. API Gemini) non possono essere cachate.
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // ▸ data/database.json → Network-first (aggiornamento USB)
   if (url.pathname.endsWith('database.json')) {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(request, clone));
+          }
           return res;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(request))
     );
     return;
   }
 
-  // CDN esterni (Tailwind, Google Fonts) → Network-first con fallback cache
+  // ▸ CDN esterni (Tailwind, Google Fonts) → Network-first con fallback cache
   if (url.origin !== self.location.origin) {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(request, clone));
+          }
           return res;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(request))
     );
     return;
   }
 
-  // File statici dell'app → Cache-first
+  // ▸ File statici dell'app → Network-first (deploy sempre fresco)
+  //   Se la rete risponde, aggiorna la cache e serve fresco.
+  //   Se offline, serve dalla cache.
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+    fetch(request)
+      .then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(request, clone));
+        }
         return res;
-      });
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
 

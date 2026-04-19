@@ -83,7 +83,9 @@ const STATIC_FILES = [
   'manifest.json',
   'sw.js',          // il SW deve restare leggibile per funzionare
   'animazioni.css',
-  'mobile.css'
+  'mobile.css',
+  'icon-192.png',
+  'icon-512.png'
 ];
 
 // Cartelle da copiare
