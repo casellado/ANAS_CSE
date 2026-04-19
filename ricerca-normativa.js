@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────
 // COSTANTI
 // ─────────────────────────────────────────────
-const GEMINI_API_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 const GEMINI_KEY_ID   = 'gemini_api_key';
 const CHAT_HISTORY_ID = 'ricerca_history';
 const MAX_HISTORY     = 20; // messaggi conservati
@@ -102,16 +102,12 @@ async function cercaNormativa(domanda, history = []) {
   }
 
   const data = await response.json();
-  // Gemini 2.5 può restituire più parti (thinking + risposta)
-  // Prendiamo l'ultima parte testuale non-thought
   const parts = data?.candidates?.[0]?.content?.parts || [];
   let text = '';
   for (const part of parts) {
-    if (part.text && !part.thought) text = part.text;
-  }
-  // Fallback: se non troviamo parti non-thought, prendi la prima con testo
-  if (!text) {
-    text = parts.find(p => p.text)?.text || '';
+    if (part.text) {
+      text += part.text;
+    }
   }
 
   if (!text) throw new Error('EMPTY_RESPONSE');
