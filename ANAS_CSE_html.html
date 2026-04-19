@@ -1406,7 +1406,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
 const VIEWS = ['hub', 'anagrafica', 'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento', 'verifica-pos', 'nc', 'ods-ricevuti', 'documenti-fondamentali', 'documenti', 'impostazioni'];
 
 const VIEW_TITLES = {
-  'hub':                       '📂 Hub Cantieri',
+  'hub':                       '🏢 Hub Cantieri',
   'anagrafica':                '👥 Anagrafica Imprese',
   'dashboard-cantiere':        '📊 Dashboard Cantiere',
   'nuovo-verbale':             '📝 Nuovo Verbale di Sopralluogo',
@@ -1414,8 +1414,8 @@ const VIEW_TITLES = {
   'verifica-pos':              '✅ Verifica Idoneità POS',
   'nc':                        '⚠️ Non Conformità / ODS Inviati',
   'ods-ricevuti':              '📥 ODS Ricevuti',
-  'documenti-fondamentali':    '📋 Documenti Fondamentali Cantiere',
-  'documenti':                 '📚 Normative & Altri Documenti',
+  'documenti-fondamentali':    '📋 Doc. Fondamentali Cantiere',
+  'documenti':                 '📚 Normative & Documenti',
   'impostazioni':              '⚙️ Impostazioni Verbale PDF'
 };
 
@@ -1474,7 +1474,8 @@ function switchView(viewId) {
     if (titleEl) titleEl.textContent = VIEW_TITLES[viewId] || viewId;
     document.querySelectorAll('.nav-btn').forEach(btn => {
       const isActive = btn.dataset.nav === viewId;
-      btn.classList.toggle('nav-link-active', isActive);
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-current', isActive ? 'page' : 'false');
     });
     _mostraMessaggioNoCantiere(viewId);
     return;
@@ -1500,11 +1501,10 @@ function switchView(viewId) {
   const titleEl = document.getElementById('header-title');
   if (titleEl) titleEl.textContent = VIEW_TITLES[viewId] || viewId;
 
-  // Aggiorna stato nav
+  // Aggiorna stato nav — usa classe .active (design system v3)
   document.querySelectorAll('.nav-btn').forEach(btn => {
     const isActive = btn.dataset.nav === viewId;
-    btn.classList.toggle('nav-link-active', isActive);
-    btn.classList.toggle('text-slate-300', !isActive);
+    btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
 
@@ -1951,6 +1951,30 @@ document.getElementById('main-sidebar')?.addEventListener('touchstart', e => {
 document.getElementById('main-sidebar')?.addEventListener('touchend', e => {
   if (_tsX - e.changedTouches[0].clientX > 60) chiudiSidebar();
 }, { passive: true });
+
+// ── Override enterProject per la SPA ──
+// navigation.js lo sovrascrive per navigare a dashboard-cantiere.html (usato da index.html).
+// Qui, dentro la SPA, "Entra" deve invece selezionare il cantiere e aprire la view interna.
+window.enterProject = function(id, nome) {
+  window.appState = window.appState || {};
+  window.appState.currentProject = id;
+  window.appState.projectName    = nome;
+
+  // Aggiorna il selettore rapido in topbar
+  const sel = document.getElementById('topbar-cantiere-select');
+  if (sel) {
+    sel.value = id;
+    const container = document.getElementById('topbar-cantiere-container');
+    if (container) container.classList.remove('hidden');
+  }
+
+  // Salva in sessionStorage per coerenza con navigation.js
+  sessionStorage.setItem('currentProjectId',   id);
+  sessionStorage.setItem('currentProjectName', nome || id);
+
+  // Apri la Dashboard interna alla SPA
+  switchView('dashboard-cantiere');
+};
 </script>
 </body>
 </html>
