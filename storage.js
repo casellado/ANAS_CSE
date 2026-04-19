@@ -100,7 +100,7 @@ function _bulkSave(storeName, items) {
       try {
         const req = s.put(item);
         req.onsuccess = () => { saved++; };
-        req.onerror   = () => { /* skip singolo record rotto */ };
+        req.onerror   = (e) => { e.preventDefault(); /* skip singolo record rotto, non abortire transazione */ };
       } catch(_) { /* skip */ }
     }
   });

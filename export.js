@@ -64,29 +64,25 @@ async function exportArchivioJSON() {
 // 3. Export JSON singoli record
 // ─────────────────────────────────────────────
 async function exportVerbaleJSON(id) {
-  const list = await getAll('verbali').catch(() => []);
-  const v    = list.find(x => x.id === id);
+  const v = await getItem('verbali', id);
   if (!v) { showToast('Verbale non trovato.', 'error'); return; }
   downloadBlob(new Blob([JSON.stringify(v, null, 2)], { type: 'application/json' }), `verbale_${id}.json`);
 }
 
 async function exportNCJSON(id) {
-  const list = await getAll('nc').catch(() => []);
-  const n    = list.find(x => x.id === id);
+  const n = await getItem('nc', id);
   if (!n) { showToast('NC non trovata.', 'error'); return; }
   downloadBlob(new Blob([JSON.stringify(n, null, 2)], { type: 'application/json' }), `nc_${id}.json`);
 }
 
 async function exportImpresaJSON(id) {
-  const list    = await getAll('imprese').catch(() => []);
-  const impresa = list.find(x => x.id === id);
+  const impresa = await getItem('imprese', id);
   if (!impresa) { showToast('Impresa non trovata.', 'error'); return; }
   downloadBlob(new Blob([JSON.stringify(impresa, null, 2)], { type: 'application/json' }), `impresa_${id}.json`);
 }
 
 async function exportLavoratoreJSON(id) {
-  const list = await getAll('lavoratori').catch(() => []);
-  const l    = list.find(x => x.id === id);
+  const l = await getItem('lavoratori', id);
   if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
   downloadBlob(new Blob([JSON.stringify(l, null, 2)], { type: 'application/json' }), `lavoratore_${id}.json`);
 }
@@ -134,8 +130,7 @@ function apriFinestraStampa(titolo, htmlContenuto) {
 }
 
 async function exportVerbalePDF(id) {
-  const list = await getAll('verbali').catch(() => []);
-  const v    = list.find(x => x.id === id);
+  const v = await getItem('verbali', id);
   if (!v) { showToast('Verbale non trovato.', 'error'); return; }
 
   // Usa template personalizzato se impostazioni.js è caricato
@@ -147,11 +142,12 @@ async function exportVerbalePDF(id) {
   }
 
   // Fallback base
+  const _e = typeof escapeHtml === 'function' ? escapeHtml : (s) => (s || '');
   const firmaHtml = v.firma
     ? `<div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px;">
          <div class="label">Firma CSE</div>
          <img src="${v.firma}" style="max-width:300px; max-height:100px; border:1px solid #e2e8f0; border-radius:6px; margin-top:6px;" alt="Firma CSE">
-         <div class="label" style="margin-top:4px;">${v.firmante || 'Geom. Dogano Casella — CSE'}</div>
+         <div class="label" style="margin-top:4px;">${_e(v.firmante) || 'Geom. Dogano Casella — CSE'}</div>
          <div style="font-size:11px; color:#94a3b8;">
            Firmato il: ${v.firmaTimestamp ? new Date(v.firmaTimestamp).toLocaleString('it-IT') : '–'}
          </div>
@@ -166,63 +162,63 @@ async function exportVerbalePDF(id) {
 
   apriFinestraStampa('Verbale', `
     <h1>Verbale di Sopralluogo</h1>
-    <div class="campo"><div class="label">Data</div><div class="valore">${v.data || '–'}</div></div>
-    <div class="campo"><div class="label">Cantiere</div><div class="valore">${v.projectId || '–'}</div></div>
-    <div class="campo"><div class="label">Progressiva KM</div><div class="valore">${v.km || '–'}</div></div>
-    <div class="campo"><div class="label">Condizioni Meteo</div><div class="valore">${v.meteo || '–'}</div></div>
-    <div class="campo"><div class="label">Oggetto</div><div class="valore">${v.oggetto || '–'}</div></div>
-    <div class="campo"><div class="label">Imprese Presenti</div><div class="valore">${(v.impresePresenti || []).join(', ') || '–'}</div></div>
-    <div class="campo"><div class="label">Referenti</div><div class="valore">${(v.referenti || '–').replace(/\n/g,'<br>')}</div></div>
-    <div class="campo"><div class="label">Stato dei Luoghi</div><div class="valore">${(v.statoLuoghi || '–').replace(/\n/g,'<br>')}</div></div>
-    <div class="campo"><div class="label">Note CSE</div><div class="valore">${(v.note || '–').replace(/\n/g,'<br>')}</div></div>
+    <div class="campo"><div class="label">Data</div><div class="valore">${_e(v.data) || '–'}</div></div>
+    <div class="campo"><div class="label">Cantiere</div><div class="valore">${_e(v.projectId) || '–'}</div></div>
+    <div class="campo"><div class="label">Progressiva KM</div><div class="valore">${_e(v.km) || '–'}</div></div>
+    <div class="campo"><div class="label">Condizioni Meteo</div><div class="valore">${_e(v.meteo) || '–'}</div></div>
+    <div class="campo"><div class="label">Oggetto</div><div class="valore">${_e(v.oggetto) || '–'}</div></div>
+    <div class="campo"><div class="label">Imprese Presenti</div><div class="valore">${(v.impresePresenti || []).map(i => _e(i)).join(', ') || '–'}</div></div>
+    <div class="campo"><div class="label">Referenti</div><div class="valore">${_e(v.referenti || '–').replace(/\n/g,'<br>')}</div></div>
+    <div class="campo"><div class="label">Stato dei Luoghi</div><div class="valore">${_e(v.statoLuoghi || '–').replace(/\n/g,'<br>')}</div></div>
+    <div class="campo"><div class="label">Note CSE</div><div class="valore">${_e(v.note || '–').replace(/\n/g,'<br>')}</div></div>
     ${firmaHtml}
   `);
 }
 
 async function exportNCPDF(id) {
-  const list = await getAll('nc').catch(() => []);
-  const n    = list.find(x => x.id === id);
+  const n = await getItem('nc', id);
   if (!n) { showToast('NC non trovata.', 'error'); return; }
 
+  const _e = typeof escapeHtml === 'function' ? escapeHtml : (s) => (s || '');
   apriFinestraStampa('Non Conformità', `
-    <h1>Non Conformità — ${(n.livello || '').toUpperCase()}</h1>
-    <div class="campo"><div class="label">Cantiere</div><div class="valore">${n.projectId || '–'}</div></div>
-    <div class="campo"><div class="label">Livello</div><div class="valore">${n.livello || '–'}</div></div>
-    <div class="campo"><div class="label">Stato</div><div class="valore">${n.stato || '–'}</div></div>
+    <h1>Non Conformità — ${_e((n.livello || '').toUpperCase())}</h1>
+    <div class="campo"><div class="label">Cantiere</div><div class="valore">${_e(n.projectId) || '–'}</div></div>
+    <div class="campo"><div class="label">Livello</div><div class="valore">${_e(n.livello) || '–'}</div></div>
+    <div class="campo"><div class="label">Stato</div><div class="valore">${_e(n.stato) || '–'}</div></div>
     <div class="campo"><div class="label">Data Apertura</div><div class="valore">${n.dataApertura ? new Date(n.dataApertura).toLocaleString('it-IT') : '–'}</div></div>
     <div class="campo"><div class="label">Scadenza</div><div class="valore">${n.dataScadenza ? new Date(n.dataScadenza).toLocaleString('it-IT') : '–'}</div></div>
-    <div class="campo"><div class="label">Descrizione</div><div class="valore">${(n.descrizione || '–').replace(/\n/g,'<br>')}</div></div>
+    <div class="campo"><div class="label">Descrizione</div><div class="valore">${_e(n.descrizione || '–').replace(/\n/g,'<br>')}</div></div>
   `);
 }
 
 async function exportImpresaPDF(id) {
-  const list    = await getAll('imprese').catch(() => []);
-  const impresa = list.find(x => x.id === id);
+  const impresa = await getItem('imprese', id);
   if (!impresa) { showToast('Impresa non trovata.', 'error'); return; }
 
+  const _e = typeof escapeHtml === 'function' ? escapeHtml : (s) => (s || '');
   apriFinestraStampa('Scheda Impresa', `
-    <h1>${impresa.nome || '–'}</h1>
-    <div class="campo"><div class="label">P.IVA / C.F.</div><div class="valore">${impresa.piva || impresa.id || '–'}</div></div>
-    <div class="campo"><div class="label">Ruolo</div><div class="valore">${impresa.ruolo || '–'}</div></div>
-    <div class="campo"><div class="label">Referente</div><div class="valore">${impresa.referente || '–'}</div></div>
-    <div class="campo"><div class="label">Contatto</div><div class="valore">${impresa.contatto || '–'}</div></div>
+    <h1>${_e(impresa.nome) || '–'}</h1>
+    <div class="campo"><div class="label">P.IVA / C.F.</div><div class="valore">${_e(impresa.piva || impresa.id) || '–'}</div></div>
+    <div class="campo"><div class="label">Ruolo</div><div class="valore">${_e(impresa.ruolo) || '–'}</div></div>
+    <div class="campo"><div class="label">Referente</div><div class="valore">${_e(impresa.referente) || '–'}</div></div>
+    <div class="campo"><div class="label">Contatto</div><div class="valore">${_e(impresa.contatto) || '–'}</div></div>
   `);
 }
 
 async function exportLavoratorePDF(id) {
-  const list = await getAll('lavoratori').catch(() => []);
-  const l    = list.find(x => x.id === id);
+  const l = await getItem('lavoratori', id);
   if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
 
+  const _e = typeof escapeHtml === 'function' ? escapeHtml : (s) => (s || '');
   apriFinestraStampa('Scheda Lavoratore', `
-    <h1>${l.nome || ''} ${l.cognome || ''}</h1>
-    <div class="campo"><div class="label">Codice Fiscale</div><div class="valore">${l.cf || '–'}</div></div>
-    <div class="campo"><div class="label">Mansione</div><div class="valore">${l.mansione || '–'}</div></div>
-    <div class="campo"><div class="label">Idoneità</div><div class="valore">${l.idoneita || '–'}</div></div>
+    <h1>${_e(l.nome) || ''} ${_e(l.cognome) || ''}</h1>
+    <div class="campo"><div class="label">Codice Fiscale</div><div class="valore">${_e(l.cf) || '–'}</div></div>
+    <div class="campo"><div class="label">Mansione</div><div class="valore">${_e(l.mansione) || '–'}</div></div>
+    <div class="campo"><div class="label">Idoneità</div><div class="valore">${_e(l.idoneita) || '–'}</div></div>
     <h3>DPI Consegnati</h3>
-    <ul>${(l.dpi || []).map(d => `<li>${d}</li>`).join('') || '<li>Nessuno</li>'}</ul>
+    <ul>${(l.dpi || []).map(d => `<li>${_e(d)}</li>`).join('') || '<li>Nessuno</li>'}</ul>
     <h3>Formazione</h3>
-    <ul>${(l.formazione || []).map(f => `<li>${f}</li>`).join('') || '<li>Nessuna formazione registrata</li>'}</ul>
+    <ul>${(l.formazione || []).map(f => `<li>${_e(f)}</li>`).join('') || '<li>Nessuna formazione registrata</li>'}</ul>
   `);
 }
 

@@ -1,7 +1,7 @@
 // sw.js — Service Worker ANAS SafeHub v1.2
 // Cache-first per file statici, network-first per database.json
 
-const CACHE_NAME = 'anas-safehub-v1.7';
+const CACHE_NAME = 'anas-safehub-v1.8';
 const CACHE_STATIC = [
   './',
   './index.html',
@@ -48,8 +48,14 @@ const CACHE_STATIC = [
   './documenti-collegamento.js',
   './documenti-popup.js',
   './documenti-imprese-lavoratori.js',
+  './documenti-fondamentali.js',
   './scadenze-documenti.js',
   './export.js',
+  './ods-inviati.js',
+  './ods-ricevuti.js',
+  // Icone PWA
+  './icon-192.png',
+  './icon-512.png',
   // Manifest
   './manifest.json'
 ];
@@ -89,20 +95,6 @@ self.addEventListener('activate', event => {
 // ── FETCH: strategia ibrida ──
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-
-  // Navigazione HTML → Network-first per evitare pagine stale dopo deploy
-  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/ANAS_CSE/' || url.pathname === '/ANAS_CSE') {
-    event.respondWith(
-      fetch(event.request)
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          return res;
-        })
-        .catch(() => caches.match(event.request).then(r => r || caches.match('./index.html')))
-    );
-    return;
-  }
 
   // data/database.json → Network-first (aggiornamento USB)
   if (url.pathname.endsWith('database.json')) {

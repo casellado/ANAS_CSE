@@ -42,7 +42,7 @@
   <meta name="theme-color" content="#0f172a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
   <script defer src="./salva-file.js"></script>
   <script defer src="./smart-memory.js"></script>
   <script defer src="./lettera-sospensione.js"></script>
@@ -182,25 +182,35 @@
     <!-- KPI PANEL -->
     <section data-panel="kpi" class="space-y-4">
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">NC Aperte</div>
-          <div id="kpi-nc-aperte" class="text-3xl font-bold text-red-600">–</div>
+        <div id="card-kpi-aperte" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 kpi-card" data-severity="ok">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-semibold">
+            <span aria-hidden="true" class="text-base">📋</span> NC Aperte
+          </div>
+          <div id="kpi-nc-aperte" class="text-3xl font-bold text-slate-800 kpi-value">–</div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Gravissime</div>
-          <div id="kpi-gravissime" class="text-3xl font-bold text-red-800">–</div>
+        <div id="card-kpi-gravissime" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 kpi-card" data-severity="ok">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-semibold">
+            <span aria-hidden="true" class="text-base">🚨</span> Gravissime
+          </div>
+          <div id="kpi-gravissime" class="text-3xl font-bold text-slate-800 kpi-value">–</div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">NC Scadute</div>
-          <div id="kpi-scadute" class="text-3xl font-bold text-orange-600">–</div>
+        <div id="card-kpi-scadute" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 kpi-card" data-severity="ok">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-semibold">
+            <span aria-hidden="true" class="text-base">⏰</span> NC Scadute
+          </div>
+          <div id="kpi-scadute" class="text-3xl font-bold text-slate-800 kpi-value">–</div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Tempo Medio</div>
+        <div id="card-kpi-tempo" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 kpi-card" data-severity="info">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-semibold">
+            <span aria-hidden="true" class="text-base">⏱️</span> Tempo Medio
+          </div>
           <div id="kpi-tempo" class="text-2xl font-bold text-slate-700">–</div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Indice Sicurezza</div>
-          <div id="kpi-score" class="text-3xl font-bold text-blue-600">–</div>
+        <div id="card-kpi-score" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 kpi-card" data-severity="ok">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-semibold">
+            <span aria-hidden="true" class="text-base">🛡️</span> Indice Sicurezza
+          </div>
+          <div id="kpi-score" class="text-3xl font-bold text-slate-800 kpi-value">–</div>
         </div>
       </div>
       <!-- Azioni rapide da KPI -->
@@ -278,6 +288,7 @@
   <!-- UNICO DOMContentLoaded — initDB PRIMA di tutto -->
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      const loadStart = performance.now();
       try {
         // 1. CRITICO: inizializza IndexedDB prima di qualsiasi render
         await initDB();
@@ -286,26 +297,17 @@
         const ok = ripristinaStatoDashboard();
         if (!ok) return; // reindirizza a index.html se nessun cantiere
 
-        // 3. KPI
+        // 3. KPI (Unico pannello pre-caricato - UX-H)
         await renderKPI();
 
-        // 4. Lista NC
-        await renderNCListWithFoto('nc-list');
-
-        // 5. Lista Verbali
-        await renderVerbaliList('verbali-list');
-
-        // 6. Lista Imprese
-        await renderImpreseList('imprese-list');
-
-        // 7. Badge sui tab
+        // 4. Badge sui tab (veloci, dipendono da IndexedDB)
         await aggiornaBadgeDashboard();
         await aggiornaBadgeImprese();
 
-        // 8. Init tabs — UNA SOLA VOLTA qui (rimosso da ui-dashboard.js)
+        // 5. Init tabs — attiva il lazy loading per gli altri pannelli
         if (typeof initDashboardTabs === 'function') initDashboardTabs();
 
-        // 9. Filtri NC — UNA SOLA VOLTA qui (rimosso da ui-dashboard.js)
+        // 6. Filtri NC
         document.querySelectorAll('[data-filter-nc]').forEach(btn => {
           btn.addEventListener('click', () => {
             document.querySelectorAll('[data-filter-nc]').forEach(b =>
@@ -320,12 +322,19 @@
         console.error('Errore dashboard:', err);
         if (typeof showToast === 'function') showToast('Errore caricamento: ' + err, 'error');
       } finally {
-        // Nascondi sempre il loading overlay, anche in caso di errore
+        // UX-J: Graceful Skeleton Dismiss
         const loader = document.getElementById('dashboard-loading');
         if (loader) {
-          loader.style.opacity = '0';
-          loader.style.transition = 'opacity 200ms';
-          setTimeout(() => loader.remove(), 250);
+          const loadEnd = performance.now();
+          if (loadEnd - loadStart < 150) {
+            // Se caricamento veloce (<150ms), rimuovi subito senza fade per evitare flash fastidiosi
+            loader.remove();
+          } else {
+            // Altrimenti fade out fluido
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 200ms ease';
+            setTimeout(() => loader.remove(), 250);
+          }
         }
       }
     });

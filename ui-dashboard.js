@@ -27,7 +27,9 @@ function initDashboardTabs() {
   });
 }
 
-function activateTab(target, tabs, panels) {
+const loadedPanels = new Set(['kpi']); // Il KPI è pre-caricato al boot della dashboard
+
+async function activateTab(target, tabs, panels) {
   tabs.forEach(t => {
     const isActive = t.dataset.tab === target;
     t.classList.toggle('tab-active', isActive);
@@ -40,6 +42,24 @@ function activateTab(target, tabs, panels) {
     p.classList.toggle('hidden', !isTarget);
     p.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
   });
+
+  // UX-H: Lazy Loading dei pannelli
+  if (!loadedPanels.has(target)) {
+    loadedPanels.add(target);
+    try {
+      if (target === 'nc' && typeof renderNCListWithFoto === 'function') {
+        await renderNCListWithFoto('nc-list');
+      }
+      else if (target === 'verbali' && typeof renderVerbaliList === 'function') {
+        await renderVerbaliList('verbali-list');
+      }
+      else if (target === 'imprese' && typeof renderImpreseList === 'function') {
+        await renderImpreseList('imprese-list');
+      }
+    } catch (err) {
+      console.error(`Errore lazy loading tab ${target}:`, err);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────

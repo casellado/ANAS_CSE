@@ -2,9 +2,13 @@
 // Lo store "documenti" è già definito in db.js (v6).
 // Questo file espone solo le funzioni di accesso ai documenti.
 
-async function salvaDocumento(doc) {
+async function salvaDocumentoInDB(doc) {
   return await saveItem('documenti', doc);
 }
+// Alias retrocompatibile — usato da documenti.js handleFiles()
+// NOTA: se salva-file.js è caricato dopo, la sua salvaDocumento NON sovrascrive questa
+//       perché abbiamo rinominato la funzione. Chi ha bisogno del salvataggio IndexedDB
+//       dovrebbe usare salvaDocumentoInDB().
 
 async function getDocumenti() {
   return await getAll('documenti');

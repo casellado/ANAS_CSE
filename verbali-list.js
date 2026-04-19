@@ -19,10 +19,13 @@ async function renderVerbaliList(containerId) {
 
   if (!verbali || verbali.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-10 text-slate-400">
-        <div class="text-4xl mb-2">📋</div>
-        <p class="text-sm font-medium">Nessun verbale presente.</p>
-        <p class="text-xs mt-1">Compila il form per aggiungere il primo verbale.</p>
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3 class="empty-state-title">Nessun verbale presente</h3>
+        <p class="empty-state-desc">Compila il form per registrare il tuo primo verbale di sopralluogo.</p>
+        <button onclick="if(typeof apriSuiteCSE === 'function') apriSuiteCSE('nuovo-verbale')" class="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none transition mt-2">
+          + Nuovo Verbale
+        </button>
       </div>`;
     return;
   }

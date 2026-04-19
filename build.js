@@ -23,20 +23,57 @@ const DIST = path.resolve(__dirname, 'dist');
 
 const COPYRIGHT = `/* ANAS SafeHub v1.2 | © ${new Date().getFullYear()} Geom. Dogano Casella | Tutti i diritti riservati | Licenza commerciale richiesta */`;
 
-// File JS da offuscare: tutti i .js in root, esclusi script di build/SW
-const JS_FILES = fs.readdirSync(SRC)
-  .filter((f) => f.endsWith('.js'))
-  .filter((f) => !['build.js', 'sw.js'].includes(f));
+// File JS da offuscare (in ordine di dipendenza)
+const JS_FILES = [
+  'db.js',
+  'storage.js',
+  'ui.js',
+  'firma.js',
+  'impostazioni.js',
+  'foto.js',
+  'documenti-indexeddb.js',
+  'documenti-preview.js',
+  'documenti-collegamento.js',
+  'documenti-popup.js',
+  'documenti-imprese-lavoratori.js',
+  'documenti.js',
+  'nc.js',
+  'verbali.js',
+  'verbali-list.js',
+  'imprese-list.js',
+  'imprese-assegnazione.js',
+  'lavoratori.js',
+  'dashboard-cantiere.js',
+  'dashboard-docs.js',
+  'scadenze-documenti.js',
+  'ui-dashboard.js',
+  'nc-foto-dashboard.js',
+  'export.js',
+  'salvataggio.js',
+  'email.js',
+  'verbali-riunione.js',
+  'verbali-pos.js',
+  'smart-memory.js',
+  'ricerca-normativa.js',
+  'navigation.js',
+  'app.js'
+  // NOTA: sw.js NON va offuscato — il browser lo richiede leggibile per il Service Worker
+];
 
-// File HTML da minificare: tutti gli .html in root
-const HTML_FILES = fs.readdirSync(SRC)
-  .filter((f) => f.endsWith('.html'));
+// File HTML da minificare
+const HTML_FILES = [
+  'index.html',
+  'ANAS_CSE_html.html',
+  'dashboard-cantiere.html',
+  'impresa-dettaglio.html',
+  'lavoratore-dettaglio.html',
+  'verbale-dettaglio.html'
+];
 
 // File statici da copiare invariati
 const STATIC_FILES = [
   'manifest.json',
-  'sw.js',
-  'database.json'
+  'sw.js'          // il SW deve restare leggibile per funzionare
 ];
 
 // Cartelle da copiare
@@ -44,9 +81,6 @@ const STATIC_DIRS = [
   'data',
   'icons'
 ];
-
-// Altri file statici in root (es. CSS, immagini, PDF, DOCX)
-const ROOT_STATIC_EXTENSIONS = ['.css', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico', '.pdf', '.docx'];
 
 // ─────────────────────────────────────────────
 // OPZIONI OBFUSCATOR
@@ -92,48 +126,16 @@ function log(emoji, msg) {
 }
 
 function minifyHTML(html) {
-  const blocks = [];
-  const protect = (source, regex, prefix) =>
-    source.replace(regex, (m) => {
-      const token = `___${prefix}_${blocks.length}___`;
-      blocks.push({ token, value: m });
-      return token;
-    });
-
-  let safe = html;
-  // Proteggi contenuti sensibili: script/style/pre/textarea
-  safe = protect(safe, /<script\b[\s\S]*?<\/script>/gi, 'SCRIPT');
-  safe = protect(safe, /<style\b[\s\S]*?<\/style>/gi, 'STYLE');
-  safe = protect(safe, /<pre\b[\s\S]*?<\/pre>/gi, 'PRE');
-  safe = protect(safe, /<textarea\b[\s\S]*?<\/textarea>/gi, 'TEXTAREA');
-
-  safe = safe
+  return html
     // Rimuovi commenti HTML (ma NON i commenti condizionali IE)
     .replace(/<!--(?!\[if)[\s\S]*?-->/g, '')
     // Rimuovi spazi multipli
     .replace(/\s{2,}/g, ' ')
-    // Rimuovi spazi tra tag HTML
+    // Rimuovi spazi attorno ai tag
     .replace(/>\s+</g, '><')
-    // Trim righe
+    // Rimuovi spazi a inizio/fine riga
     .replace(/^\s+|\s+$/gm, '')
     .trim();
-
-  for (const b of blocks) {
-    safe = safe.replace(b.token, b.value);
-  }
-  return safe;
-}
-
-function addAssetVersionToHtml(html, buildId) {
-  return html.replace(
-    /(<(?:script|link)\b[^>]*\b(?:src|href)=["'])(\.\/[^"']+)(["'])/gi,
-    (full, prefix, url, suffix) => {
-      // Evita doppio versionamento e ancora/hash già presenti
-      if (url.includes('?v=') || url.includes('#')) return full;
-      const sep = url.includes('?') ? '&' : '?';
-      return `${prefix}${url}${sep}v=${buildId}${suffix}`;
-    }
-  );
 }
 
 // ─────────────────────────────────────────────
@@ -141,7 +143,6 @@ function addAssetVersionToHtml(html, buildId) {
 // ─────────────────────────────────────────────
 async function build() {
   const start = Date.now();
-  const buildId = new Date().toISOString().replace(/[-:.TZ]/g, '');
   console.log('\n╔════════════════════════════════════════╗');
   console.log('║    ANAS SafeHub — Build Pipeline       ║');
   console.log('║    Geom. Dogano Casella © 2025         ║');
@@ -205,8 +206,7 @@ async function build() {
       `<head>\n<!-- © ${new Date().getFullYear()} Geom. Dogano Casella - Tutti i diritti riservati -->`
     );
 
-    const versioned = addAssetVersionToHtml(withCopyright, buildId);
-    const minified = minifyHTML(versioned);
+    const minified = minifyHTML(withCopyright);
     fs.writeFileSync(distPath, minified, 'utf8');
 
     const srcSize = (source.length   / 1024).toFixed(1);
@@ -246,37 +246,13 @@ async function build() {
     log('✅', `  ${dir}/`);
   }
 
-  // 6. Copia file statici extra dalla root (css, immagini, allegati)
-  log('\n🧩', 'Copia statici root...');
-  const rootEntries = fs.readdirSync(SRC, { withFileTypes: true });
-  for (const entry of rootEntries) {
-    if (!entry.isFile()) continue;
-    const ext = path.extname(entry.name).toLowerCase();
-    if (!ROOT_STATIC_EXTENSIONS.includes(ext)) continue;
-
-    const srcFile = path.join(SRC, entry.name);
-    const distFile = path.join(DIST, entry.name);
-    await fse.copy(srcFile, distFile);
-    log('✅', `  ${entry.name}`);
-  }
-
-  // 7. Fallback: se manca data/database.json ma esiste database.json in root, crealo in data/
-  const distDataDir = path.join(DIST, 'data');
-  const distRootDb = path.join(DIST, 'database.json');
-  const distDataDb = path.join(distDataDir, 'database.json');
-  if (!fs.existsSync(distDataDb) && fs.existsSync(distRootDb)) {
-    await fse.ensureDir(distDataDir);
-    await fse.copy(distRootDb, distDataDb);
-    log('🔁', '  creato data/database.json da database.json');
-  }
-
-  // 8. Aggiorna sw.js nella dist — lista cache aggiornata
+  // 6. Aggiorna sw.js nella dist — lista cache aggiornata
   // (il sw.js viene copiato invariato perché deve essere leggibile dal browser)
   const swPath = path.join(DIST, 'sw.js');
   if (fs.existsSync(swPath)) {
     let sw = fs.readFileSync(swPath, 'utf8');
     // Aggiorna il CACHE_NAME con timestamp di build per forzare aggiornamento
-    const buildDate = buildId;
+    const buildDate = new Date().toISOString().slice(0, 10);
     sw = sw.replace(
       /const CACHE_NAME\s*=\s*'[^']+'/,
       `const CACHE_NAME = 'anas-safehub-${buildDate}'`
@@ -285,7 +261,7 @@ async function build() {
     log('🔄', `  sw.js aggiornato con cache: anas-safehub-${buildDate}`);
   }
 
-  // 9. Riepilogo
+  // 7. Riepilogo
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   const distFiles = fs.readdirSync(DIST);
 

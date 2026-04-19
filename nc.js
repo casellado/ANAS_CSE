@@ -31,7 +31,7 @@ async function nuovaNC(tipoEmissione = 'nc') {
   if (!['nc', 'ods'].includes(tipoEmissione)) tipoEmissione = 'nc';
 
   const projectId = window.appState.currentProject;
-  currentNcId     = (tipoEmissione === 'ods' ? 'ods_' : 'nc_') + Date.now();
+  currentNcId     = (tipoEmissione === 'ods' ? 'ods_' : 'nc_') + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const now       = new Date().toISOString();
 
   const nc = {
@@ -283,41 +283,46 @@ function renderNCCard(nc) {
           <p class="text-sm mt-2 text-slate-700">${descrizione}</p>
         </div>
 
-        <div class="flex flex-col gap-2 shrink-0">
+        <div class="flex flex-col gap-2 shrink-0 items-end">
           ${isAperta
             ? `<button onclick="chiudiNC('${nc.id}')"
-                       class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg
+                       class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-bold
                               hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
                        aria-label="Chiudi ${isODS ? 'ODS' : 'NC'}">
                  Chiudi
                </button>`
             : `<button onclick="riapriNC('${nc.id}')"
-                       class="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded-lg
+                       class="bg-yellow-500 text-white text-xs px-4 py-2 rounded-lg font-bold
                               hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                        aria-label="Riapri ${isODS ? 'ODS' : 'NC'}">
                  Riapri
                </button>`
           }
-          ${richiedeSospensione ? `
-            <button onclick="apriPannelloSospensione('${nc.id}')"
-                    class="bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg
-                           hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400
-                           font-bold"
-                    aria-label="Genera proposta di sospensione lavori ex art. 92">
-              🚨 Sospensione
-            </button>` : ''}
-          <button onclick="aggiungiFotoANC('${nc.id}', 'foto-${nc.id}')"
-                  class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg
-                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  aria-label="Aggiungi foto">
-            📸 Foto
-          </button>
-          <button onclick="apriSalvataggioNC('${nc.id}', '${escapeHtml(livello)}')"
-                  class="bg-slate-600 text-white text-xs px-3 py-1.5 rounded-lg
-                         hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                  aria-label="Salva o invia">
-            💾 Salva
-          </button>
+
+          <details class="relative group">
+            <summary class="list-none cursor-pointer bg-slate-100 text-slate-700 text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-slate-200 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 select-none">
+              ⋯ Opzioni
+            </summary>
+            <div class="absolute right-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-xl p-2 flex flex-col gap-2 z-10 min-w-[160px]">
+              ${richiedeSospensione ? `
+                <button onclick="apriPannelloSospensione('${nc.id}')"
+                        class="text-left w-full bg-red-50 text-red-700 text-xs px-3 py-2 rounded-md
+                               hover:bg-red-100 focus:outline-none font-bold"
+                        aria-label="Genera proposta di sospensione lavori ex art. 92">
+                  🚨 Sospensione
+                </button>` : ''}
+              <button onclick="aggiungiFotoANC('${nc.id}', 'foto-${nc.id}')"
+                      class="text-left w-full text-slate-700 text-xs px-3 py-2 rounded-md hover:bg-slate-100 focus:outline-none"
+                      aria-label="Aggiungi foto">
+                📸 Aggiungi Foto
+              </button>
+              <button onclick="apriSalvataggioNC('${nc.id}', '${escapeHtml(livello)}')"
+                      class="text-left w-full text-slate-700 text-xs px-3 py-2 rounded-md hover:bg-slate-100 focus:outline-none"
+                      aria-label="Salva o invia">
+                💾 Esporta / Invia
+              </button>
+            </div>
+          </details>
         </div>
       </div>
 

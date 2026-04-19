@@ -25,6 +25,7 @@ function mostraPannelloSalvataggio(opzioni = {}) {
   // Coercizione esplicita a bool — previene problemi con stringhe 'true'/'false'
   const mostraWord = !opzioni.nascondWord;
   const mostraJSON = !opzioni.nascondJSON;
+  const panel = document.createElement('div');
   panel.id        = 'pannello-salvataggio';
   panel.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
   panel.setAttribute('role', 'dialog');

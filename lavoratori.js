@@ -307,8 +307,7 @@ const DPI_LISTA = [
 ];
 
 async function apriModalModificaLavoratore(lavId) {
-  const lavoratori = await getAll('lavoratori');
-  const l          = lavoratori.find(x => x.id === lavId);
+  const l = await getItem('lavoratori', lavId);
   if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
 
   document.getElementById('modal-modifica-lavoratore')?.remove();
@@ -407,8 +406,7 @@ async function confermaModificaLavoratore(lavId) {
 
   if (!nome || !cognome) { showToast('Nome e Cognome sono obbligatori.', 'warning'); return; }
 
-  const lavoratori = await getAll('lavoratori');
-  const l          = lavoratori.find(x => x.id === lavId);
+  const l = await getItem('lavoratori', lavId);
   if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
 
   const updated = { ...l, nome, cognome, cf, mansione, idoneita, dpi, updatedAt: new Date().toISOString() };
@@ -426,8 +424,7 @@ async function confermaModificaLavoratore(lavId) {
 // 9. Gestione Formazione — GAP-6
 // ─────────────────────────────────────────────
 async function apriPannelloFormazione(lavId) {
-  const lavoratori = await getAll('lavoratori');
-  const l          = lavoratori.find(x => x.id === lavId);
+  const l = await getItem('lavoratori', lavId);
   if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
 
   document.getElementById('pannello-formazione')?.remove();
@@ -498,8 +495,7 @@ async function _aggiungiCorso(lavId) {
   const corso = (input?.value || '').trim();
   if (!corso) { showToast('Inserisci il nome del corso.', 'warning'); return; }
 
-  const lavoratori = await getAll('lavoratori');
-  const l          = lavoratori.find(x => x.id === lavId);
+  const l = await getItem('lavoratori', lavId);
   if (!l) return;
 
   const formazione = [...(l.formazione || []), corso];
@@ -510,8 +506,7 @@ async function _aggiungiCorso(lavId) {
 }
 
 async function _rimuoviCorso(lavId, indice) {
-  const lavoratori = await getAll('lavoratori');
-  const l          = lavoratori.find(x => x.id === lavId);
+  const l = await getItem('lavoratori', lavId);
   if (!l) return;
 
   const formazione = (l.formazione || []).filter((_, i) => i !== indice);

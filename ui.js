@@ -102,6 +102,74 @@ function showSuccessFlash(btn) {
 }
 
 // ─────────────────────────────────────────────
+// UX-E: Focus Trapping per Modals (Accessibilità)
+// Intrappola il focus del tasto Tab all'interno del modal
+// ─────────────────────────────────────────────
+function trapFocus(modal) {
+  if (!modal) return;
+  const focusableEls = modal.querySelectorAll(
+    'a[href], button, textarea, input[type="text"], input[type="radio"], input[type="checkbox"], select, [tabindex]:not([tabindex="-1"])'
+  );
+  if (focusableEls.length === 0) return;
+
+  const firstFocusableEl = focusableEls[0];
+  const lastFocusableEl = focusableEls[focusableEls.length - 1];
+
+  modal.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab' && e.keyCode !== 9) return;
+
+    if (e.shiftKey) { // Shift + Tab
+      if (document.activeElement === firstFocusableEl) {
+        lastFocusableEl.focus();
+        e.preventDefault();
+      }
+    } else { // Tab
+      if (document.activeElement === lastFocusableEl) {
+        firstFocusableEl.focus();
+        e.preventDefault();
+      }
+    }
+  });
+
+  // Focus sul primo elemento (spesso il modal stesso o il primo input)
+  // Per i form, è meglio mettere il focus sul primo input
+  const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select');
+  if (firstInput) {
+      setTimeout(() => firstInput.focus(), 50);
+  } else {
+      setTimeout(() => firstFocusableEl.focus(), 50);
+  }
+}
+
+// Inizializza un MutationObserver per applicare automaticamente il focus trap
+// a tutti i modal aggiunti al DOM senza dover chiamare trapFocus ovunque
+if (typeof window !== 'undefined') {
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === 'childList') {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType === 1) {
+            // Controlla se è un modal basandosi su classi tipiche o role
+            if (
+              node.getAttribute('role') === 'dialog' ||
+              node.id?.includes('modal') ||
+              node.id?.includes('pannello') ||
+              (typeof node.className === 'string' && node.className.includes('fixed inset-0'))
+            ) {
+              trapFocus(node);
+            }
+          }
+        });
+      }
+    }
+  });
+  // Avvia l'osservatore al DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', () => {
+    observer.observe(document.body, { childList: true, subtree: false });
+  });
+}
+
+// ─────────────────────────────────────────────
 // Cambio vista (Hub / Anagrafica / Sync)
 // ─────────────────────────────────────────────
 function show(viewId) {
@@ -343,6 +411,7 @@ async function apriModalModificaCantiere(projectId) {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
   document.body.appendChild(modal);
+  if (typeof trapFocus === 'function') trapFocus(modal);
   modal.querySelector('#mod-nome').focus();
 }
 
@@ -411,13 +480,42 @@ async function eliminaCantiere(projectId, nomeProgetto) {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
   document.body.appendChild(modal);
+  if (typeof trapFocus === 'function') trapFocus(modal);
 }
 
 async function confermaEliminaCantiere(projectId) {
-  await deleteItem('projects', projectId);
-  document.getElementById('modal-elimina-cantiere')?.remove();
-  await refreshProjectsGrid();
-  showToast('Cantiere eliminato.', 'info');
+  try {
+    // Cascading delete: rimuovi tutti i dati collegati al cantiere
+
+    // 1. Verbali del cantiere
+    const verbali = await getByIndex('verbali', 'projectId', projectId).catch(() => []);
+    for (const v of verbali) await deleteItem('verbali', v.id);
+
+    // 2. NC del cantiere e foto collegate
+    const ncs = await getByIndex('nc', 'projectId', projectId).catch(() => []);
+    for (const nc of ncs) {
+      // Foto collegate alla NC
+      if (typeof getByIndex === 'function') {
+        const foto = await getByIndex('foto', 'ncId', nc.id).catch(() => []);
+        for (const f of foto) await deleteItem('foto', f.id);
+      }
+      await deleteItem('nc', nc.id);
+    }
+
+    // 3. Assegnazioni imprese-cantiere
+    const assegnazioni = await getByIndex('imprese_cantieri', 'projectId', projectId).catch(() => []);
+    for (const a of assegnazioni) await deleteItem('imprese_cantieri', a.id);
+
+    // 4. Infine elimina il cantiere stesso
+    await deleteItem('projects', projectId);
+
+    document.getElementById('modal-elimina-cantiere')?.remove();
+    await refreshProjectsGrid();
+    showToast('Cantiere e dati collegati eliminati.', 'info');
+  } catch (err) {
+    console.error('Errore eliminazione cascata:', err);
+    showToast('Errore durante l\'eliminazione: ' + err, 'error');
+  }
 }
 
 function escapeSingleQuotes(str) {
@@ -669,6 +767,7 @@ function apriModalNuovoCantiere() {
   `;
 
   document.body.appendChild(modal);
+  if (typeof trapFocus === 'function') trapFocus(modal);
 
   // Focus primo campo
   modal.querySelector('#nc-id').focus();
@@ -808,7 +907,7 @@ function wireUI() {
       const cantiereSel = document.getElementById('assegna-cantiere')?.value || '';
       if (cantiereSel) {
         const assegnazione = {
-          id:        'ass_' + Date.now(),
+          id:        'ass_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
           projectId: cantiereSel,
           impresaId: impresa.id,
           ruolo:     impresa.ruolo || 'esecutrice',

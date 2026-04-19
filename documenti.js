@@ -58,7 +58,7 @@ async function handleFiles(files) {
       blob:  file
     };
     try {
-      await salvaDocumento(doc);
+      await salvaDocumentoInDB(doc);
       saved++;
     } catch (err) {
       showToast('Errore salvataggio documento: ' + file.name, 'error');
@@ -72,79 +72,15 @@ async function handleFiles(files) {
 }
 
 // ─────────────────────────────────────────────
-// 3. Rendering lista documenti
+// 3. Rendering lista documenti — vedi sezione 11 (con filtro categoria)
+//    (la definizione principale è più sotto, con supporto filtro per tab)
 // ─────────────────────────────────────────────
-async function renderDocumenti() {
-  const container = document.getElementById('documenti-list');
-  if (!container) return;
-
-  const docs = await getDocumenti();
-
-  if (docs.length === 0) {
-    container.innerHTML = `
-      <p class="text-sm text-slate-500 text-center py-8">
-        📂 Nessun documento caricato. Trascina qui i tuoi file.
-      </p>`;
-    return;
-  }
-
-  container.innerHTML = docs
-    .sort((a, b) => new Date(b.data) - new Date(a.data))
-    .map(d => {
-      const nome = escapeHtml(d.nome);
-      const tags = (d.tags || []).map(t => escapeHtml(t)).join(' · ') || 'Nessun tag';
-      return `
-      <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm
-                  flex items-center justify-between gap-4"
-           role="listitem"
-           aria-label="Documento: ${nome}">
-
-        <div class="flex items-center space-x-4 min-w-0">
-          ${renderAnteprimaIcona(d)}
-          <div class="min-w-0">
-            <div class="font-bold text-slate-800 truncate">${nome}</div>
-            <div class="text-xs text-slate-500">${formatBytes(d.size || 0)}</div>
-            <div class="text-xs text-slate-400 mt-0.5">${tags}</div>
-          </div>
-        </div>
-
-        <div class="flex gap-2 shrink-0 flex-wrap">
-          <button onclick="mostraPreviewDocumento('${d.id}')"
-                  class="bg-slate-700 text-white text-xs px-3 py-1.5 rounded-lg
-                         hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                  aria-label="Anteprima documento ${nome}">
-            Anteprima
-          </button>
-          <button onclick="scaricaDocumento('${d.id}')"
-                  class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg
-                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  aria-label="Scarica documento ${nome}">
-            Scarica
-          </button>
-          <button onclick="apriModalModificaDocumento('${d.id}')"
-                  class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg
-                         hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  aria-label="Modifica tag e scadenza del documento ${nome}">
-            ✏️ Tag
-          </button>
-          <button onclick="confermaEliminaDocumento('${d.id}', '${nome}')"
-                  class="bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg
-                         hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
-                  aria-label="Elimina documento ${nome}">
-            🗑️
-          </button>
-        </div>
-
-      </div>
-    `; }).join('');
-}
 
 // ─────────────────────────────────────────────
 // 4. Download documento
 // ─────────────────────────────────────────────
 async function scaricaDocumento(id) {
-  const docs = await getDocumenti();
-  const doc  = docs.find(d => d.id === id);
+  const doc = await getItem('documenti', id);
   if (!doc) { showToast('Documento non trovato.', 'error'); return; }
 
   const url = URL.createObjectURL(doc.blob);
@@ -441,6 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // GAP-7: Elimina documento con conferma
 // ─────────────────────────────────────────────
 async function confermaEliminaDocumento(id, nomeDoc) {
+  // nomeDoc potrebbe essere già escaped, ma per sicurezza usiamo textContent
+  const nomeSafe = typeof escapeHtml === 'function' ? escapeHtml(nomeDoc) : nomeDoc;
   const modal = document.createElement('div');
   modal.id        = 'modal-elimina-doc';
   modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
@@ -449,7 +387,7 @@ async function confermaEliminaDocumento(id, nomeDoc) {
       <div class="text-4xl">🗑️</div>
       <h2 class="text-base font-bold text-slate-800">Elimina Documento</h2>
       <p class="text-sm text-slate-600">
-        Vuoi eliminare <strong>${nomeDoc}</strong>?<br>
+        Vuoi eliminare <strong id="nome-doc-elimina"></strong>?<br>
         <span class="text-red-600 text-xs">Il file verrà rimosso da IndexedDB. Irreversibile.</span>
       </p>
       <div class="flex justify-center gap-3 pt-2">
@@ -458,7 +396,7 @@ async function confermaEliminaDocumento(id, nomeDoc) {
                        hover:bg-slate-200 focus:outline-none">
           Annulla
         </button>
-        <button onclick="_eseguiEliminaDocumento('${id}')"
+        <button id="btn-conferma-elimina-doc"
                 class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold
                        hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400">
           🗑️ Elimina
@@ -466,9 +404,14 @@ async function confermaEliminaDocumento(id, nomeDoc) {
       </div>
     </div>
   `;
+  // Inserisci il nome via textContent per prevenire XSS
+  modal.querySelector('#nome-doc-elimina').textContent = nomeDoc;
+  // Usa addEventListener invece di onclick inline per evitare injection via id
+  modal.querySelector('#btn-conferma-elimina-doc').addEventListener('click', () => _eseguiEliminaDocumento(id));
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
   document.body.appendChild(modal);
+  if (typeof trapFocus === 'function') trapFocus(modal);
 }
 
 async function _eseguiEliminaDocumento(id) {
@@ -482,8 +425,7 @@ async function _eseguiEliminaDocumento(id) {
 // GAP-8: Modal modifica tag e data scadenza
 // ─────────────────────────────────────────────
 async function apriModalModificaDocumento(id) {
-  const docs = await getDocumenti();
-  const doc  = docs.find(d => d.id === id);
+  const doc = await getItem('documenti', id);
   if (!doc) { showToast('Documento non trovato.', 'error'); return; }
 
   document.getElementById('modal-modifica-doc')?.remove();
@@ -562,6 +504,7 @@ async function apriModalModificaDocumento(id) {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
   document.body.appendChild(modal);
+  if (typeof trapFocus === 'function') trapFocus(modal);
   modal.querySelector('#mod-doc-tags').focus();
 }
 
@@ -580,8 +523,7 @@ async function confermaModificaDocumento(id) {
 
   const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
-  const docs = await getDocumenti();
-  const doc  = docs.find(d => d.id === id);
+  const doc = await getItem('documenti', id);
   if (!doc) { showToast('Documento non trovato.', 'error'); return; }
 
   const updated = {

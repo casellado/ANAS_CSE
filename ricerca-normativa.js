@@ -5,15 +5,7 @@
 // ─────────────────────────────────────────────
 // COSTANTI
 // ─────────────────────────────────────────────
-// Modelli in ordine: il primo disponibile per la tua chiave/API vince.
-// gemini-1.5-flash è spesso dismesso su v1beta → usa 2.x (Google AI Studio).
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODELS   = [
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-001',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-flash-002'
-];
+const GEMINI_API_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 const GEMINI_KEY_ID   = 'gemini_api_key';
 const CHAT_HISTORY_ID = 'ricerca_history';
 const MAX_HISTORY     = 20; // messaggi conservati
@@ -93,34 +85,26 @@ async function cercaNormativa(domanda, history = []) {
     ]
   };
 
-  let lastErr = '';
-  for (const model of GEMINI_MODELS) {
-    const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const response = await fetch(url, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body)
-    });
+  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body)
+  });
 
-    if (response.ok) {
-      const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error('EMPTY_RESPONSE');
-      return text;
-    }
-
+  if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     const msg = err?.error?.message || `HTTP ${response.status}`;
-    lastErr = msg;
 
     if (response.status === 400) throw new Error('API_KEY_INVALID');
     if (response.status === 429) throw new Error('QUOTA_EXCEEDED');
-    // 404 / model not found → prova modello successivo
-    const notFound = response.status === 404 || /not found|is not supported/i.test(msg);
-    if (!notFound) throw new Error(msg);
+    throw new Error(msg);
   }
 
-  throw new Error(lastErr || 'NESSUN_MODELLO_COMPATIBILE');
+  const data     = await response.json();
+  const text     = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text) throw new Error('EMPTY_RESPONSE');
+  return text;
 }
 
 // ─────────────────────────────────────────────

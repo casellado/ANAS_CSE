@@ -44,22 +44,61 @@ async function calcolaKPI() {
 }
 
 // ─────────────────────────────────────────────
+// Animazione Count-Up per KPI (UX-I)
+// ─────────────────────────────────────────────
+function animateCountUp(el, targetStr, duration = 600) {
+  // Estrai eventuale suffisso (es. "h", "%")
+  const targetNum = parseInt(targetStr) || 0;
+  const suffix = targetStr.toString().replace(/[0-9]/g, '');
+  
+  const startNum = parseInt(el.textContent) || 0;
+  const range = targetNum - startNum;
+  
+  if (range === 0) {
+    el.textContent = targetStr;
+    return;
+  }
+  
+  const startTime = performance.now();
+  
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+    
+    el.textContent = Math.round(startNum + range * eased) + suffix;
+    
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = targetStr; // fine
+  }
+  
+  requestAnimationFrame(step);
+}
+
+// ─────────────────────────────────────────────
 // 3. Rendering KPI nella dashboard
 // ─────────────────────────────────────────────
 async function renderKPI() {
   const kpi = await calcolaKPI();
 
   const map = {
-    'kpi-nc-aperte': kpi.aperte,
-    'kpi-gravissime': kpi.gravissime,
-    'kpi-scadute':    kpi.scadute,
-    'kpi-tempo':      kpi.tempoMedio + 'h',
-    'kpi-score':      kpi.score + '%'
+    'kpi-nc-aperte':  { val: kpi.aperte,       card: 'card-kpi-aperte',     severity: kpi.aperte > 0 ? 'warning' : 'ok' },
+    'kpi-gravissime': { val: kpi.gravissime,   card: 'card-kpi-gravissime', severity: kpi.gravissime > 0 ? 'danger' : 'ok' },
+    'kpi-scadute':    { val: kpi.scadute,      card: 'card-kpi-scadute',    severity: kpi.scadute > 0 ? 'danger' : 'ok' },
+    'kpi-tempo':      { val: kpi.tempoMedio + 'h', card: 'card-kpi-tempo',  severity: 'info' },
+    'kpi-score':      { val: kpi.score + '%',  card: 'card-kpi-score',      severity: kpi.score < 80 ? 'warning' : (kpi.score < 50 ? 'danger' : 'ok') }
   };
 
-  for (const [id, val] of Object.entries(map)) {
+  for (const [id, data] of Object.entries(map)) {
     const el = document.getElementById(id);
-    if (el) el.textContent = val;
+    const cardEl = document.getElementById(data.card);
+    
+    if (el) {
+      animateCountUp(el, data.val);
+    }
+    if (cardEl) {
+      cardEl.setAttribute('data-severity', data.severity);
+    }
   }
 
   // Mostra alert ANAS per gravissime (con animazione pulse)
