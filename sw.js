@@ -31,6 +31,7 @@ const CACHE_STATIC = [
   './scorciatoie.js',
   './report-giornaliero.js',
   './lettera-sospensione.js',
+  './lettera-segnalazione-rup.js',
   // JS moduli
   './nc.js',
   './nc-foto-dashboard.js',
