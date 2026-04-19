@@ -301,7 +301,7 @@
         <span aria-hidden="true">🔍</span>
         <span class="hide-on-mobile">Normativa AI</span>
       </button>
-      <button onclick="exportDatabaseToFile()"
+      <button id="btn-topbar-salvadati"
               class="topbar-btn topbar-btn-dark"
               aria-label="Salva database su USB">
         <span aria-hidden="true">💾</span>
@@ -309,6 +309,14 @@
       </button>
     </div>
   </header>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
+        if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile();
+      });
+    });
+  </script>
 
   <!-- Content container (scrollabile) -->
   <div class="flex-1 overflow-y-auto p-5 relative">

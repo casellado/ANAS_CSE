@@ -258,19 +258,19 @@ async function renderViewImpostazioni(containerId) {
 
       <!-- ── AZIONI ── -->
       <div class="flex flex-wrap gap-3">
-        <button onclick="salvaImpostazioniUI()"
+        <button id="btn-salva-imp"
                 class="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold
                        hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
                 aria-label="Salva tutte le impostazioni">
           ✅ Salva Impostazioni
         </button>
-        <button onclick="anteprimaVerbale()"
+        <button id="btn-anteprima-verbale"
                 class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold
                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 aria-label="Apri anteprima verbale PDF con le impostazioni correnti">
           👁️ Anteprima Verbale
         </button>
-        <button onclick="ripristinaDefault()"
+        <button id="btn-ripristina-imp"
                 class="bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold
                        hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400">
           ↩ Ripristina default
@@ -279,6 +279,13 @@ async function renderViewImpostazioni(containerId) {
 
     </div>
   `;
+
+  // Attach event listeners safely
+  setTimeout(() => {
+    document.getElementById('btn-salva-imp')?.addEventListener('click', salvaImpostazioniUI);
+    document.getElementById('btn-anteprima-verbale')?.addEventListener('click', anteprimaVerbale);
+    document.getElementById('btn-ripristina-imp')?.addEventListener('click', ripristinaDefault);
+  }, 0);
 }
 
 // Helper render campo input
