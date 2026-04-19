@@ -56,7 +56,15 @@ const JS_FILES = [
   'smart-memory.js',
   'ricerca-normativa.js',
   'navigation.js',
-  'app.js'
+  'app.js',
+  'ai-assistente.js',
+  'documenti-fondamentali.js',
+  'lettera-sospensione.js',
+  'ods-inviati.js',
+  'ods-ricevuti.js',
+  'report-giornaliero.js',
+  'salva-file.js',
+  'scorciatoie.js'
   // NOTA: sw.js NON va offuscato — il browser lo richiede leggibile per il Service Worker
 ];
 
@@ -73,7 +81,9 @@ const HTML_FILES = [
 // File statici da copiare invariati
 const STATIC_FILES = [
   'manifest.json',
-  'sw.js'          // il SW deve restare leggibile per funzionare
+  'sw.js',          // il SW deve restare leggibile per funzionare
+  'animazioni.css',
+  'mobile.css'
 ];
 
 // Cartelle da copiare
