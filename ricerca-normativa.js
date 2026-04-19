@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────
 // COSTANTI
 // ─────────────────────────────────────────────
-const GEMINI_API_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const GEMINI_KEY_ID   = 'gemini_api_key';
 const CHAT_HISTORY_ID = 'ricerca_history';
 const MAX_HISTORY     = 20; // messaggi conservati
@@ -74,9 +74,8 @@ async function cercaNormativa(domanda, history = []) {
     },
     contents,
     generationConfig: {
-      temperature:     0.2,   // bassa — risposte fattuali, non creative
-      maxOutputTokens: 8192,  // gemini-2.5-flash usa token per thinking interno
-      topP:            0.8
+      temperature: 0.2, // bassa — risposte fattuali, non creative
+      topP: 0.8
     },
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_NONE' },
@@ -597,7 +596,7 @@ function _tradErrore(code) {
   const messaggi = {
     'API_KEY_MISSING':  'API key non configurata. Clicca ⚙️ per inserirla.',
     'API_KEY_INVALID':  'API key non valida o scaduta. Clicca ⚙️ per aggiornarla.',
-    'QUOTA_EXCEEDED':   'Limite giornaliero raggiunto (1500 richieste). Riprova domani.',
+    'QUOTA_EXCEEDED':   'Troppe richieste: limite di 15 al minuto. Attendi 10 secondi e riprova.',
     'EMPTY_RESPONSE':   'Risposta vuota ricevuta. Riprova tra qualche secondo.',
     'MODEL_NOT_FOUND':  'Modello AI non disponibile. Aggiorna la pagina (Ctrl+Shift+R).',
     'Failed to fetch':  'Nessuna connessione internet. Controlla la rete e riprova.'
