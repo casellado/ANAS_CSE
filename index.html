@@ -5,7 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="ANAS SafeHub - Pannello CSE per la gestione della sicurezza nei cantieri ANAS SpA" />
   <title>ANAS SafeHub · Hub Cantieri CSE</title>
-
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <script>
+    // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
+    const origWarn = console.warn;
+    console.warn = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
+      origWarn.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
