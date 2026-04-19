@@ -139,12 +139,12 @@ function minifyHTML(html) {
   return html
     // Rimuovi commenti HTML (ma NON i commenti condizionali IE)
     .replace(/<!--(?!\[if)[\s\S]*?-->/g, '')
-    // Rimuovi spazi multipli
-    .replace(/\s{2,}/g, ' ')
-    // Rimuovi spazi attorno ai tag
+    // Rimuovi spazi multipli orizzontali
+    .replace(/[ \t]{2,}/g, ' ')
+    // Rimuovi spazi attorno ai tag (inclusi a capo)
     .replace(/>\s+</g, '><')
     // Rimuovi spazi a inizio/fine riga
-    .replace(/^\s+|\s+$/gm, '')
+    .replace(/^[ \t]+|[ \t]+$/gm, '')
     .trim();
 }
 
