@@ -243,7 +243,7 @@ function scaricaComeWord(htmlContenuto, nomeFile = 'documento') {
     <body>
       ${htmlContenuto}
       <div class="footer-word">
-        ANAS SafeHub · by Geom. Dogano Casella · CSE ANAS SpA ·
+        ANAS SafeHub · by Geom. Dogano Casella · ISP ANAS SpA ·
         Generato il ${new Date().toLocaleString('it-IT')}
       </div>
     </body>
