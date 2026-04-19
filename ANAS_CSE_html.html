@@ -70,6 +70,7 @@
   <script defer src="./salva-file.js"></script>
   <script defer src="./smart-memory.js"></script>
   <script defer src="./lettera-sospensione.js"></script>
+  <script defer src="./lettera-segnalazione-rup.js"></script>
   <script defer src="./report-giornaliero.js"></script>
   <script defer src="./scorciatoie.js"></script>
   <style>
@@ -438,8 +439,13 @@
         </p>
       </div>
 
-      <div class="view-header">
+      <div class="view-header flex justify-between items-center flex-wrap gap-4">
         <h3 class="view-title">Dashboard Cantiere</h3>
+        <button onclick="sospensioneEmergenzaRapida()"
+                class="flex items-center gap-2 bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-xl shadow hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+                aria-label="Sospensione Lavori d'Emergenza">
+          🚨 Sospensione Emergenza
+        </button>
       </div>
 
       <!-- KPI documentali e scadenze -->

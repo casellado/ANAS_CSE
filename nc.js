@@ -235,6 +235,7 @@ function renderNCCard(nc) {
     ? (Date.now() - new Date(nc.dataApertura).getTime()) / (1000 * 60 * 60)
     : 0;
   const richiedeSospensione = !isODS && isAperta && livello === 'gravissima' && ore >= 20;
+  const richiedeSegnalazione = !isODS && isAperta && (livello === 'gravissima' || livello === 'grave');
   const giaProposta         = !!nc.sospensioneGenerata;
 
   // Dati utente → sanificati
@@ -267,6 +268,12 @@ function renderNCCard(nc) {
               ? `<span class="text-xs text-slate-700 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded"
                        title="Proposta di sospensione generata il ${new Date(nc.sospensioneGenerata.data).toLocaleDateString('it-IT')}">
                    📄 Sospensione già proposta
+                 </span>`
+              : ''}
+            ${nc.segnalazioneGenerata
+              ? `<span class="text-xs text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded"
+                       title="Segnalazione al RUP inviata il ${new Date(nc.segnalazioneGenerata.data).toLocaleDateString('it-IT')}">
+                   ✉️ Segnalata al RUP
                  </span>`
               : ''}
           </div>
@@ -310,6 +317,13 @@ function renderNCCard(nc) {
                                hover:bg-red-100 focus:outline-none font-bold"
                         aria-label="Genera proposta di sospensione lavori ex art. 92">
                   🚨 Sospensione
+                </button>` : ''}
+              ${richiedeSegnalazione ? `
+                <button onclick="apriPannelloSegnalazione('${nc.id}')"
+                        class="text-left w-full bg-orange-50 text-orange-700 text-xs px-3 py-2 rounded-md
+                               hover:bg-orange-100 focus:outline-none font-bold"
+                        aria-label="Genera segnalazione RUP ex art. 92 c.1 lett. e">
+                  ✉️ Segnalazione RUP
                 </button>` : ''}
               <button onclick="aggiungiFotoANC('${nc.id}', 'foto-${nc.id}')"
                       class="text-left w-full text-slate-700 text-xs px-3 py-2 rounded-md hover:bg-slate-100 focus:outline-none"

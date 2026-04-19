@@ -47,22 +47,36 @@ const DOCUMENTI_FONDAMENTALI = [
     riferimentoNorma: 'Codice Appalti D.Lgs 36/2023'
   },
   {
+    id: 'fascicolo-opera',
+    nome: 'Fascicolo dell\'Opera',
+    descrizione: 'Aggiornamento continuo ex art. 92 c.1 lett. b',
+    obbligatorio: true,
+    riferimentoNorma: 'Art. 92 D.Lgs 81/08'
+  },
+  {
+    id: 'itp-completa',
+    nome: 'ITP Completa (Allegato XVII)',
+    descrizione: 'DURC, CCIAA, DVR, Organico e Contratti per Affidataria e Subappaltatori',
+    obbligatorio: true,
+    riferimentoNorma: 'Allegato XVII D.Lgs 81/08'
+  },
+  {
     id: 'durc-affidataria',
     nome: 'DURC — Impresa Affidataria',
     descrizione: 'Documento unico di regolarità contributiva (validità 120 gg)',
-    obbligatorio: true,
+    obbligatorio: false, // reso opzionale perché inglobato nell'ITP Completa
     riferimentoNorma: 'DM 30/01/2015'
   },
   {
     id: 'iscrizione-cciaa',
     nome: 'Iscrizione CCIAA — Impresa Affidataria',
     descrizione: 'Visura camerale aggiornata',
-    obbligatorio: true,
+    obbligatorio: false, // reso opzionale perché inglobato nell'ITP Completa
     riferimentoNorma: 'Allegato XVII D.Lgs 81/08'
   },
   {
     id: 'elenco-lavoratori',
-    nome: 'Elenco Lavoratori + DURC nominativi',
+    nome: 'Elenco Lavoratori + Formazione',
     descrizione: 'Lista lavoratori con attestati formazione base, specifica e preposto',
     obbligatorio: true,
     riferimentoNorma: 'Art. 37 D.Lgs 81/08'
@@ -80,6 +94,20 @@ const DOCUMENTI_FONDAMENTALI = [
     descrizione: 'Ordinanza di limitazione traffico, occupazione suolo',
     obbligatorio: true,
     riferimentoNorma: 'Codice della Strada'
+  },
+  {
+    id: 'pimus',
+    nome: 'Pi.M.U.S. (Ponteggi)',
+    descrizione: 'Piano Montaggio Uso e Smontaggio per eventuali ponteggi metallici',
+    obbligatorio: false,
+    riferimentoNorma: 'Art. 136 D.Lgs 81/08'
+  },
+  {
+    id: 'spazi-confinati',
+    nome: 'Procedure Spazi Confinati',
+    descrizione: 'Procedure specifiche per lavori in galleria o ambienti sospetti',
+    obbligatorio: false,
+    riferimentoNorma: 'D.P.R. 177/2011'
   }
 ];
 

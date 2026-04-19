@@ -429,3 +429,46 @@ async function _scaricaLetteraSospensioneWord(html, cantiereId, dataLettera, can
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ─────────────────────────────────────────────
+// 6. Sospensione d'Emergenza Rapida
+// ─────────────────────────────────────────────
+async function sospensioneEmergenzaRapida() {
+  if (!window.appState?.currentProject) {
+    showToast('Errore: nessun cantiere selezionato per la sospensione.', 'error');
+    return;
+  }
+
+  const confermato = confirm(
+    "ATTENZIONE: Stai per attivare la procedura di Sospensione d'Emergenza.\n\n" +
+    "Verrà creata immediatamente una Non Conformità GRAVISSIMA e si aprirà " +
+    "il modulo per generare la lettera ufficiale di sospensione lavori da inviare al RUP.\n\n" +
+    "Vuoi procedere?"
+  );
+  if (!confermato) return;
+
+  try {
+    // 1. Crea una NC Gravissima generica
+    const ncId = 'nc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const nuovaNC = {
+      id:           ncId,
+      projectId:    window.appState.currentProject,
+      dataApertura: new Date().toISOString(),
+      livello:      'gravissima',
+      titolo:       "SOSPENSIONE D'EMERGENZA PER PERICOLO GRAVE E IMMINENTE",
+      descrizione:  "Condizioni di pericolo grave e imminente riscontrate in cantiere. Sospensione immediata delle lavorazioni attivata dal CSE.",
+      stato:        'aperta',
+      tipo:         'sicurezza'
+    };
+    
+    await saveItem('nc', nuovaNC);
+    
+    // 2. Apri direttamente il pannello di sospensione per questa nuova NC
+    await apriPannelloSospensione(ncId);
+    
+  } catch (err) {
+    console.error(err);
+    showToast('Errore durante l\'attivazione dell\'emergenza.', 'error');
+  }
+}
+
