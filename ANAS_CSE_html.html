@@ -15,29 +15,23 @@
     };
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&display=swap" rel="stylesheet" />
+  <!-- Design system must be loaded early so tokens are available -->
+  <link rel="stylesheet" href="./animazioni.css" />
+  <link rel="stylesheet" href="./mobile.css" />
+  <!-- PWA meta -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0c1322" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
   <style>
-    body { font-family: 'Inter', sans-serif; }
-
-    .page-transition {
-      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-    }
-    .page-hidden {
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-      position: absolute;
-      width: 100%;
-    }
-
-    ::-webkit-scrollbar       { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-
-    .nav-link-active {
-      background-color: #334155;
-      color: white;
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--color-bg, #f1f5f9);
+      color: var(--color-text, #0f172a);
+      -webkit-font-smoothing: antialiased;
     }
   </style>
 
@@ -134,11 +128,9 @@
       .sm\:grid-cols-2 { grid-template-columns: 1fr !important; }
     }
   </style>
-  <link rel="stylesheet" href="./animazioni.css" />
-  <link rel="stylesheet" href="./mobile.css" />
 </head>
 
-<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden pb-12">
+<body class="h-screen flex overflow-hidden" style="background:var(--color-bg);color:var(--color-text)">
 
 <!-- OVERLAY mobile (chiude sidebar) -->
 <div id="sidebar-overlay" aria-hidden="true"
@@ -147,14 +139,12 @@
 <!-- HAMBURGER mobile — visibile solo su <768px tramite CSS -->
 <button id="hamburger-btn"
         onclick="apriSidebar()"
-        class="fixed top-3 left-3 z-[51] items-center justify-center
-               w-11 h-11 bg-slate-900 text-white rounded-xl shadow-lg
-               focus:outline-none focus:ring-2 focus:ring-slate-400"
+        class="hamburger-btn fixed top-3 left-3 z-[51]"
         aria-label="Apri menu navigazione"
         aria-expanded="false"
         style="display:none">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-       stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
     <line x1="3" y1="6"  x2="21" y2="6"/>
     <line x1="3" y1="12" x2="21" y2="12"/>
     <line x1="3" y1="18" x2="21" y2="18"/>
@@ -164,121 +154,111 @@
 <!-- ─────────────────────────────────────────────────────
      SIDEBAR
 ───────────────────────────────────────────────────── -->
-<aside id="main-sidebar" class="w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl shrink-0"
+<aside id="main-sidebar" class="w-64 text-white flex flex-col h-full shrink-0"
        role="navigation"
        aria-label="Menu principale">
 
   <!-- Brand -->
-  <div class="p-5 border-b border-slate-800 flex items-center gap-3">
-    <span class="text-2xl" aria-hidden="true">🚧</span>
+  <div class="sidebar-brand">
+    <div class="sidebar-logo-badge" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
     <div>
-      <h1 class="font-extrabold text-base leading-tight">ANAS SafeHub</h1>
-      <p class="text-xs text-slate-400 leading-tight">Pannello Direzione CSE</p>
+      <h1 class="font-extrabold text-sm leading-tight tracking-tight">ANAS SafeHub</h1>
+      <p class="text-xs leading-tight" style="color:rgba(255,255,255,.45)">Suite CSE · Offline-first</p>
     </div>
   </div>
 
   <!-- Nav links -->
-  <nav class="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Sezioni">
+  <nav class="flex-1 p-2.5 space-y-0.5 overflow-y-auto" aria-label="Sezioni">
+
+    <!-- Gruppo: Cantieri -->
+    <p class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">Cantieri</p>
 
     <button aria-label="Hub Cantieri" onclick="switchView('hub')"
             data-nav="hub"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500"
+            class="nav-btn"
             aria-current="page">
-      <span aria-hidden="true">🏢</span> Hub Cantieri
+      <span class="nav-icon" aria-hidden="true">🏢</span> Hub Cantieri
     </button>
 
     <button aria-label="Anagrafiche Imprese" onclick="switchView('anagrafica')"
             data-nav="anagrafica"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">👥</span> Anagrafiche Imprese
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">👥</span> Anagrafiche
     </button>
 
     <button aria-label="Dashboard Cantiere" onclick="switchView('dashboard-cantiere')"
             data-nav="dashboard-cantiere"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">📊</span> Dashboard Cantiere
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">📊</span> Dashboard
     </button>
+
+    <!-- Gruppo: Verbali -->
+    <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">Verbali</p>
 
     <button aria-label="Nuovo Verbale" onclick="switchView('nuovo-verbale')"
             data-nav="nuovo-verbale"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">📝</span> Nuovo Verbale
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">📝</span> Nuovo Verbale
     </button>
 
     <button aria-label="Verb. Riunione Coordinamento" onclick="switchView('riunione-coordinamento')"
             data-nav="riunione-coordinamento"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">📋</span> Verb. Riunione Coordinamento
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">📋</span> Riunione Coord.
     </button>
 
     <button aria-label="Verifica Idoneità POS" onclick="switchView('verifica-pos')"
             data-nav="verifica-pos"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">✅</span> Verifica Idoneità POS
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">✅</span> Verifica POS
     </button>
 
-    <div class="border-t border-slate-800 my-1.5" role="separator"></div>
+    <!-- Gruppo: Sicurezza -->
+    <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">Sicurezza</p>
 
     <button aria-label="Non Conformità e ODS Inviati" onclick="switchView('nc')"
             data-nav="nc"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">⚠️</span> Non Conf. / ODS Inviati
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">⚠️</span> NC / ODS Inviati
     </button>
 
     <button aria-label="Ordini di Servizio Ricevuti" onclick="switchView('ods-ricevuti')"
             data-nav="ods-ricevuti"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">📥</span> ODS Ricevuti
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">📥</span> ODS Ricevuti
     </button>
 
-    <div class="border-t border-slate-800 my-1.5" role="separator"></div>
+    <!-- Gruppo: Documenti -->
+    <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">Documenti</p>
 
     <button aria-label="Documenti Fondamentali Cantiere" onclick="switchView('documenti-fondamentali')"
             data-nav="documenti-fondamentali"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">📋</span> Doc. Fondamentali
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">📋</span> Doc. Fondamentali
     </button>
 
     <button aria-label="Documenti Normative" onclick="switchView('documenti')"
             data-nav="documenti"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">📚</span> Normative & Altri Doc
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">📚</span> Normative & Doc.
     </button>
+
+    <div class="nav-separator mt-3"></div>
 
     <button aria-label="Impostazioni Verbale" onclick="switchView('impostazioni')"
             data-nav="impostazioni"
-            class="nav-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl
-                   text-slate-300 hover:bg-slate-800 hover:text-white transition text-sm font-medium
-                   focus:outline-none focus:ring-2 focus:ring-slate-500">
-      <span aria-hidden="true">⚙️</span> Impostazioni Verbale
+            class="nav-btn">
+      <span class="nav-icon" aria-hidden="true">⚙️</span> Impostazioni
     </button>
 
   </nav>
 
-  <!-- Info footer -->
-  <div class="p-4 border-t border-slate-800 text-xs text-slate-500 space-y-1">
-    <div>Versione 1.8 · Suite CSE</div>
-    <div class="text-slate-600">D.Lgs 81/08 · D.I. 22/01/2019</div>
+  <!-- Footer info -->
+  <div class="sidebar-footer">
+    <div class="text-[10px] font-semibold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">v1.8 · Suite CSE</div>
+    <div class="text-[10px] mt-0.5" style="color:rgba(255,255,255,.2)">D.Lgs 81/08 · D.I. 22/01/2019</div>
   </div>
 </aside>
 
@@ -287,67 +267,67 @@
 ───────────────────────────────────────────────────── -->
 <div class="flex-1 flex flex-col h-full overflow-hidden">
 
-  <!-- Top bar -->
-  <header class="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 shrink-0"
+  <!-- Top bar (glassmorphism) -->
+  <header class="h-14 flex items-center justify-between px-5 shrink-0"
           role="banner">
     <div class="flex items-center gap-4 min-w-0 flex-1">
-      <h2 class="text-lg font-bold text-slate-800 shrink-0" id="header-title" aria-live="polite">
-        📂 Hub Cantieri
+      <h2 class="text-sm font-bold shrink-0 tracking-tight" id="header-title" aria-live="polite"
+          style="color:var(--color-text)">
+        🏢 Hub Cantieri
       </h2>
-      <!-- P1: Selettore cantiere rapido — visibile solo se cantiere attivo -->
+      <!-- Selettore cantiere rapido -->
       <div id="topbar-cantiere-container" class="hidden sm:flex items-center gap-2 min-w-0">
-        <span class="text-xs text-slate-400 shrink-0" aria-hidden="true">Cantiere:</span>
+        <span class="text-xs shrink-0" style="color:var(--color-text-muted)" aria-hidden="true">Cantiere:</span>
         <select id="topbar-cantiere-select"
                 onchange="cambiaCantiereRapido(this.value)"
-                class="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 font-medium
-                       max-w-[200px] truncate focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                class="text-xs border rounded-lg px-2 py-1 font-medium max-w-[200px] truncate
+                       focus:outline-none"
+                style="border-color:var(--color-border);background:var(--color-surface-alt);color:var(--color-text)"
                 aria-label="Cambia cantiere attivo">
         </select>
       </div>
     </div>
     <div class="flex items-center gap-2 shrink-0">
-              <button onclick="apriReportGiornaliero()"
-                class="text-xs bg-green-700 text-white px-3 py-1.5 rounded-lg
-                       hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-400
-                       flex items-center gap-1.5"
-                aria-label="Apri Diario CSE giornaliero">
-          <span aria-hidden="true">📋</span> Oggi
-        </button>
-              <button onclick="apriPannelloRicerca()"
-                class="text-xs bg-indigo-700 text-white px-3 py-1.5 rounded-lg
-                       hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400
-                       flex items-center gap-1.5"
-                aria-label="Apri ricerca normativa AI">
-          <span aria-hidden="true">📚</span> Cerca Normativa
-        </button>
-<button onclick="exportDatabaseToFile()"
-              class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
-                     hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+      <button onclick="apriReportGiornaliero()"
+              class="topbar-btn topbar-btn-green"
+              aria-label="Apri Diario CSE giornaliero">
+        <span aria-hidden="true">📋</span>
+        <span class="hide-on-mobile">Diario</span>
+      </button>
+      <button onclick="apriPannelloRicerca()"
+              class="topbar-btn topbar-btn-indigo"
+              aria-label="Apri ricerca normativa AI">
+        <span aria-hidden="true">🔍</span>
+        <span class="hide-on-mobile">Normativa AI</span>
+      </button>
+      <button onclick="exportDatabaseToFile()"
+              class="topbar-btn topbar-btn-dark"
               aria-label="Salva database su USB">
-        💾 Salva dati
+        <span aria-hidden="true">💾</span>
+        <span class="hide-on-mobile">Salva dati</span>
       </button>
     </div>
   </header>
 
   <!-- Content container (scrollabile) -->
-  <div class="flex-1 overflow-y-auto p-6 relative">
+  <div class="flex-1 overflow-y-auto p-5 relative">
 
     <!-- ─────────── VIEW: HUB ─────────── -->
     <section id="view-hub"
-             class="page-transition space-y-6"
+             class="page-transition space-y-5"
              role="region"
              aria-label="Hub Cantieri">
 
-      <div class="flex justify-between items-center">
+      <div class="view-header">
         <div>
-          <h3 class="text-xl font-bold text-slate-900">I Miei Cantieri</h3>
-          <p class="text-sm text-slate-500">Seleziona un cantiere per iniziare</p>
+          <h3 class="view-title">I Miei Cantieri</h3>
+          <p class="view-subtitle">Seleziona un cantiere per iniziare</p>
         </div>
         <button onclick="apriModalNuovoCantiere()"
-                class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg font-semibold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                class="btn btn-primary"
                 aria-label="Crea nuovo cantiere">
-          + Nuovo Cantiere
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuovo Cantiere
         </button>
       </div>
 
@@ -450,7 +430,7 @@
 
       <div id="alert-gravissime-spa"
            role="alert"
-           class="hidden bg-red-50 border-l-4 border-red-600 p-4 rounded-r-xl">
+           class="hidden alert-critical alert-pulse">
         <p class="font-bold text-red-800 text-sm">⚠️ Procedura ANAS — Azione Obbligatoria</p>
         <p class="text-sm text-red-700 mt-1">
           NC gravissime aperte oltre 24h. Inviare proposta sospensione lavori a RUP e D.L.
@@ -458,74 +438,74 @@
         </p>
       </div>
 
-      <h3 class="text-xl font-bold text-slate-900">Dashboard Cantiere</h3>
+      <div class="view-header">
+        <h3 class="view-title">Dashboard Cantiere</h3>
+      </div>
 
       <!-- KPI documentali e scadenze -->
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
 
-        <div class="bg-white p-5 rounded-xl shadow border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Documenti Totali</div>
-          <div id="kpi-doc-tot" class="text-3xl font-bold text-slate-800" aria-live="polite">0</div>
+        <div class="kpi-card text-center" data-severity="info">
+          <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">Documenti Totali</div>
+          <div id="kpi-doc-tot" class="text-3xl font-bold kpi-value" style="color:var(--color-text)" aria-live="polite">0</div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Collegati a Verbali</div>
-          <div id="kpi-doc-verbali" class="text-3xl font-bold text-blue-700" aria-live="polite">0</div>
+        <div class="kpi-card text-center" data-severity="info">
+          <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">Collegati Verbali</div>
+          <div id="kpi-doc-verbali" class="text-3xl font-bold kpi-value text-blue-700" aria-live="polite">0</div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow border border-slate-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Collegati a NC</div>
-          <div id="kpi-doc-nc" class="text-3xl font-bold text-yellow-600" aria-live="polite">0</div>
+        <div class="kpi-card text-center" data-severity="warning">
+          <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">Collegati NC</div>
+          <div id="kpi-doc-nc" class="text-3xl font-bold kpi-value text-amber-600" aria-live="polite">0</div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow border border-red-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Documenti Scaduti</div>
-          <div id="kpi-doc-scaduti" class="text-3xl font-bold text-red-600" aria-live="polite">0</div>
+        <div class="kpi-card text-center" data-severity="danger">
+          <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">Scaduti</div>
+          <div id="kpi-doc-scaduti" class="text-3xl font-bold kpi-value text-red-600" aria-live="polite">0</div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow border border-yellow-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">In Scadenza (30gg)</div>
-          <div id="kpi-doc-in-scadenza" class="text-3xl font-bold text-yellow-600" aria-live="polite">0</div>
+        <div class="kpi-card text-center" data-severity="warning">
+          <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">In Scadenza (30gg)</div>
+          <div id="kpi-doc-in-scadenza" class="text-3xl font-bold kpi-value text-amber-600" aria-live="polite">0</div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow border border-green-200 text-center">
-          <div class="text-xs text-slate-400 mb-1">Documenti Validi</div>
-          <div id="kpi-doc-validi" class="text-3xl font-bold text-green-600" aria-live="polite">0</div>
+        <div class="kpi-card text-center" data-severity="ok">
+          <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">Validi</div>
+          <div id="kpi-doc-validi" class="text-3xl font-bold kpi-value text-green-600" aria-live="polite">0</div>
         </div>
 
       </div>
 
       <!-- Scadenze documentali -->
-      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
-        <h4 class="text-base font-bold text-slate-800 mb-3">📅 Scadenze Documentali</h4>
+      <div class="card p-5">
+        <h4 class="text-sm font-bold mb-3" style="color:var(--color-text)">📅 Scadenze Documentali</h4>
         <div id="lista-scadenze-doc" aria-live="polite" class="space-y-2"></div>
       </div>
 
       <!-- Documenti obbligatori -->
-      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
-        <h4 class="text-base font-bold text-slate-800 mb-3">✅ Documenti Obbligatori (PSC / POS / DVR)</h4>
+      <div class="card p-5">
+        <h4 class="text-sm font-bold mb-3" style="color:var(--color-text)">✅ Documenti Obbligatori (PSC / POS / DVR)</h4>
         <div id="doc-obbligatori-list" aria-live="polite" class="space-y-2"></div>
       </div>
 
       <!-- NC Aperte -->
-      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
-        <h4 class="text-base font-bold text-slate-800 mb-3">⚠️ NC Aperte</h4>
+      <div class="card p-5">
+        <h4 class="text-sm font-bold mb-3" style="color:var(--color-text)">⚠️ NC Aperte</h4>
         <div id="dashboard-nc-list" aria-live="polite" class="space-y-2"></div>
       </div>
 
       <!-- Esportazioni -->
-      <div class="bg-white p-5 rounded-2xl shadow border border-slate-200">
-        <h4 class="text-base font-bold text-slate-800 mb-3">📤 Esportazioni</h4>
+      <div class="card p-5">
+        <h4 class="text-sm font-bold mb-3" style="color:var(--color-text)">📤 Esportazioni</h4>
         <div class="flex flex-wrap gap-3">
           <button onclick="exportArchivioJSON()"
-                  class="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
-                         hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  class="btn btn-ghost"
                   aria-label="Esporta archivio JSON completo">
             📥 Esporta JSON
           </button>
           <button onclick="window.print()"
-                  class="bg-blue-700 text-white text-sm px-4 py-2 rounded-lg
-                         hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  class="btn btn-primary"
                   aria-label="Stampa dashboard">
             🖨️ Stampa Dashboard
           </button>
