@@ -364,11 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
   style.textContent = '.doc-tab-active { background-color: #0f172a; color: white; }';
   document.head.appendChild(style);
 
-  // Caricamento iniziale lista documenti
-  if (document.getElementById('documenti-list')) {
-    renderDocumenti();
-    aggiornaBadgeODS();
-  }
+  // I documenti verranno caricati da switchView('documenti') in ANAS_CSE_html.html
+  // che si assicura di attendere prima il completamento di initDB()
 });
 
 
