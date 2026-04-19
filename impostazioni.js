@@ -352,14 +352,19 @@ async function salvaImpostazioniUI() {
     'footerSinistro', 'footerDestro', 'normativa'
   ];
 
-  campi.forEach(id => {
-    const el = document.getElementById(`imp-${id}`);
-    if (el) imp[id] = el.value.trim();
-  });
+  try {
+    campi.forEach(id => {
+      const el = document.getElementById(`imp-${id}`);
+      if (el) imp[id] = el.value.trim();
+    });
 
-  await salvaImpostazioni(imp);
-  showToast('Impostazioni salvate correttamente ✓', 'success');
-  if (typeof showCheckmark === 'function') showCheckmark();
+    await salvaImpostazioni(imp);
+    showToast('Impostazioni salvate correttamente ✓', 'success');
+    if (typeof showCheckmark === 'function') showCheckmark();
+  } catch (err) {
+    console.error("Errore salvaImpostazioniUI:", err);
+    showToast('Errore durante il salvataggio impostazioni', 'error');
+  }
 }
 
 // ─────────────────────────────────────────────

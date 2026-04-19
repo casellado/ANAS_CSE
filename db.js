@@ -2,7 +2,7 @@
 // v7: store foto, imprese_cantieri, impostazioni
 
 const DB_NAME    = 'ANAS_SafeHub_DB';
-const DB_VERSION = 7;           // v7: aggiunge store impostazioni
+const DB_VERSION = 8;           // v8: forza aggiornamento per fix store impostazioni
 
 let db = null;
 
