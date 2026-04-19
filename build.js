@@ -136,16 +136,42 @@ function log(emoji, msg) {
 }
 
 function minifyHTML(html) {
-  return html
-    // Rimuovi commenti HTML (ma NON i commenti condizionali IE)
-    .replace(/<!--(?!\[if)[\s\S]*?-->/g, '')
+  // ── Strategia: estrarre i blocchi <script> e <style> PRIMA di minificare,
+  //    minificare solo l'HTML puro, poi reinserirli intatti.
+  //    Questo evita che la compressione degli spazi rompa il JS inline
+  //    (es. commenti // che diventano commenti di tutta la riga compressa).
+
+  const placeholders = [];
+
+  // 1. Estrai tutti i blocchi <script ...>...</script> e <style ...>...</style>
+  const protectedHtml = html.replace(
+    /(<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>)/gi,
+    (match) => {
+      const idx = placeholders.length;
+      placeholders.push(match);
+      return `<!--PLACEHOLDER_${idx}-->`;
+    }
+  );
+
+  // 2. Minifica solo la parte HTML (senza script/style)
+  let minified = protectedHtml
+    // Rimuovi commenti HTML normali (ma NON i placeholder e NON i commenti condizionali IE)
+    .replace(/<!--(?!PLACEHOLDER_|(?:\[if))[\s\S]*?-->/g, '')
     // Rimuovi spazi multipli orizzontali
     .replace(/[ \t]{2,}/g, ' ')
-    // Rimuovi spazi attorno ai tag (inclusi a capo)
+    // Rimuovi spazi e a capo tra tag HTML
     .replace(/>\s+</g, '><')
     // Rimuovi spazi a inizio/fine riga
     .replace(/^[ \t]+|[ \t]+$/gm, '')
     .trim();
+
+  // 3. Reinserisci i blocchi script/style protetti
+  minified = minified.replace(
+    /<!--PLACEHOLDER_(\d+)-->/g,
+    (_, idx) => placeholders[parseInt(idx, 10)]
+  );
+
+  return minified;
 }
 
 // ─────────────────────────────────────────────
