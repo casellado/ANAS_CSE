@@ -111,6 +111,78 @@ async function renderKPI() {
 }
 
 // ─────────────────────────────────────────────
+// 4. MOD-6: Attività Recente (Audit Collaboration)
+// ─────────────────────────────────────────────
+async function renderAttivitaRecente() {
+  const container = document.getElementById('attivita-list');
+  if (!container) return;
+
+  const projectId = window.appState?.currentProject;
+  if (!projectId) return;
+
+  try {
+    // Recupera tutto del cantiere (NC e Verbali)
+    const ncList = await getNCForCurrentProject();
+    const verList = await getVerbaliForCurrentProject();
+
+    // Appiattisce in un unico stream cronologico
+    const all = [
+      ...ncList.map(x => ({ ...x, _tipo: 'nc' })),
+      ...verList.map(x => ({ ...x, _tipo: 'verbale' }))
+    ];
+
+    // Ordina per data modifica (o creazione) discendente
+    all.sort((a, b) => {
+      const da = new Date(a.modifiedAt || a.updatedAt || a.createdAt || 0);
+      const db = new Date(b.modifiedAt || b.updatedAt || b.createdAt || 0);
+      return db - da;
+    });
+
+    const ultime = all.slice(0, 5);
+
+    if (ultime.length === 0) {
+      container.innerHTML = `<div class="py-2 text-slate-400 text-xs italic">Nessuna attività registrata.</div>`;
+      return;
+    }
+
+    container.innerHTML = ultime.map(item => {
+      const ts = item.modifiedAt || item.updatedAt || item.createdAt;
+      const tempo = (typeof formatTempoRelativo === 'function') ? formatTempoRelativo(ts) : '';
+      const autore = item.modifiedBy || 'Sistema';
+      
+      let icon = '📝';
+      let desc = '';
+      
+      if (item._tipo === 'nc') {
+        icon = '⚠️';
+        desc = `NC: ${escapeHtml(item.oggetto || item.descrizione || 'Senza oggetto')}`;
+      } else {
+        icon = '📋';
+        desc = `Verbale: ${escapeHtml(item.oggetto || 'Sopralluogo')}`;
+      }
+
+      return `
+        <div class="py-2.5 flex items-start gap-3 group">
+          <div class="mt-0.5 text-lg shrink-0">${icon}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-slate-700 font-medium truncate">${desc}</div>
+            <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+              <span class="font-semibold text-slate-500">${escapeHtml(autore)}</span>
+              <span>•</span>
+              <span>${tempo}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.warn('[Dashboard] Errore attività:', err);
+    container.innerHTML = `<div class="py-2 text-red-400 text-xs italic">Errore caricamento attività.</div>`;
+  }
+}
+
+// ─────────────────────────────────────────────
 // NOTA: enterProject NON viene sovrascritto qui.
 // Su dashboard-cantiere.html non ha senso — l'utente
 // è già dentro il cantiere. La navigazione è gestita

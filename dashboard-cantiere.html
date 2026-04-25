@@ -26,7 +26,7 @@
   <script defer src="./imprese-assegnazione.js"></script>
   <script defer src="./lavoratori.js"></script>
   <script defer src="./documenti-fondamentali.js"></script>
-  <script defer src="./dashboard-cantiere.js"></script>
+  <script defer src="./dashboard-cantiere.js?v=2.2.1"></script>
   <script defer src="./ui-dashboard.js"></script>
   <script defer src="./impostazioni.js"></script>
   <script defer src="./documenti-indexeddb.js"></script>
@@ -213,6 +213,17 @@
           <div id="kpi-score" class="text-3xl font-bold text-slate-800 kpi-value">–</div>
         </div>
       </div>
+      
+      <!-- MOD-6: Attività Recente (Collaborazione OneDrive) -->
+      <div id="attivita-recente" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3" role="region" aria-label="Attività recente">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          🕒 Attività Recente
+        </h3>
+        <div id="attivita-list" class="divide-y divide-slate-100 text-sm">
+          <div class="py-2 text-slate-400 text-xs italic">Caricamento attività…</div>
+        </div>
+      </div>
+
       <!-- Azioni rapide da KPI -->
       <div class="flex flex-wrap gap-2">
         <button aria-label="Nuovo Verbale" onclick="apriSuiteCSE('nuovo-verbale')"
@@ -297,8 +308,9 @@
         const ok = ripristinaStatoDashboard();
         if (!ok) return; // reindirizza a index.html se nessun cantiere
 
-        // 3. KPI (Unico pannello pre-caricato - UX-H)
+        // 3. KPI e Attività Recente (Collaborazione OneDrive)
         await renderKPI();
+        await renderAttivitaRecente();
 
         // 4. Badge sui tab (veloci, dipendono da IndexedDB)
         await aggiornaBadgeDashboard();

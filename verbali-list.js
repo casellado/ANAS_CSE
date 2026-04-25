@@ -109,6 +109,13 @@ async function renderVerbaliList(containerId) {
                 ${info.icon} ${info.label} · ${dataLabel}
               </div>
               ${dettaglio}
+              ${(v.modifiedBy) ? `
+                <div class="flex items-center gap-1.5 text-[10px] text-slate-400 mt-2 border-t border-slate-200/50 pt-2">
+                  <span class="opacity-70">☁️ Modificato da</span>
+                  <span class="font-semibold text-slate-500">${escapeHtml(v.modifiedBy)}</span>
+                  ${(v.modifiedAt || v.createdAt) ? `<span>•</span> <span>${(typeof formatTempoRelativo === 'function') ? formatTempoRelativo(v.modifiedAt || v.createdAt) : ''}</span>` : ''}
+                </div>
+              ` : ''}
             </div>
 
             <div class="flex flex-wrap gap-2 shrink-0">

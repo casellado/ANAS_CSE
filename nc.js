@@ -14,7 +14,7 @@ function formatTempoRelativo(isoString) {
   if (minuti < 1)   return 'ora';
   if (minuti < 60)  return `${minuti} min fa`;
   const ore = Math.floor(minuti / 60);
-  if (ore < 24)     return `${ore} ora${ore > 1 ? 'e' : ''} fa`;
+  if (ore < 24)     return `${ore} ${ore > 1 ? 'ore' : 'ora'} fa`;
   const giorni = Math.floor(ore / 24);
   if (giorni < 7)   return `${giorni} giorno${giorni > 1 ? 'i' : ''} fa`;
   return new Date(isoString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
