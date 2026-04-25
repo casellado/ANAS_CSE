@@ -404,8 +404,20 @@ function projectCard(project, ncStat) {
         </div>` : ''}
 
       <div class="mt-4 flex justify-between items-center">
-        <div class="text-xs text-slate-400">
+        <div class="text-xs text-slate-400 flex flex-col gap-0.5">
           ${project.createdAt ? 'Creato: ' + new Date(project.createdAt).toLocaleDateString('it-IT') : ''}
+          ${(() => {
+            // MOD-5: badge modifiedBy — solo se OneDrive attivo e metadati presenti
+            if (!(project.modifiedBy || project.updatedBy)) return '';
+            const attivo = typeof _odConfigured !== 'undefined' && _odConfigured;
+            if (!attivo) return '';
+            const autore = escapeHtml(project.modifiedBy || project.updatedBy || '');
+            const ts     = project.modifiedAt || project.updatedAt;
+            const tempo  = typeof formatTempoRelativo === 'function' ? formatTempoRelativo(ts) : null;
+            return `<span class="flex items-center gap-1 text-sky-500" title="Ultima modifica OneDrive">
+              ☁️ ${autore ? `<strong>${autore}</strong>` : ''}${tempo ? ' · ' + tempo : ''}
+            </span>`;
+          })()}
         </div>
         <button onclick="enterProject('${escapeHtml(project.id)}', '${escapeSingleQuotes(project.nome)}')"
                 class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold
@@ -416,6 +428,7 @@ function projectCard(project, ncStat) {
       </div>
     </article>
   `;
+
 }
 
 // ─────────────────────────────────────────────
@@ -651,7 +664,26 @@ async function refreshProjectsGrid() {
   const empty = document.getElementById('empty-state');
   if (!grid) return;
 
-  const projects = await getAll('projects');
+  let projects = await getAll('projects');
+
+  // ── MOD-3: Filtro lotti per permessi OneDrive ─────────────────────────────
+  const odAttivo = (typeof isArchivioOneDriveAttivo === 'function')
+    ? await isArchivioOneDriveAttivo()
+    : false;
+
+  const totale = projects.length;
+  if (odAttivo && totale > 0) {
+    projects = await _filtraLottiAccessibili(projects);
+  }
+
+  // Aggiorna badge accesso (MOD-3)
+  if (typeof aggiornaBadgeAccessoLotti === 'function') {
+    aggiornaBadgeAccessoLotti(
+      odAttivo ? totale  : null,
+      odAttivo ? projects.length : null
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   if (!projects || projects.length === 0) {
     if (empty) empty.style.display = 'block';
@@ -690,6 +722,23 @@ async function refreshProjectsGrid() {
   renderAlertNCGlobale(ncStats);
 
   grid.innerHTML = projects.map(p => projectCard(p, ncStats[p.id])).join('');
+}
+
+// ─────────────────────────────────────────────
+// MOD-3: Filtra lotti accessibili via OneDrive
+//   Prova a leggere ogni JSON lotto; se fallisce = nessun permesso = skip silenzioso
+// ─────────────────────────────────────────────
+async function _filtraLottiAccessibili(elencoLotti) {
+  const accessibili = [];
+  for (const lotto of elencoLotti) {
+    try {
+      await leggiLotto(lotto.id); // throw se permessi mancano
+      accessibili.push(lotto);
+    } catch (_) {
+      // Lotto non accessibile — skip silenzioso (nessun console.error)
+    }
+  }
+  return accessibili;
 }
 
 // ─────────────────────────────────────────────

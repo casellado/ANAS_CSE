@@ -171,9 +171,11 @@ function _buildLetteraSegnalazioneHtml(d) {
   const cseNome      = imp.firmaNome      || 'Geom. Dogano Casella';
   const cseQualifica = imp.firmaQualifica || 'Coordinatore Sicurezza in Esecuzione (CSE)';
   const cseAlbo      = imp.firmaAlbo      || '';
-  const firmaImg     = imp.firmaImmagine ? \`<img src="\${imp.firmaImmagine}" style="max-height:60px; max-width:200px" />\` : '';
+  const firmaImg     = imp.firmaImmagine
+    ? '<img src="' + imp.firmaImmagine + '" style="max-height:60px; max-width:200px" />'
+    : '';
 
-  return \`
+  return `
 <html><head><meta charset="utf-8"><style>
   body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.4; color: #000; }
   .intestazione { border-bottom: 2pt solid #000; padding-bottom: 8pt; margin-bottom: 14pt; }
@@ -239,7 +241,7 @@ function _buildLetteraSegnalazioneHtml(d) {
     <div style="border-top: 1pt solid #000; padding-top: 4pt; margin-top: 6pt; display: inline-block; min-width: 220pt;">
       <strong>\${escapeHtml(cseNome)}</strong><br/>
       \${escapeHtml(cseQualifica)}<br/>
-      \${cseAlbo ? '<span style="font-size: 9pt;">' + escapeHtml(cseAlbo) + '</span>' : ''}
+${cseAlbo ? '<span style="font-size: 9pt;">' + escapeHtml(cseAlbo) + '</span>' : ''}
     </div>
   </div>
 
@@ -247,17 +249,17 @@ function _buildLetteraSegnalazioneHtml(d) {
     Atto emesso ai sensi dell'art. 92 c.1 lett. e D.Lgs 81/2008 —
     ANAS SafeHub
   </div>
-</body></html>\`;
+</body></html>`;
 }
 
 async function _scaricaLetteraSegnalazioneWord(html, cantiereId, dataLettera, cantiereNome) {
-  const blob = new Blob(['\\ufeff', html], { type: 'application/msword' });
-  const filename = \`Segnalazione_RUP_\${cantiereId}_\${dataLettera}.doc\`;
+  const blob = new Blob(['﻿', html], { type: 'application/msword' });
+  const filename = `Segnalazione_RUP_${cantiereId}_${dataLettera}.doc`;
 
   if (typeof salvaIntelligente === 'function') {
     await salvaIntelligente({
       filename, blob, cantiereId, cantiereNome, tipoDoc: 'segnalazione-rup',
-      titoloCondivisione: \`Segnalazione RUP — Cantiere \${cantiereId}\`
+      titoloCondivisione: `Segnalazione RUP — Cantiere ${cantiereId}`
     });
     return;
   }

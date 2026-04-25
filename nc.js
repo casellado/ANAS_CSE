@@ -3,6 +3,24 @@
 let currentNcId = null;
 
 // ─────────────────────────────────────────────
+// MOD-5: Helper tempo relativo (usato in card NC e verbali)
+// ─────────────────────────────────────────────
+function formatTempoRelativo(isoString) {
+  if (!isoString) return null;
+  const delta = Date.now() - new Date(isoString).getTime();
+  if (isNaN(delta)) return null;
+
+  const minuti = Math.floor(delta / 60000);
+  if (minuti < 1)   return 'ora';
+  if (minuti < 60)  return `${minuti} min fa`;
+  const ore = Math.floor(minuti / 60);
+  if (ore < 24)     return `${ore} ora${ore > 1 ? 'e' : ''} fa`;
+  const giorni = Math.floor(ore / 24);
+  if (giorni < 7)   return `${giorni} giorno${giorni > 1 ? 'i' : ''} fa`;
+  return new Date(isoString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+}
+
+// ─────────────────────────────────────────────
 // 1. Recupera NC del cantiere corrente
 // ─────────────────────────────────────────────
 async function getNCList() {
@@ -341,6 +359,21 @@ function renderNCCard(nc) {
       </div>
 
       <div id="foto-${nc.id}" class="mt-3 flex flex-wrap gap-2"></div>
+
+      ${(nc.modifiedBy || nc.modifiedAt) && typeof isArchivioOneDriveAttivo !== 'undefined'
+        ? (() => {
+            // Mostra il badge solo se OneDrive è attivo (check sincrono tramite flag globale)
+            // isArchivioOneDriveAttivo è async — usiamo _odConfigured come flag rapido
+            const attivo = typeof _odConfigured !== 'undefined' && _odConfigured;
+            if (!attivo) return '';
+            const tempo = typeof formatTempoRelativo === 'function' ? formatTempoRelativo(nc.modifiedAt) : null;
+            const autore = escapeHtml(nc.modifiedBy || '');
+            return `<div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
+              <span aria-hidden="true">☁️</span>
+              <span>${autore ? `<strong>${autore}</strong> · ` : ''}${tempo ? tempo : ''}</span>
+            </div>`;
+          })()
+        : ''}
     </div>
   `;
 }

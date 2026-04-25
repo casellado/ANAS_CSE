@@ -2,7 +2,7 @@
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Geom. Dogano Casella — ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v2.1';
+const CACHE_NAME = 'anas-safehub-v2.2.1';
 
 const CACHE_STATIC = [
   './',
@@ -55,6 +55,10 @@ const CACHE_STATIC = [
   './ods-inviati.js',
   './ods-ricevuti.js',
   './ai-assistente.js',
+  // OneDrive Livello 2 (v2.0 → v2.2)
+  './storage-onedrive.js',
+  './onedrive-ui.js',
+  './migrazione-onedrive.js',
   // CSS
   './animazioni.css',
   './mobile.css',

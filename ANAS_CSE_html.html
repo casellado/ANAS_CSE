@@ -37,7 +37,7 @@
 
   <!-- ── Script order: foundation prima della UI ── -->
   <script defer src="./db.js"></script>
-  <script defer src="./storage.js"></script>
+  <script defer src="./storage.js?v=2.2.1"></script>
   <script defer src="./ui.js"></script>
   <script defer src="./navigation.js"></script>
   <script defer src="./foto.js"></script>
@@ -73,6 +73,10 @@
   <script defer src="./lettera-segnalazione-rup.js"></script>
   <script defer src="./report-giornaliero.js"></script>
   <script defer src="./scorciatoie.js"></script>
+  <!-- ── OneDrive Livello 2 (v2.0) ── -->
+  <script defer src="./storage-onedrive.js"></script>
+  <script defer src="./onedrive-ui.js"></script>
+  <script defer src="./migrazione-onedrive.js"></script>
   <style>
     /* ── MOBILE SIDEBAR OVERLAY ── */
     #sidebar-overlay {
@@ -258,7 +262,7 @@
 
   <!-- Footer info -->
   <div class="sidebar-footer">
-    <div class="text-[10px] font-semibold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">v1.8 · Suite CSE</div>
+    <div class="text-[10px] font-semibold uppercase tracking-widest" style="color:rgba(255,255,255,.3)">v2.0 · Suite CSE</div>
     <div class="text-[10px] mt-0.5" style="color:rgba(255,255,255,.2)">D.Lgs 81/08 · D.I. 22/01/2019</div>
   </div>
 </aside>
@@ -289,6 +293,22 @@
       </div>
     </div>
     <div class="flex items-center gap-2 shrink-0">
+      <!-- Pulsante OneDrive — visibile sempre, disabled su browser non supportati -->
+      <button id="btn-onedrive-status"
+              class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
+                     bg-slate-700 text-slate-200 hover:bg-slate-600 px-3 py-1.5 rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+              aria-label="Gestisci archivio OneDrive">
+        <span id="onedrive-status-icon" aria-hidden="true">🔗</span>
+        <span id="onedrive-status-label" class="hide-on-mobile">OneDrive</span>
+      </button>
+      <!-- Pulsante Ricarica — visibile solo quando OneDrive è attivo (MOD-4) -->
+      <button id="btn-onedrive-ricarica"
+              class="hidden topbar-btn topbar-btn-indigo"
+              aria-label="Ricarica dati da OneDrive">
+        <span aria-hidden="true">🔄</span>
+        <span class="hide-on-mobile">Ricarica</span>
+      </button>
       <button onclick="apriReportGiornaliero()"
               class="topbar-btn topbar-btn-green"
               aria-label="Apri Diario CSE giornaliero">
@@ -315,6 +335,19 @@
       document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
         if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile();
       });
+
+      // Pulsante Ricarica OneDrive (MOD-4)
+      document.getElementById('btn-onedrive-ricarica')?.addEventListener('click', async () => {
+        if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
+        const view = Array.from(document.querySelectorAll('section.page-transition'))
+          .find(el => !el.classList.contains('page-hidden'))?.id;
+        if (view === 'view-hub' && typeof caricaProgetti === 'function') await caricaProgetti();
+        else if (typeof switchView === 'function') switchView(view?.replace('view-', '') || 'hub');
+        if (typeof showToast === 'function') showToast('Dati aggiornati da OneDrive ✓', 'success');
+      });
+
+      // Init OneDrive UI (Fase A)
+      if (typeof initOneDriveUI === 'function') initOneDriveUI();
     });
   </script>
 
@@ -339,6 +372,9 @@
           Nuovo Cantiere
         </button>
       </div>
+
+      <!-- Badge accesso OneDrive (MOD-3) — visibile solo quando OneDrive è attivo -->
+      <div id="hub-onedrive-accesso" class="hidden" aria-live="polite"></div>
 
       <div id="projects-grid"
            class="grid grid-cols-1 min-[500px]:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -1782,7 +1818,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initDB();
 
     // Carica dati da USB / data/database.json se presente
-    await tryLoadDatabaseJsonFromDataFolder();
+    if (typeof tryLoadDatabaseJsonFromDataFolder === 'function') {
+      await tryLoadDatabaseJsonFromDataFolder();
+    }
 
     // Controlla se ci sono cantieri — se vuoto, inserisce seed
     const existing = await getAll('projects');

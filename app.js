@@ -10,7 +10,9 @@ window.appState = {
     await initDB();
 
     // Prova a caricare automaticamente data/database.json
-    const autoLoaded = await tryLoadDatabaseJsonFromDataFolder();
+    const autoLoaded = (typeof tryLoadDatabaseJsonFromDataFolder === 'function')
+      ? await tryLoadDatabaseJsonFromDataFolder()
+      : false;
 
     if (!autoLoaded) {
       const existing = await getAll('projects');
