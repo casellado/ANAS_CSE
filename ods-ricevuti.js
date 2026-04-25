@@ -245,6 +245,13 @@ function _apriModalNuovoOds(file, projectId) {
                     class="w-full border border-slate-300 rounded-lg p-2 text-sm resize-y"></textarea>
         </div>
 
+        <div>
+          <label class="text-xs font-semibold text-slate-700 block mb-1">Tag Liberi (es. urgente, rev-1)</label>
+          <input type="text" id="ods-tags-liberi"
+                 placeholder="Separati da virgola"
+                 class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+        </div>
+
         ${!projectId ? `
           <div>
             <label class="text-xs font-semibold text-slate-700 block mb-1">Cantiere (se specifico)</label>
@@ -295,6 +302,7 @@ function _apriModalNuovoOds(file, projectId) {
     const protocollo = document.getElementById('ods-protocollo').value.trim();
     const oggetto    = document.getElementById('ods-oggetto').value.trim();
     const note       = document.getElementById('ods-note').value.trim();
+    const liberiRaw  = document.getElementById('ods-tags-liberi').value || '';
     const cantiereScelto = projectId || document.getElementById('ods-cantiere')?.value || '';
 
     if (!mittente) {
@@ -304,8 +312,18 @@ function _apriModalNuovoOds(file, projectId) {
 
     try {
       const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+      
+      // Tag tecnici
       const tags = ['ods-ricevuto'];
       if (cantiereScelto) tags.push(`cantiere:${cantiereScelto}`);
+
+      // Tag liberi normalizzati
+      const liberi = liberiRaw.split(',')
+        .map(t => (typeof normalizzaTag === 'function') ? normalizzaTag(t) : t.trim().toLowerCase())
+        .filter(Boolean);
+      
+      // Unione finale
+      const finalTags = [...tags, ...liberi];
 
       const doc = {
         id:         'ods_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -313,7 +331,7 @@ function _apriModalNuovoOds(file, projectId) {
         tipo:       file.type,
         dimensione: file.size,
         blob:       blob,
-        tags:       tags,
+        tags:       finalTags,
         categoria:  'ods-ricevuto',
         mittente,
         dataOds,

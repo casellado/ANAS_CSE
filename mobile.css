@@ -261,6 +261,68 @@ button, a, [role="button"] {
 }
 
 /* ──────────────────────────────────────────
+   PULL-TO-REFRESH INDICATOR (MOD-18)
+   ────────────────────────────────────────── */
+#pull-to-refresh-indicator {
+  position: fixed;
+  top: -60px;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.17, 0.67, 0.83, 0.67), opacity 0.2s;
+  opacity: 0;
+}
+
+#pull-to-refresh-indicator .spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(37, 99, 235, 0.2);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: ptr-spin 0.8s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
+#pull-to-refresh-indicator.visible {
+  opacity: 1;
+}
+
+/* ──────────────────────────────────────────
+   FOLDABLE & DUAL-SCREEN SUPPORT (MOD-19)
+   ────────────────────────────────────────── */
+@media (window-segments: 2) and (orientation: landscape) {
+  /* Layout a due colonne se aperto a libro */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: env(viewport-segment-width 0 0); /* Spazio pari alla cerniera */
+  }
+  
+  .sidebar-mobile-overlay {
+    position: relative !important;
+    transform: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Fallback per browser che non supportano ancora window-segments */
+@media (min-width: 1024px) and (aspect-ratio: 1/1) {
+  /* Probabile foldable quadrato (es. Surface Duo o Fold aperto) */
+  body {
+    background-color: #f8fafc;
+  }
+}
+
+/* ──────────────────────────────────────────
    SELEZIONE TESTO su mobile — disabilitata su UI elements
    ────────────────────────────────────────── */
 button, .nav-btn, [role="tab"] {

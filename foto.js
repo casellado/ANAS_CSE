@@ -125,13 +125,55 @@ function comprimiImmagine(file, maxWidth = 1600, quality = 0.75) {
 // 3. Salvataggio foto in IndexedDB (store "foto")
 // ─────────────────────────────────────────────
 async function salvaFotoNC(ncId, blob) {
+  const fotoId = 'foto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  const data   = new Date().toISOString();
+  
   const foto = {
-    id:   'foto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    id: fotoId,
     ncId,
-    data: new Date().toISOString(),
+    data,
     blob
   };
+  
+  // 1. Salvataggio locale (IndexedDB) per prestazioni offline e cache
   await saveItem('foto', foto);
+
+  // 2. MOD-12: Salvataggio su OneDrive (se attivo)
+  const usaOneDrive = (typeof isArchivioOneDriveAttivo === 'function') ? await isArchivioOneDriveAttivo() : false;
+  const projectId   = window.appState?.currentProject;
+
+  if (usaOneDrive && projectId) {
+    try {
+      const dirHandle = await getSottocartellaTipoDoc(projectId, 'foto-nc');
+      if (dirHandle) {
+        // Nome file leggibile: NC_ID_FOTOID.jpg
+        const filename = `${ncId}_${fotoId}.jpg`;
+        const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+        const writable   = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        console.info(`[OneDrive] Foto archiviata: ${filename}`);
+
+        // Aggiorna record NC con il riferimento alla foto per la collaborazione
+        try {
+          const nc = await getItem('nc', ncId);
+          if (nc) {
+            if (!nc.fotoNames) nc.fotoNames = [];
+            if (!nc.fotoNames.includes(filename)) {
+              nc.fotoNames.push(filename);
+              await saveItem('nc', nc);
+              console.info(`[Collaboration] Record NC aggiornato con foto: ${filename}`);
+            }
+          }
+        } catch (e) {
+          console.warn('[Collaboration] Errore aggiornamento metadati NC:', e.message);
+        }
+      }
+    } catch (err) {
+      console.warn('[OneDrive] Impossibile archiviare foto:', err.message);
+    }
+  }
+
   return foto;
 }
 

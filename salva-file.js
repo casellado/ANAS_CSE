@@ -56,17 +56,40 @@ function _descrizionePicker(filename) {
 // ─────────────────────────────────────────────
 function _sottocartellaSuggerita(tipoDoc) {
   const mappa = {
-    'verbale-sopralluogo': 'Verbali_Sopralluogo',
-    'riunione':            'Riunioni_Coordinamento',
-    'pos':                 'Verifiche_POS',
-    'nc':                  'Non_Conformita',
-    'sospensione':         'Lettere_Sospensione',
-    'documento':           'Documenti',
-    'foto':                'Foto',
-    'report-giornaliero':  'Report_Giornalieri',
+    // Verbali
+    'verbale-sopralluogo':  '02_Verbali/Sopralluogo',
+    'riunione':             '02_Verbali/Riunioni_Coordinamento',
+    'pos':                  '02_Verbali/Verifica_POS',
+
+    // Non conformità e ODS
+    'nc':                   '03_Non_Conformita/Aperte',
+    'nc-chiusa':            '03_Non_Conformita/Chiuse',
+    'foto-nc':              '03_Non_Conformita/Foto',
+    'ods-ricevuto':         '04_ODS/Ricevuti',
+    'ods-inviato':          '04_ODS/Inviati',
+
+    // Atti formali
+    'sospensione':          '05_Lettere_Sospensione',
+    'report-giornaliero':   '06_Diario_Giornaliero',
+
+    // Documenti fondamentali (mappatura granulare)
+    'fondamentale-psc':                 '01_Documenti_Fondamentali/PSC',
+    'fondamentale-pos':                 '01_Documenti_Fondamentali/POS',
+    'fondamentale-durc':                '01_Documenti_Fondamentali/DURC',
+    'fondamentale-notifica-preliminare':'01_Documenti_Fondamentali/Notifica_Preliminare',
+    'fondamentale-nomina-cse':          '01_Documenti_Fondamentali/Nomina_CSE',
+    'fondamentale-contratto-affidamento':'01_Documenti_Fondamentali/Contratto_Affidamento',
+    'fondamentale-iscrizione-cciaa':    '01_Documenti_Fondamentali/Iscrizione_CCIAA',
+    'fondamentale-elenco-lavoratori':   '01_Documenti_Fondamentali/Elenco_Lavoratori',
+    'fondamentale-duvri':               '01_Documenti_Fondamentali/DUVRI',
+    'fondamentale-autorizzazioni':      '01_Documenti_Fondamentali/Autorizzazioni_ANAS',
+
+    // Fallback
+    'documento':            '99_Altri_Documenti',
+    'foto':                 '03_Non_Conformita/Foto',
     'database':            '',
   };
-  return mappa[tipoDoc] || '';
+  return mappa[tipoDoc] || '99_Altri_Documenti';
 }
 
 // ─────────────────────────────────────────────
@@ -80,6 +103,29 @@ async function salvaDocumento(opts) {
   const { filename, blob, cantiereId, cantiereNome, tipoDoc, titoloCondivisione } = opts;
   if (!filename || !blob) {
     throw new Error('filename e blob sono obbligatori');
+  }
+
+  // MOD-11: Archiviazione automatica su OneDrive (se attivo e desktop)
+  const usaOneDrive = (typeof isArchivioOneDriveAttivo === 'function') ? await isArchivioOneDriveAttivo() : false;
+  
+  if (usaOneDrive && cantiereId && !_isMobile()) {
+    try {
+      const dirHandle = await getSottocartellaTipoDoc(cantiereId, tipoDoc);
+      if (dirHandle) {
+        const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+        const writable   = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        
+        showToast(`Archiviato in OneDrive: ${filename} ✓`, 'success');
+        if (typeof showCheckmark === 'function') showCheckmark();
+        
+        return { success: true, method: 'onedrive', filename };
+      }
+    } catch (err) {
+      console.warn('[OneDrive] Salvataggio diretto fallito, uso picker:', err.message);
+      // Se fallisce (es. permessi negati momentaneamente), prosegue con il picker
+    }
   }
 
   // Mobile con Web Share → proponi scelta

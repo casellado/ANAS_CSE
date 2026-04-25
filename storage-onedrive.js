@@ -623,3 +623,24 @@ function invalidaCacheLotto(lottoId) {
 function invalidaCacheOneDrive() {
   _odCache.clear();
 }
+// Esportazione funzioni su window per moduli UI
+window.isArchivioOneDriveAttivo = isArchivioOneDriveAttivo;
+window.configuraArchivioOneDrive = configuraArchivioOneDrive;
+window.disconnettiArchivioOneDrive = disconnettiArchivioOneDrive;
+window.richiediPermessoOneDrive = richiediPermessoOneDrive;
+window.leggiLotto = leggiLotto;
+window.salvaLotto = salvaLotto;
+window.leggiRegistroLotti = leggiRegistroLotti;
+window.aggiornaRegistroLotti = aggiornaRegistroLotti;
+window.leggiImprese = leggiImprese;
+window.salvaImprese = salvaImprese;
+window.aggiungiAudit = aggiungiAudit;
+window.leggiAudit = leggiAudit;
+window.creaStrutturaLotto = creaStrutturaLotto;
+window.getSottocartellaTipoDoc = getSottocartellaTipoDoc;
+window.normalizzaTag = normalizzaTag;
+window.estraiTagLiberi = estraiTagLiberi;
+window.getTagLiberiLotto = getTagLiberiLotto;
+window.getLastModifiedLotto = getLastModifiedLotto;
+window.invalidaCacheLotto = invalidaCacheLotto;
+window.invalidaCacheOneDrive = invalidaCacheOneDrive;

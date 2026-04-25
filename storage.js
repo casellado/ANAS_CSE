@@ -251,6 +251,52 @@ const _routerDeleteItem = async function(storeName, id) {
 // IMPLEMENTAZIONI ONEDRIVE
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * MOD-17: Smart Merge
+ * Tenta di unire automaticamente due versioni di un lotto.
+ * Fallisce (ritorna null) se rileva modifiche divergenti sullo stesso identico item.
+ */
+function _tentaMergeAutomaticoLotto(locale, remoto) {
+  if (!remoto || !locale) return null;
+
+  const result = { ...remoto }; // Partiamo dai dati remoti (più recenti)
+  const stores = ['nc', 'verbali', 'imprese_cantieri', 'documenti', 'foto_meta'];
+
+  for (const store of stores) {
+    const arrLoc = Array.isArray(locale[store]) ? locale[store] : [];
+    const arrRem = Array.isArray(remoto[store]) ? remoto[store] : [];
+    
+    // Mappa remota per ID per confronto rapido
+    const mappaRem = new Map(arrRem.map(x => [x.id, x]));
+    const uniti    = [...arrRem];
+
+    for (const itemLoc of arrLoc) {
+      const itemRem = mappaRem.get(itemLoc.id);
+      
+      if (!itemRem) {
+        // Item nuovo in locale: aggiungilo tranquillamente
+        uniti.push(itemLoc);
+      } else {
+        // Item presente in entrambi: controlla se i dati sono identici
+        // Ignoriamo metadati di sistema come _source o updatedAt nella comparazione
+        const sLoc = JSON.stringify({ ...itemLoc, updatedAt: undefined, modifiedAt: undefined, _source: undefined });
+        const sRem = JSON.stringify({ ...itemRem, updatedAt: undefined, modifiedAt: undefined, _source: undefined });
+        
+        if (sLoc !== sRem) {
+          // CONFLITTO REALE: lo stesso item è stato modificato in modo diverso.
+          // Il merge automatico non può essere fatto in sicurezza.
+          console.warn(`[Smart Merge] Collisione su ${store}:${itemLoc.id}`);
+          return null;
+        }
+        // Se identici, non serve fare nulla, quello remoto è già nell'array 'uniti'
+      }
+    }
+    result[store] = uniti;
+  }
+
+  return result;
+}
+
 /** Salva un cantiere nel registro.json */
 async function _saveProjectOnDrive(project) {
   if (typeof aggiornaRegistroLotti !== 'function') throw new Error('storage-onedrive.js non caricato');
@@ -311,7 +357,18 @@ async function _saveInLotto(storeName, item) {
   });
 
   if (!result.success && result.conflitto) {
-    // Mostra modal conflitto e lascia decidere l'utente
+    // MOD-17: Tenta il merge automatico prima di disturbare l'utente
+    const datiUniti = _tentaMergeAutomaticoLotto(dati, result.remoto);
+    
+    if (datiUniti) {
+      console.info('[Storage Router] Conflitto risolto con Smart Merge ✓');
+      // Salva il merge forzando la scrittura (il merge ha già risolto le divergenze)
+      await salvaLotto(lottoId, datiUniti, { forzato: true });
+      showToast('Modifiche unite a quelle del collega ✓', 'success');
+      return item;
+    }
+
+    // Se il merge automatico non è possibile (modifiche sullo stesso item), mostra modal
     return new Promise((resolve, reject) => {
       if (typeof mostraModalConflittoSync === 'function') {
         mostraModalConflittoSync(
@@ -319,7 +376,7 @@ async function _saveInLotto(storeName, item) {
           dati,
           result.remoto,
           async () => {
-            // Sovrascrivi
+            // Sovrascrivi (scelta utente)
             await salvaLotto(lottoId, { ...dati, _updatedAtOriginale: undefined }, { forzato: true });
             resolve(item);
           },

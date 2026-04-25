@@ -260,6 +260,52 @@ async function renderDocumenti(categoriaFiltro) {
     );
   }
 
+  // --- MOD-9: Filtri per Tag Liberi ---
+  const tuttiTagLiberi = new Set();
+  const rawDocs = docs; // Usiamo i documenti già filtrati per categoria/testo
+  rawDocs.forEach(d => {
+    (d.tags || []).forEach(t => {
+      if (typeof t === 'string' && !t.includes(':')) tuttiTagLiberi.add(t);
+    });
+  });
+
+  if (tuttiTagLiberi.size > 0) {
+    const sortedTags = Array.from(tuttiTagLiberi).sort();
+    const filterHtml = `
+      <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Filtra tag:</span>
+        <button onclick="window._tagFiltroAttivo=null; renderDocumenti('${categoriaFiltro || 'tutti'}')"
+                class="px-2.5 py-1 rounded-full text-xs font-medium border
+                       ${!window._tagFiltroAttivo ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+          Tutti
+        </button>
+        ${sortedTags.map(t => `
+          <button onclick="window._tagFiltroAttivo='${t}'; renderDocumenti('${categoriaFiltro || 'tutti'}')"
+                  class="px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap
+                         ${window._tagFiltroAttivo === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50'}">
+            #${escapeHtml(t)}
+          </button>
+        `).join('')}
+      </div>
+    `;
+    // Inserisce i filtri prima della lista
+    const filtersContainerId = 'doc-tag-filters';
+    let filtersContainer = document.getElementById(filtersContainerId);
+    if (!filtersContainer) {
+      filtersContainer = document.createElement('div');
+      filtersContainer.id = filtersContainerId;
+      container.parentNode.insertBefore(filtersContainer, container);
+    }
+    filtersContainer.innerHTML = filterHtml;
+  } else {
+    document.getElementById('doc-tag-filters')?.remove();
+  }
+
+  // Applica filtro tag attivo
+  if (window._tagFiltroAttivo) {
+    docs = docs.filter(d => (d.tags || []).includes(window._tagFiltroAttivo));
+  }
+
   if (!docs || docs.length === 0) {
     const etichetta = categoriaFiltro === 'ods' ? 'Ordini di Servizio'
       : categoriaFiltro === 'normative' ? 'normative'
@@ -428,75 +474,90 @@ async function apriModalModificaDocumento(id) {
   document.getElementById('modal-modifica-doc')?.remove();
 
   const modal = document.createElement('div');
-  modal.id        = 'modal-modifica-doc';
-  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-
-  // Tag predefiniti suggeriti
-  const tagSuggeriti = ['PSC', 'POS', 'DVR', 'Segnaletica', 'DUVRI', 'Patente',
-                        'Iscrizione CCIAA', 'Polizza', 'DURC', 'Idoneità',
-                        'Formazione', 'DPI', 'PiMUS', 'Collaudo'];
-
-  const tagsAttuali = (doc.tags || []).join(', ');
+  const tagsAttuali = doc.tags || [];
+  const tagTecnici = tagsAttuali.filter(t => t.includes(':'));
+  const tagLiberi  = tagsAttuali.filter(t => !t.includes(':'));
+  
   const scadenza    = doc.dataScadenza ? doc.dataScadenza.slice(0, 10) : '';
   const nomeSafe    = escapeHtml(doc.nome);
+
+  // Recupera suggerimenti dal lotto
+  const suggerimentiLotto = (typeof getTagLiberiLotto === 'function') 
+    ? await getTagLiberiLotto(window.appState?.currentProject) 
+    : [];
 
   modal.innerHTML = `
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-4">
       <h2 class="text-base font-bold text-slate-800">✏️ Modifica Documento</h2>
-      <div class="text-xs text-slate-500 truncate">${nomeSafe}</div>
+      <div class="text-xs text-slate-500 truncate mb-4">${nomeSafe}</div>
 
+      <!-- Tag Tecnici (Sola lettura o fissi) -->
+      ${tagTecnici.length > 0 ? `
+        <div class="space-y-1">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tag di sistema</label>
+          <div class="flex flex-wrap gap-1">
+            ${tagTecnici.map(t => `<span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-mono border border-slate-200">${escapeHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Tag Liberi (Editabili) -->
       <div>
-        <label class="text-xs font-semibold text-slate-600 block mb-1">Tag (separati da virgola)</label>
-        <input id="mod-doc-tags" type="text"
-               value="${escapeHtml(tagsAttuali)}"
-               placeholder="Es. PSC, Formazione, Idoneità"
+        <label class="text-xs font-semibold text-slate-700 block mb-1">Tag Liberi (es. rossi-srl, viadotto-sud)</label>
+        <input id="mod-doc-tags-liberi" type="text"
+               value="${escapeHtml(tagLiberi.join(', '))}"
+               placeholder="Separati da virgola"
                class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                       focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        <div class="flex flex-wrap gap-1.5 mt-2">
-          ${tagSuggeriti.map(t => `
-            <button type="button"
-                    onclick="_aggiungiTagSuggerito('${t}')"
-                    class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full
-                           hover:bg-blue-100 hover:text-blue-800 border border-slate-200
-                           focus:outline-none transition">
-              + ${t}
-            </button>
-          `).join('')}
+        
+        <div class="mt-2">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Suggeriti nel lotto</label>
+          <div class="flex flex-wrap gap-1.5">
+            ${suggerimentiLotto.length > 0 
+              ? suggerimentiLotto.map(t => `
+                  <button type="button" onclick="_aggiungiTagLibero('${escapeHtml(t)}')"
+                          class="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100 hover:bg-blue-100">
+                    + ${escapeHtml(t)}
+                  </button>`).join('')
+              : '<span class="text-xs text-slate-400 italic">Nessun tag usato finora.</span>'
+            }
+          </div>
         </div>
       </div>
 
       <div>
-        <label class="text-xs font-semibold text-slate-600 block mb-1">
+        <label class="text-xs font-semibold text-slate-700 block mb-1">
           Data Scadenza
-          <span class="text-slate-400 font-normal">(opzionale — per alert scadenze)</span>
+          <span class="text-slate-400 font-normal ml-1">(opzionale)</span>
         </label>
         <input id="mod-doc-scadenza" type="date"
                value="${escapeHtml(scadenza)}"
                class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                       focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        <button type="button"
-                onclick="document.getElementById('mod-doc-scadenza').value=''"
-                class="text-xs text-slate-400 hover:text-red-500 mt-1 underline focus:outline-none">
-          Rimuovi scadenza
-        </button>
       </div>
 
-      <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
         <button onclick="document.getElementById('modal-modifica-doc').remove()"
-                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
-                       hover:bg-slate-200 focus:outline-none">
+                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
           Annulla
         </button>
         <button onclick="confermaModificaDocumento('${id}')"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-          ✅ Salva
+                class="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-lg hover:bg-blue-700">
+          Salva modifiche
         </button>
       </div>
     </div>
   `;
+
+  // Funzione helper locale per il modal
+  window._aggiungiTagLibero = (tag) => {
+    const input = document.getElementById('mod-doc-tags-liberi');
+    if (!input) return;
+    const attuali = input.value.split(',').map(t => t.trim()).filter(Boolean);
+    if (!attuali.includes(tag)) {
+      input.value = [...attuali, tag].join(', ');
+    }
+  };
 
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
@@ -515,23 +576,32 @@ function _aggiungiTagSuggerito(tag) {
 }
 
 async function confermaModificaDocumento(id) {
-  const tagsRaw  = document.getElementById('mod-doc-tags')?.value    || '';
-  const scadenza = document.getElementById('mod-doc-scadenza')?.value || '';
-
-  const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+  const liberiRaw = document.getElementById('mod-doc-tags-liberi')?.value || '';
+  const scadenza  = document.getElementById('mod-doc-scadenza')?.value     || '';
 
   const doc = await getItem('documenti', id);
-  if (!doc) { showToast('Documento non trovato.', 'error'); return; }
+  if (!doc) return;
+
+  // Mantieni i tag tecnici esistenti (quelli con ':')
+  const tagTecnici = (doc.tags || []).filter(t => t.includes(':'));
+  
+  // Normalizza i nuovi tag liberi
+  const nuoviLiberi = liberiRaw.split(',')
+    .map(t => (typeof normalizzaTag === 'function') ? normalizzaTag(t) : t.trim().toLowerCase())
+    .filter(Boolean);
+
+  // Unisci (rimuovendo duplicati liberi)
+  const finalTags = [...tagTecnici, ...Array.from(new Set(nuoviLiberi))];
 
   const updated = {
     ...doc,
-    tags,
+    tags:         finalTags,
     dataScadenza: scadenza || null,
     updatedAt:    new Date().toISOString()
   };
 
-  await saveItem('documenti', { ...updated, blob: doc.blob }); // mantieni il blob
+  await saveItem('documenti', updated);
   document.getElementById('modal-modifica-doc')?.remove();
-  await renderDocumenti();
+  await renderDocumenti(_docTabAttivo === 'tutti' ? null : _docTabAttivo);
   showToast('Documento aggiornato ✓', 'success');
 }

@@ -89,7 +89,7 @@ function ripristinaStatoSuiteCSE() {
 //   Se sì, mostra toast non bloccante "Ricarica".
 // ─────────────────────────────────────────────
 
-const _POLLING_INTERVAL_MS = 3 * 60 * 1000; // 3 minuti
+const _POLLING_INTERVAL_MS = 60 * 1000; // 1 minuto (MOD-4)
 let   _pollingTimer        = null;
 let   _pollingLottoId      = null;
 let   _pollingLastMtime    = null;

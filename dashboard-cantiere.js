@@ -101,6 +101,28 @@ async function renderKPI() {
     }
   }
 
+  // MOD-20: Rendering Grafico Circolare (Safety Score)
+  const chartContainer = document.getElementById('score-chart-container');
+  if (chartContainer) {
+    const color = kpi.score > 80 ? '#10b981' : (kpi.score > 50 ? '#f59e0b' : '#ef4444');
+    chartContainer.innerHTML = `
+      <div class="relative w-32 h-32 flex items-center justify-center">
+        <svg class="w-full h-full -rotate-90">
+          <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-100" />
+          <circle cx="64" cy="64" r="58" stroke="${color}" stroke-width="8" fill="transparent" 
+                  stroke-dasharray="364.4" 
+                  stroke-dashoffset="${364.4 - (364.4 * kpi.score / 100)}" 
+                  stroke-linecap="round"
+                  class="transition-all duration-1000 ease-out" />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-2xl font-black text-slate-800">${kpi.score}%</span>
+          <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Safety Score</span>
+        </div>
+      </div>
+    `;
+  }
+
   // Mostra alert ANAS per gravissime (con animazione pulse)
   const alertEl = document.getElementById('alert-gravissime');
   if (alertEl) {

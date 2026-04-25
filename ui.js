@@ -98,7 +98,126 @@ function showCheckmark() {
 function showSuccessFlash(btn) {
   if (!btn) return;
   btn.classList.add('btn-flash-success');
-  setTimeout(() => btn.classList.remove('btn-flash-success'), 550);
+  setTimeout(() => btn.classList.remove('btn-flash-success'), 1500);
+}
+
+/**
+ * MOD-18: Pull-to-Refresh
+ * Gestisce lo swipe down in cima alla pagina per forzare il refresh da cloud.
+ */
+function initPullToRefresh() {
+  if (!('ontouchstart' in window)) return; // Solo per dispositivi touch
+
+  // Crea l'indicatore se non esiste
+  if (!document.getElementById('pull-to-refresh-indicator')) {
+    const indicator = document.createElement('div');
+    indicator.id = 'pull-to-refresh-indicator';
+    indicator.innerHTML = '<div class="spinner"></div>';
+    document.body.prepend(indicator);
+  }
+
+  const indicator = document.getElementById('pull-to-refresh-indicator');
+  let startY = 0;
+  let distance = 0;
+  const threshold = 100; // pixel necessari per attivare il refresh
+
+  document.addEventListener('touchstart', (e) => {
+    // Attiva solo se siamo in cima alla pagina e con un solo dito
+    if (window.scrollY === 0 && e.touches.length === 1) {
+      startY = e.touches[0].pageY;
+      indicator.classList.add('visible');
+    } else {
+      startY = 0;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (startY === 0) return;
+    const currentY = e.touches[0].pageY;
+    distance = currentY - startY;
+
+    if (distance > 0) {
+      // Applica una resistenza (più tiri, più è duro)
+      const pull = Math.pow(distance, 0.7) * 2;
+      indicator.style.transform = `translateY(${Math.min(pull, threshold + 20)}px)`;
+      
+      // Feedback visivo sulla soglia
+      if (pull > threshold) {
+        indicator.querySelector('.spinner').style.borderTopColor = '#059669'; // verde
+      } else {
+        indicator.querySelector('.spinner').style.borderTopColor = '#2563eb'; // blu
+      }
+      
+      // Blocca lo scroll nativo se stiamo tirando in giù
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', async () => {
+    if (startY === 0) return;
+    const pull = Math.pow(distance, 0.7) * 2;
+
+    if (pull > threshold) {
+      // ATTIVA REFRESH
+      indicator.style.transform = `translateY(${threshold}px)`;
+      showToast('Aggiornamento dati dal cloud...', 'info');
+      
+      try {
+        // Forza il ricaricamento asincrono di tutti i dati
+        if (typeof switchView === 'function') {
+          // Ricarica la vista corrente che a sua volta ricarica i dati da storage (che legge da OneDrive)
+          const currentView = window.appState?.currentView || 'hub';
+          await switchView(currentView);
+          showToast('Dati aggiornati ✓', 'success');
+        } else {
+          window.location.reload();
+        }
+      } catch (err) {
+        showToast('Errore durante il refresh.', 'error');
+      }
+    }
+
+    // Resetta tutto
+    startY = 0;
+    distance = 0;
+    setTimeout(() => {
+      indicator.style.transform = 'translateY(-60px)';
+      indicator.classList.remove('visible');
+    }, 300);
+  }, { passive: true });
+}
+
+// ─────────────────────────────────────────────
+// Toast persistente per modifiche esterne (MOD-4)
+// ─────────────────────────────────────────────
+function mostraToastModificheEsterne(onReload) {
+  const existing = document.getElementById('toast-external-change');
+  if (existing) return;
+
+  const toast = document.createElement('div');
+  toast.id = 'toast-external-change';
+  toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] 
+                     bg-indigo-900 text-white px-6 py-4 rounded-2xl shadow-2xl
+                     flex items-center gap-4 border border-indigo-400`;
+  
+  toast.innerHTML = `
+    <div class="text-2xl">☁️</div>
+    <div class="flex-1">
+      <div class="text-sm font-bold">Modifiche esterne rilevate</div>
+      <div class="text-[11px] text-indigo-200">Un altro tecnico ha aggiornato questo lotto.</div>
+    </div>
+    <button id="btn-reload-onedrive" 
+            class="bg-white text-indigo-900 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-50 shadow-md">
+      RICARICA
+    </button>
+  `;
+
+  document.body.appendChild(toast);
+
+  document.getElementById('btn-reload-onedrive').addEventListener('click', () => {
+    toast.remove();
+    if (typeof onReload === 'function') onReload();
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -1012,6 +1131,8 @@ async function confermaNuovoCantiere() {
 // Wire UI — collega tutti gli event listener
 // ─────────────────────────────────────────────
 function wireUI() {
+  // MOD-18: Attiva Pull-to-Refresh
+  if (typeof initPullToRefresh === 'function') initPullToRefresh();
 
   // Navigazione sidebar
   el('#btn-hub')?.addEventListener('click', () => show('hub-view'));

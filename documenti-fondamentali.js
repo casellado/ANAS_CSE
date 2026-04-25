@@ -396,6 +396,14 @@ function _chiediAssociazione(file, projectId) {
           <div class="font-semibold text-slate-600">📄 Altro documento (non obbligatorio)</div>
         </button>
       </div>
+
+      <div class="mt-4 pt-4 border-t border-slate-100">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tag liberi (opzionali)</label>
+        <input type="text" id="fond-tags-liberi" 
+               placeholder="Es. rossi-srl, variante-1"
+               class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none">
+      </div>
+
       <button onclick="document.getElementById('modal-associa-doc').remove()"
               class="mt-4 w-full px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
         Annulla
@@ -415,12 +423,18 @@ async function _confermaAssociazione(docDefId) {
   if (!modal) return;
   const file = modal._file;
   const projectId = modal._projectId;
+  
+  const liberiRaw = document.getElementById('fond-tags-liberi')?.value || '';
+  const liberi = liberiRaw.split(',')
+    .map(t => (typeof normalizzaTag === 'function') ? normalizzaTag(t) : t.trim().toLowerCase())
+    .filter(Boolean);
+
   modal.remove();
 
   if (docDefId === 'generico') {
-    await _caricaDocumentoGenerico(file, projectId);
+    await _caricaDocumentoGenerico(file, projectId, liberi);
   } else {
-    await _caricaDocumentoFondamentale(file, docDefId, projectId);
+    await _caricaDocumentoFondamentale(file, docDefId, projectId, liberi);
   }
   renderDocumentiFondamentali('view-documenti-fondamentali-container', projectId);
 }
@@ -428,18 +442,21 @@ async function _confermaAssociazione(docDefId) {
 // ─────────────────────────────────────────────
 // 6. Salvataggio documento fondamentale
 // ─────────────────────────────────────────────
-async function _caricaDocumentoFondamentale(file, docDefId, projectId) {
+async function _caricaDocumentoFondamentale(file, docDefId, projectId, tagLiberi = []) {
   const def = DOCUMENTI_FONDAMENTALI.find(d => d.id === docDefId);
   if (!def) return;
 
   try {
     const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+    const tagsTecnici = [`cantiere:${projectId}`, `fondamentale:${docDefId}`];
+    const finalTags   = [...tagsTecnici, ...tagLiberi];
+
     const doc = {
       id:         'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       nome:       file.name,
       tipo:       file.type,
       dimensione: file.size,
-      tags:       [`cantiere:${projectId}`, `fondamentale:${docDefId}`],
+      tags:       finalTags,
       categoria:  'fondamentale',
       blob:       blob,
       uploadedAt: new Date().toISOString(),
@@ -455,15 +472,18 @@ async function _caricaDocumentoFondamentale(file, docDefId, projectId) {
   }
 }
 
-async function _caricaDocumentoGenerico(file, projectId) {
+async function _caricaDocumentoGenerico(file, projectId, tagLiberi = []) {
   try {
     const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+    const tagsTecnici = [`cantiere:${projectId}`, 'documento:generico'];
+    const finalTags   = [...tagsTecnici, ...tagLiberi];
+
     const doc = {
       id:         'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       nome:       file.name,
       tipo:       file.type,
       dimensione: file.size,
-      tags:       [`cantiere:${projectId}`, 'documento:generico'],
+      tags:       finalTags,
       categoria:  'generico',
       blob:       blob,
       uploadedAt: new Date().toISOString()
