@@ -11,14 +11,14 @@
  */
 
 const JavaScriptObfuscator = require('javascript-obfuscator');
-const fse   = require('fs-extra');
-const fs    = require('fs');
-const path  = require('path');
+const fse = require('fs-extra');
+const fs = require('fs');
+const path = require('path');
 
 // ─────────────────────────────────────────────
 // CONFIGURAZIONE
 // ─────────────────────────────────────────────
-const SRC  = path.resolve(__dirname, '.');
+const SRC = path.resolve(__dirname, '.');
 const DIST = path.resolve(__dirname, 'dist');
 
 const COPYRIGHT = `/* ANAS SafeHub v1.2 | © ${new Date().getFullYear()} Geom. Dogano Casella | Tutti i diritti riservati | Licenza commerciale richiesta */`;
@@ -99,35 +99,35 @@ const STATIC_DIRS = [
 // Bilanciamento: protezione alta vs performance
 // ─────────────────────────────────────────────
 const OBFUSCATOR_OPTIONS = {
-  compact:                          true,
-  controlFlowFlattening:            true,
-  controlFlowFlatteningThreshold:   0.4,   // 0.4 = buon bilanciamento
-  deadCodeInjection:                true,
-  deadCodeInjectionThreshold:       0.2,
-  debugProtection:                  false, // true bloccherebbe DevTools ma rompe PWA
-  disableConsoleOutput:             true,  // rimuove tutti i console.log/warn
-  identifierNamesGenerator:         'hexadecimal',
-  log:                              false,
-  numbersToExpressions:             true,
-  renameGlobals:                    false, // IMPORTANTE: false perché le funzioni globali
-                                           // devono restare raggiungibili tra file diversi
-  selfDefending:                    true,  // il codice resiste alla formattazione
-  simplify:                         true,
-  splitStrings:                     true,
-  splitStringsChunkLength:          8,
-  stringArray:                      true,
-  stringArrayCallsTransform:        true,
-  stringArrayEncoding:              ['base64'],
-  stringArrayIndexShift:            true,
-  stringArrayRotate:                true,
-  stringArrayShuffle:               true,
-  stringArrayWrappersCount:         2,
-  stringArrayWrappersChainedCalls:  true,
+  compact: true,
+  controlFlowFlattening: true,
+  controlFlowFlatteningThreshold: 0.4,   // 0.4 = buon bilanciamento
+  deadCodeInjection: true,
+  deadCodeInjectionThreshold: 0.2,
+  debugProtection: false, // true bloccherebbe DevTools ma rompe PWA
+  disableConsoleOutput: true,  // rimuove tutti i console.log/warn
+  identifierNamesGenerator: 'hexadecimal',
+  log: false,
+  numbersToExpressions: true,
+  renameGlobals: false, // IMPORTANTE: false perché le funzioni globali
+  // devono restare raggiungibili tra file diversi
+  selfDefending: true,  // il codice resiste alla formattazione
+  simplify: true,
+  splitStrings: true,
+  splitStringsChunkLength: 8,
+  stringArray: true,
+  stringArrayCallsTransform: true,
+  stringArrayEncoding: ['base64'],
+  stringArrayIndexShift: true,
+  stringArrayRotate: true,
+  stringArrayShuffle: true,
+  stringArrayWrappersCount: 2,
+  stringArrayWrappersChainedCalls: true,
   stringArrayWrappersParametersMaxCount: 4,
-  stringArrayWrappersType:          'function',
-  stringArrayThreshold:             0.75,
-  transformObjectKeys:              true,
-  unicodeEscapeSequence:            false  // false = file più piccoli
+  stringArrayWrappersType: 'function',
+  stringArrayThreshold: 0.75,
+  transformObjectKeys: true,
+  unicodeEscapeSequence: false  // false = file più piccoli
 };
 
 // ─────────────────────────────────────────────
@@ -195,7 +195,7 @@ async function build() {
   let jsOk = 0, jsErr = 0;
 
   for (const file of JS_FILES) {
-    const srcPath  = path.join(SRC, file);
+    const srcPath = path.join(SRC, file);
     const distPath = path.join(DIST, file);
 
     if (!fs.existsSync(srcPath)) {
@@ -204,7 +204,7 @@ async function build() {
     }
 
     try {
-      const source    = fs.readFileSync(srcPath, 'utf8');
+      const source = fs.readFileSync(srcPath, 'utf8');
       const obfResult = JavaScriptObfuscator.obfuscate(source, {
         ...OBFUSCATOR_OPTIONS,
         // Seed fisso per output deterministico (utile per cache browser)
@@ -214,8 +214,8 @@ async function build() {
       const output = COPYRIGHT + '\n' + obfResult.getObfuscatedCode();
       fs.writeFileSync(distPath, output, 'utf8');
 
-      const srcSize  = (source.length  / 1024).toFixed(1);
-      const outSize  = (output.length  / 1024).toFixed(1);
+      const srcSize = (source.length / 1024).toFixed(1);
+      const outSize = (output.length / 1024).toFixed(1);
       log('✅', `  ${file.padEnd(38)} ${srcSize.padStart(6)}KB → ${outSize.padStart(6)}KB`);
       jsOk++;
     } catch (err) {
@@ -228,7 +228,7 @@ async function build() {
   log('\n📄', `Minificazione ${HTML_FILES.length} file HTML...`);
 
   for (const file of HTML_FILES) {
-    const srcPath  = path.join(SRC, file);
+    const srcPath = path.join(SRC, file);
     const distPath = path.join(DIST, file);
 
     if (!fs.existsSync(srcPath)) {
@@ -236,7 +236,7 @@ async function build() {
       continue;
     }
 
-    const source  = fs.readFileSync(srcPath, 'utf8');
+    const source = fs.readFileSync(srcPath, 'utf8');
 
     // Aggiungi meta copyright nell'HTML
     const withCopyright = source.replace(
@@ -247,7 +247,7 @@ async function build() {
     const minified = minifyHTML(withCopyright);
     fs.writeFileSync(distPath, minified, 'utf8');
 
-    const srcSize = (source.length   / 1024).toFixed(1);
+    const srcSize = (source.length / 1024).toFixed(1);
     const outSize = (minified.length / 1024).toFixed(1);
     log('✅', `  ${file.padEnd(38)} ${srcSize.padStart(6)}KB → ${outSize.padStart(6)}KB`);
   }
@@ -256,7 +256,7 @@ async function build() {
   log('\n📋', 'Copia file statici...');
 
   for (const file of STATIC_FILES) {
-    const srcPath  = path.join(SRC, file);
+    const srcPath = path.join(SRC, file);
     const distPath = path.join(DIST, file);
 
     if (!fs.existsSync(srcPath)) {
@@ -272,7 +272,7 @@ async function build() {
   log('\n📁', 'Copia cartelle...');
 
   for (const dir of STATIC_DIRS) {
-    const srcDir  = path.join(SRC, dir);
+    const srcDir = path.join(SRC, dir);
     const distDir = path.join(DIST, dir);
 
     if (!fs.existsSync(srcDir)) {

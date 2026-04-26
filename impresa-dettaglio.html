@@ -1,34 +1,47 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scheda Impresa · ANAS SafeHub</title>
 
+  <script>
+    // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
+    const origWarn = console.warn;
+    console.warn = function (...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
+      origWarn.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
-  <style>body { font-family: Inter, sans-serif; }</style>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+    }
+  </style>
 
-  <script defer src="./db.js"></script>
-  <script defer src="./storage.js"></script>
-  <script defer src="./ui.js"></script>
-  <script defer src="./navigation.js"></script>
-  <script defer src="./documenti-indexeddb.js"></script>
-  <script defer src="./documenti-preview.js"></script>
-  <script defer src="./documenti-collegamento.js"></script>
-  <script defer src="./documenti-popup.js"></script>
-  <script defer src="./documenti-imprese-lavoratori.js"></script>
-  <script defer src="./imprese-list.js"></script>
-  <script defer src="./lavoratori.js"></script>
-  <script defer src="./impostazioni.js"></script>
-  <script defer src="./salvataggio.js"></script>
-  <script defer src="./email.js"></script>
-  <script defer src="./export.js"></script>
+  <script defer src="./db.js?v=2.2.4"></script>
+  <script defer src="./storage.js?v=2.2.4"></script>
+  <script defer src="./ui.js?v=2.2.4"></script>
+  <script defer src="./navigation.js?v=2.2.4"></script>
+  <script defer src="./documenti-indexeddb.js?v=2.2.4"></script>
+  <script defer src="./documenti-preview.js?v=2.2.4"></script>
+  <script defer src="./documenti-collegamento.js?v=2.2.4"></script>
+  <script defer src="./documenti-popup.js?v=2.2.4"></script>
+  <script defer src="./documenti-imprese-lavoratori.js?v=2.2.4"></script>
+  <script defer src="./imprese-list.js?v=2.2.4"></script>
+  <script defer src="./lavoratori.js?v=2.2.4"></script>
+  <script defer src="./impostazioni.js?v=2.2.4"></script>
+  <script defer src="./salvataggio.js?v=2.2.4"></script>
+  <script defer src="./email.js?v=2.2.4"></script>
+  <script defer src="./export.js?v=2.2.4"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
@@ -36,13 +49,27 @@
   <script defer src="./firma.js"></script>
   <script defer src="./smart-memory.js"></script>
   <style>
-    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
-    button, [role="button"] { min-height: 44px; }
-    [role="tablist"] {
-      overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; flex-wrap: nowrap !important;
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 0.875rem) !important;
     }
-    [role="tablist"]::-webkit-scrollbar { display: none; }
+
+    button,
+    [role="button"] {
+      min-height: 44px;
+    }
+
+    [role="tablist"] {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap !important;
+    }
+
+    [role="tablist"]::-webkit-scrollbar {
+      display: none;
+    }
   </style>
   <link rel="stylesheet" href="./animazioni.css" />
   <link rel="stylesheet" href="./mobile.css" />
@@ -60,16 +87,14 @@
         <p class="text-sm text-slate-500">Dettaglio, documenti e lavoratori dell'impresa</p>
       </div>
       <div class="shrink-0 flex gap-2">
-        <button id="btn-salva-impresa"
-                class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg
+        <button id="btn-salva-impresa" class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg
                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                aria-label="Salva o esporta scheda impresa">
+          aria-label="Salva o esporta scheda impresa">
           💾 Salva
         </button>
-        <button onclick="window.location.href='dashboard-cantiere.html'"
-                class="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
+        <button onclick="window.location.href='dashboard-cantiere.html'" class="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
                        hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Torna alla Dashboard Cantiere">
+          aria-label="Torna alla Dashboard Cantiere">
           ← Dashboard
         </button>
       </div>
@@ -90,10 +115,9 @@
         <h2 id="h-doc-impresa" class="text-base font-semibold text-slate-700">
           📎 Documenti Impresa
         </h2>
-        <button id="btn-collega-doc-impresa"
-                class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+        <button id="btn-collega-doc-impresa" class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
                        hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Collega documento all'impresa">
+          aria-label="Collega documento all'impresa">
           + Collega Documento
         </button>
       </div>
@@ -109,17 +133,14 @@
     </section>
 
     <!-- DOCUMENTI LAVORATORE (visibile solo dopo selezione) -->
-    <section id="documenti-lavoratore-section"
-             class="hidden"
-             aria-labelledby="h-doc-lavoratore">
+    <section id="documenti-lavoratore-section" class="hidden" aria-labelledby="h-doc-lavoratore">
       <div class="flex items-center justify-between mb-3">
         <h2 id="h-doc-lavoratore" class="text-base font-semibold text-slate-700">
           📎 Documenti Lavoratore
         </h2>
-        <button id="btn-collega-doc-lavoratore"
-                class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+        <button id="btn-collega-doc-lavoratore" class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
                        hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Collega documento al lavoratore">
+          aria-label="Collega documento al lavoratore">
           + Collega Documento
         </button>
       </div>
@@ -129,7 +150,7 @@
   </div>
 
   <script>
-    let currentImpresaId   = null;
+    let currentImpresaId = null;
     let currentLavoratoreId = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -142,52 +163,67 @@
         return;
       }
 
-      // Ripristina DB
-      await initDB();
+      try {
+        await initDB();
+        console.log('[SafeHub] DB pronto (v' + (typeof DB_VERSION !== 'undefined' ? DB_VERSION : 'unknown') + ')');
 
-      // Breadcrumb
-      const breadcrumb = document.getElementById('impresa-breadcrumb');
-      if (breadcrumb) breadcrumb.textContent = `ID: ${currentImpresaId}`;
+        // Breadcrumb
+        const breadcrumb = document.getElementById('impresa-breadcrumb');
+        if (breadcrumb) breadcrumb.textContent = `ID: ${currentImpresaId}`;
 
-      // Carica dettaglio impresa
-      await renderDettaglioImpresa('impresa-dettaglio-container');
+        // Carica dettaglio impresa
+        await renderDettaglioImpresa('impresa-dettaglio-container');
 
-      // Aggiorna breadcrumb col nome reale
-      const container = document.getElementById('impresa-dettaglio-container');
-      const h2 = container?.querySelector('h2');
-      if (h2 && breadcrumb) breadcrumb.textContent = h2.textContent;
+        // Aggiorna breadcrumb col nome reale
+        const container = document.getElementById('impresa-dettaglio-container');
+        const h2 = container?.querySelector('h2');
+        if (h2 && breadcrumb) breadcrumb.textContent = h2.textContent;
 
-      // Carica documenti impresa
-      await renderDocumentiImpresa('documenti-impresa', currentImpresaId);
+        // Carica documenti impresa
+        await renderDocumentiImpresa('documenti-impresa', currentImpresaId);
 
-      // Carica lavoratori impresa
-      await renderLavoratoriImpresa('lavoratori-list', currentImpresaId);
+        // Carica lavoratori impresa
+        await renderLavoratoriImpresa('lavoratori-list', currentImpresaId);
 
-      // Collega documento impresa
-      document.getElementById('btn-collega-doc-impresa')?.addEventListener('click', () => {
-        collegaDocumentoAImpresaDaPopup(currentImpresaId);
-      });
+        // Collega documento impresa
+        document.getElementById('btn-collega-doc-impresa')?.addEventListener('click', () => {
+          collegaDocumentoAImpresaDaPopup(currentImpresaId);
+        });
 
-      // Bottone Salva scheda impresa
-      document.getElementById('btn-salva-impresa')?.addEventListener('click', () => {
-        if (typeof mostraPannelloSalvataggio === 'function') {
-          mostraPannelloSalvataggio({
-            titolo:  'Scheda Impresa',
-            onPDF:   () => exportImpresaPDF(currentImpresaId),
-            onWord:  () => exportImpresaWord(currentImpresaId),
-            onEmail: () => mostraPannelloEmail({ tipo: 'generico' }),
-            nascondJSON: true
-          });
-        } else {
-          exportImpresaPDF(currentImpresaId);
+        // Bottone Salva scheda impresa
+        document.getElementById('btn-salva-impresa')?.addEventListener('click', () => {
+          if (typeof mostraPannelloSalvataggio === 'function') {
+            mostraPannelloSalvataggio({
+              titolo: 'Scheda Impresa',
+              onPDF: () => exportImpresaPDF(currentImpresaId),
+              onWord: () => exportImpresaWord(currentImpresaId),
+              onEmail: () => mostraPannelloEmail({ tipo: 'generico' }),
+              nascondJSON: true
+            });
+          } else {
+            exportImpresaPDF(currentImpresaId);
+          }
+        });
+
+        // Collega documento lavoratore
+        document.getElementById('btn-collega-doc-lavoratore')?.addEventListener('click', () => {
+          if (currentLavoratoreId) collegaDocumentoALavoratoreDaPopup(currentLavoratoreId);
+          else showToast('Seleziona prima un lavoratore.', 'warning');
+        });
+
+      } catch (err) {
+        console.error('[SafeHub] Errore caricamento scheda impresa:', err);
+        const container = document.getElementById('impresa-dettaglio-container');
+        if (container) {
+          container.innerHTML = `
+            <div class="bg-red-50 border border-red-200 p-6 rounded-xl text-center">
+              <p class="text-red-700 font-bold mb-2">⚠️ Errore durante il caricamento</p>
+              <p class="text-xs text-red-500 font-mono">${err.message || err}</p>
+              <button onclick="window.location.reload()" class="mt-4 text-xs bg-red-600 text-white px-4 py-2 rounded-lg">Riprova</button>
+            </div>
+          `;
         }
-      });
-
-      // Collega documento lavoratore
-      document.getElementById('btn-collega-doc-lavoratore')?.addEventListener('click', () => {
-        if (currentLavoratoreId) collegaDocumentoALavoratoreDaPopup(currentLavoratoreId);
-        else showToast('Seleziona prima un lavoratore.', 'warning');
-      });
+      }
     });
 
     // Apri sezione documenti lavoratore
@@ -210,11 +246,10 @@
       </div>
 
       <!-- Pulsante installa PWA — destra -->
-      <button id="btn-pwa-install"
-              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+      <button id="btn-pwa-install" class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
                      px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
                      focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              aria-label="Installa ANAS SafeHub come app">
+        aria-label="Installa ANAS SafeHub come app">
         <span aria-hidden="true">📲</span> Installa App
       </button>
 
@@ -264,4 +299,5 @@
   </script>
 
 </body>
+
 </html>

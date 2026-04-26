@@ -1,36 +1,56 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dettaglio Verbale · ANAS SafeHub</title>
 
+  <script>
+    // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
+    const origWarn = console.warn;
+    console.warn = function (...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
+      origWarn.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
   <style>
-    body { font-family: Inter, sans-serif; }
-    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
-    button, [role="button"] { min-height: 44px; }
+    body {
+      font-family: Inter, sans-serif;
+    }
+
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 0.875rem) !important;
+    }
+
+    button,
+    [role="button"] {
+      min-height: 44px;
+    }
   </style>
 
   <!-- Script in ordine di dipendenza -->
-  <script defer src="./db.js"></script>
-  <script defer src="./storage.js"></script>
-  <script defer src="./ui.js"></script>
-  <script defer src="./navigation.js"></script>
-  <script defer src="./firma.js"></script>
-  <script defer src="./impostazioni.js"></script>
-  <script defer src="./verbali-list.js"></script>
-  <script defer src="./salvataggio.js"></script>
-  <script defer src="./email.js"></script>
-  <script defer src="./export.js"></script>
-  <script defer src="./smart-memory.js"></script>
+  <script defer src="./db.js?v=2.2.4"></script>
+  <script defer src="./storage.js?v=2.2.4"></script>
+  <script defer src="./ui.js?v=2.2.4"></script>
+  <script defer src="./navigation.js?v=2.2.4"></script>
+  <script defer src="./firma.js?v=2.2.4"></script>
+  <script defer src="./impostazioni.js?v=2.2.4"></script>
+  <script defer src="./verbali-list.js?v=2.2.4"></script>
+  <script defer src="./salvataggio.js?v=2.2.4"></script>
+  <script defer src="./email.js?v=2.2.4"></script>
+  <script defer src="./export.js?v=2.2.4"></script>
+  <script defer src="./smart-memory.js?v=2.2.4"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="stylesheet" href="./animazioni.css" />
@@ -54,38 +74,34 @@
       <div class="flex flex-wrap gap-2">
 
         <!-- ✉️ OUTLOOK — bottone principale -->
-        <button id="btn-invia-email"
-                class="flex items-center gap-2 bg-indigo-700 text-white text-sm px-4 py-2
+        <button id="btn-invia-email" class="flex items-center gap-2 bg-indigo-700 text-white text-sm px-4 py-2
                        rounded-lg font-semibold hover:bg-indigo-800
                        focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                aria-label="Invia verbale via email Outlook">
+          aria-label="Invia verbale via email Outlook">
           ✉️ Invia Email
         </button>
 
         <!-- 💾 SALVA / ESPORTA -->
-        <button id="btn-salva-verbale"
-                class="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2
+        <button id="btn-salva-verbale" class="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2
                        rounded-lg font-semibold hover:bg-blue-700
                        focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                aria-label="Salva o esporta il verbale">
+          aria-label="Salva o esporta il verbale">
           💾 Salva / Esporta
         </button>
 
         <!-- 🖨️ PDF diretto -->
-        <button id="btn-pdf-verbale"
-                class="flex items-center gap-2 bg-red-600 text-white text-sm px-4 py-2
+        <button id="btn-pdf-verbale" class="flex items-center gap-2 bg-red-600 text-white text-sm px-4 py-2
                        rounded-lg font-semibold hover:bg-red-700
                        focus:outline-none focus:ring-2 focus:ring-red-400 transition"
-                aria-label="Stampa o salva PDF del verbale">
+          aria-label="Stampa o salva PDF del verbale">
           🖨️ PDF
         </button>
 
         <!-- ← Dashboard -->
-        <button onclick="window.location.href='dashboard-cantiere.html'"
-                class="flex items-center gap-2 bg-slate-800 text-white text-sm px-4 py-2
+        <button onclick="window.location.href='dashboard-cantiere.html'" class="flex items-center gap-2 bg-slate-800 text-white text-sm px-4 py-2
                        rounded-lg font-semibold hover:bg-slate-700
                        focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
-                aria-label="Torna alla Dashboard Cantiere">
+          aria-label="Torna alla Dashboard Cantiere">
           ← Dashboard
         </button>
 
@@ -150,21 +166,21 @@
               dataLabel = new Date(v.data).toLocaleDateString('it-IT',
                 { day: '2-digit', month: '2-digit', year: 'numeric' });
             }
-          } catch (_) {}
+          } catch (_) { }
 
           if (typeof mostraPannelloSalvataggio === 'function') {
             mostraPannelloSalvataggio({
-              titolo:  'Verbale del ' + dataLabel,
-              onPDF:   function() {
-                if (typeof exportVerbalePDF  === 'function') exportVerbalePDF(verbaleId);
+              titolo: 'Verbale del ' + dataLabel,
+              onPDF: function () {
+                if (typeof exportVerbalePDF === 'function') exportVerbalePDF(verbaleId);
               },
-              onWord:  function() {
+              onWord: function () {
                 if (typeof exportVerbaleWord === 'function') exportVerbaleWord(verbaleId);
               },
-              onJSON:  function() {
+              onJSON: function () {
                 if (typeof exportVerbaleJSON === 'function') exportVerbaleJSON(verbaleId);
               },
-              onEmail: function() {
+              onEmail: function () {
                 if (typeof mostraPannelloEmail === 'function')
                   mostraPannelloEmail({ tipo: 'verbale', id: verbaleId });
               }
@@ -199,11 +215,10 @@
       <div class="text-[11px] text-slate-400 select-none">
         by <strong class="text-slate-500">Geom. Dogano Casella</strong> · ISP ANAS SpA
       </div>
-      <button id="btn-pwa-install"
-              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+      <button id="btn-pwa-install" class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
                      px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
                      focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              aria-label="Installa ANAS SafeHub come app">
+        aria-label="Installa ANAS SafeHub come app">
         📲 Installa App
       </button>
     </div>
@@ -213,7 +228,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').catch(() => { });
       });
     }
     let _dp = null;
@@ -234,4 +249,5 @@
   </script>
 
 </body>
+
 </html>

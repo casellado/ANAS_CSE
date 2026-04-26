@@ -85,19 +85,84 @@ async function _getNomeTecnicoRouter() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPER: TOAST OFFLINE
+// MOD-24: SYNC MANAGER (OFFLINE-FIRST)
 // ─────────────────────────────────────────────────────────────────────────────
 
-let _offlineToastDebounce = null;
-
-function _toastOffline() {
-  clearTimeout(_offlineToastDebounce);
-  _offlineToastDebounce = setTimeout(() => {
-    if (typeof showToast === 'function') {
-      showToast('☁️ OneDrive non raggiungibile — modalità offline (cache locale)', 'warning');
-    }
-  }, 300);
+/** Aggiunge un'operazione fallita alla coda di sincronizzazione */
+async function addToSyncQueue(action, storeName, item) {
+  const syncItem = {
+    id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    action,    // 'save' | 'delete'
+    storeName,
+    data: item,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  
+  try {
+    await _saveItemLocal('sync_queue', syncItem);
+    console.info(`[SyncManager] Operazione ${action} su ${storeName} accodata (offline)`);
+    showToast('💾 Salvato in locale. Sincronizzazione cloud pendente...', 'info');
+  } catch (err) {
+    console.error('[SyncManager] Errore accodamento sync:', err);
+  }
 }
+
+/** Processa la coda di sincronizzazione quando torna la rete */
+async function processSyncQueue() {
+  if (!navigator.onLine) return;
+  
+  try {
+    const queue = await _getAllLocal('sync_queue');
+    const pending = queue.filter(q => q.status === 'pending');
+    
+    if (pending.length === 0) return;
+    
+    console.info(`[SyncManager] Avvio sincronizzazione di ${pending.length} operazioni...`);
+    showToast(`☁️ Sincronizzazione di ${pending.length} modifiche in corso...`, 'info');
+
+    for (const task of pending) {
+      try {
+        // Tenta l'operazione originale via router (che ora bypasserà il check online se richiamato correttamente)
+        // Per evitare loop, chiamiamo direttamente le funzioni interne di OneDrive
+        if (task.action === 'save') {
+          const storeName = task.storeName;
+          const item = task.data;
+          
+          if (storeName === 'projects') await _saveProjectOnDrive(item);
+          else if (['verbali', 'nc', 'imprese_cantieri', 'documenti'].includes(storeName)) await _saveInLotto(storeName, item);
+          else if (['imprese', 'lavoratori'].includes(storeName)) await _saveImpresaOrLavoratore(storeName, item);
+        } 
+        else if (task.action === 'delete') {
+          await _deleteFromOneDrive(task.storeName, task.data.id || task.data);
+        }
+
+        // Se successo, rimuovi dalla coda
+        await _deleteItemLocal('sync_queue', task.id);
+      } catch (err) {
+        console.warn(`[SyncManager] Task ${task.id} fallito ancora:`, err.message);
+        // Lascialo in coda per il prossimo tentativo
+      }
+    }
+    
+    showToast('☁️ Cloud sincronizzato correttamente ✓', 'success');
+    // Se siamo in una vista che mostra dati, rinfrescala
+    if (typeof refreshProjectsGrid === 'function') refreshProjectsGrid();
+    
+  } catch (err) {
+    console.error('[SyncManager] Errore durante il processing della coda:', err);
+  }
+}
+
+// Listener automatico ritorno rete
+window.addEventListener('online', () => {
+  console.info('[SyncManager] Rete ripristinata. Avvio sync...');
+  setTimeout(processSyncQueue, 2000); // Piccolo delay per stabilizzare connessione
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: TOAST OFFLINE (deprecato in favore di SyncManager)
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOD-1: ROUTER — saveItem
@@ -152,8 +217,8 @@ const _routerSaveItem = async function(storeName, item) {
     return itemArricchito;
 
   } catch (err) {
-    console.warn(`[Storage Router] Fallback locale per saveItem(${storeName}):`, err.message);
-    _toastOffline();
+    console.warn(`[Storage Router] OneDrive non disponibile per saveItem(${storeName}), accodo sync:`, err.message);
+    await addToSyncQueue('save', storeName, item);
     return _saveItemLocal(storeName, item);
   }
 }
@@ -241,8 +306,8 @@ const _routerDeleteItem = async function(storeName, id) {
     await _deleteItemLocal(storeName, id); // sincronizza cache
     return;
   } catch (err) {
-    console.warn(`[Storage Router] Fallback locale per deleteItem(${storeName}, ${id}):`, err.message);
-    _toastOffline();
+    console.warn(`[Storage Router] OneDrive non disponibile per deleteItem(${storeName}), accodo sync:`, err.message);
+    await addToSyncQueue('delete', storeName, id);
     return _deleteItemLocal(storeName, id);
   }
 }

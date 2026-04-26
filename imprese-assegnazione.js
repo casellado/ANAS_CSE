@@ -101,20 +101,31 @@ async function renderImpreseList(containerId) {
           <div class="flex-1 min-w-0">
             <div class="font-bold text-slate-800 text-base truncate">${nome || '–'}</div>
             <div class="text-xs text-slate-500 mt-0.5">Ruolo: <strong>${ruolo || '–'}</strong></div>
-            <div class="text-xs text-slate-500">Referente: ${referente || '–'}</div>
-            <div class="text-xs text-slate-500">Contatto: ${contatto || '–'}</div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[10px] px-2 py-0.5 rounded-full border font-bold ${i.scadenzaDurc && new Date(i.scadenzaDurc) < new Date() ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}">
+                DURC: ${i.scadenzaDurc ? new Date(i.scadenzaDurc).toLocaleDateString('it-IT') : 'Mancante'}
+              </span>
+              ${i.scadenzaDurc && new Date(i.scadenzaDurc) < new Date() ? '<span class="text-[10px] text-red-600 font-black animate-pulse uppercase">⚠️ Scaduto</span>' : ''}
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Referente: ${referente || '–'} · ${contatto || '–'}</div>
           </div>
 
-          <div class="flex gap-2 shrink-0">
+          <div class="flex gap-2 shrink-0 flex-wrap justify-end">
+            <button onclick="mostraLavoratoriImpresaModal('${i.id}')"
+                    class="bg-indigo-100 text-indigo-700 text-xs px-3 py-1.5 rounded-lg font-bold
+                           hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    aria-label="Mostra lavoratori ${nome}">
+              👷 Lavoratori
+            </button>
             <button onclick="apriSchedaImpresa('${i.id}')"
-                    class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg
-                           hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    class="bg-slate-100 text-slate-700 text-xs px-3 py-1.5 rounded-lg font-bold
+                           hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400"
                     aria-label="Apri scheda impresa ${nome}">
               Scheda →
             </button>
             <button onclick="rimuoviImpresaDalCantiere('${i.assegnazioneId}')"
-                    class="bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg
-                           hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
+                    class="bg-red-50 text-red-600 text-xs px-3 py-1.5 rounded-lg font-bold
+                           hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-400"
                     aria-label="Rimuovi impresa ${nome} dal cantiere">
               Rimuovi
             </button>

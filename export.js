@@ -222,19 +222,133 @@ async function exportLavoratorePDF(id) {
   `);
 }
 
-// ─────────────────────────────────────────────
-// 5. Export ZIP (richiede JSZip)
-// ─────────────────────────────────────────────
-async function exportArchivioZIP() {
-  if (!window.JSZip) {
-    showToast('JSZip non disponibile. Usa "Esporta JSON".', 'warning');
+// ─────────────────────────────────────────────────────────────────────────────
+// MOD-25: ESPORTAZIONE MASSIVA (ZIP + PDF + FOTO)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Genera un pacchetto ZIP completo del lotto corrente */
+async function exportMassivoZIP() {
+  const projectId = window.appState?.currentProject;
+  if (!projectId) {
+    showToast('Seleziona un progetto per l\'esportazione massiva.', 'warning');
     return;
   }
-  const zip  = new JSZip();
-  const dati = await raccogliDatiCantiere();
-  zip.file('archivio.json', JSON.stringify(dati, null, 2));
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const nome = `ANAS_SafeHub_${dati.meta.projectId || 'globale'}_${new Date().toISOString().slice(0,10)}.zip`;
-  downloadBlob(blob, nome);
-  showToast('Archivio ZIP esportato ✓', 'success');
+
+  if (!window.JSZip || !window.jspdf) {
+    showToast('Librerie di esportazione non caricate.', 'error');
+    return;
+  }
+
+  showToast('📦 Preparazione pacchetto massivo in corso...', 'info');
+
+  try {
+    const zip = new JSZip();
+    const folderVerbali = zip.folder("Verbali");
+    const folderFoto    = zip.folder("Foto_NC");
+    const folderDati    = zip.folder("Dati_Tecnici");
+
+    // 1. Dati JSON
+    const dati = await raccogliDatiCantiere();
+    folderDati.file(`struttura_dati_${projectId}.json`, JSON.stringify(dati, null, 2));
+
+    // 2. Verbali in PDF
+    const verbali = dati.verbali || [];
+    if (verbali.length > 0) {
+      console.log(`[Export] Generazione di ${verbali.length} PDF...`);
+      for (const v of verbali) {
+        const pdfBlob = await generaVerbalePDFBlob(v);
+        const filename = `Verbale_${v.data.replace(/\//g, '-')}_${v.id.slice(-4)}.pdf`;
+        folderVerbali.file(filename, pdfBlob);
+      }
+    }
+
+    // 3. Foto Non Conformità
+    const ncs = dati.nc || [];
+    const tutteFoto = await getAll('foto');
+    const fotoProgetto = tutteFoto.filter(f => ncs.some(n => n.id === f.ncId));
+
+    if (fotoProgetto.length > 0) {
+      console.log(`[Export] Inserimento di ${fotoProgetto.length} foto...`);
+      for (const f of fotoProgetto) {
+        if (f.blob) {
+          const ext = f.blob.type === 'image/png' ? 'png' : 'jpg';
+          folderFoto.file(`Foto_NC_${f.ncId}_${f.id.slice(-4)}.${ext}`, f.blob);
+        }
+      }
+    }
+
+    // 4. Generazione Finale
+    const content = await zip.generateAsync({ type: 'blob' });
+    const zipName = `CONSEGNA_FINALE_${projectId}_${new Date().toISOString().slice(0, 10)}.zip`;
+    
+    downloadBlob(content, zipName, { tipoDoc: 'archivio_zip' });
+    showToast('📦 Pacchetto ZIP generato con successo ✓', 'success');
+
+  } catch (err) {
+    console.error('[Export] Errore esportazione massiva:', err);
+    showToast('Errore durante la generazione dello ZIP.', 'error');
+  }
+}
+
+/** Helper per generare un Blob PDF di un verbale senza aprire finestre */
+async function generaVerbalePDFBlob(v) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const margin = 20;
+  let cursor = 20;
+
+  // Header
+  doc.setFontSize(18);
+  doc.setTextColor(15, 23, 42); // slate-900
+  doc.text("Verbale di Sopralluogo", margin, cursor);
+  cursor += 10;
+
+  doc.setFontSize(10);
+  doc.setTextColor(100, 116, 139); // slate-500
+  doc.text(`ANAS SafeHub · ID: ${v.id}`, margin, cursor);
+  cursor += 15;
+
+  // Campi
+  const campi = [
+    ["Data:", v.data],
+    ["Cantiere:", v.projectId],
+    ["Progressiva KM:", v.km],
+    ["Meteo:", v.meteo],
+    ["Oggetto:", v.oggetto],
+    ["Imprese:", (v.impresePresenti || []).join(', ')],
+    ["Referenti:", v.referenti],
+    ["Stato Luoghi:", v.statoLuoghi],
+    ["Note CSE:", v.note]
+  ];
+
+  doc.setFontSize(11);
+  for (const [label, valore] of campi) {
+    doc.setTextColor(100, 116, 139);
+    doc.setFont("helvetica", "bold");
+    doc.text(label, margin, cursor);
+    
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "normal");
+    const textLines = doc.splitTextToSize(valore || "–", 150);
+    doc.text(textLines, margin + 40, cursor);
+    
+    cursor += (textLines.length * 5) + 5;
+    if (cursor > 270) { doc.addPage(); cursor = 20; }
+  }
+
+  // Firma (se presente)
+  if (v.firma) {
+    try {
+      cursor += 10;
+      doc.setFontSize(10);
+      doc.text("Firma CSE:", margin, cursor);
+      doc.addImage(v.firma, 'PNG', margin, cursor + 5, 50, 20);
+      cursor += 30;
+      doc.text(v.firmante || "Geom. Dogano Casella", margin, cursor);
+    } catch (e) {
+      console.warn("Impossibile inserire firma nel PDF:", e);
+    }
+  }
+
+  return doc.output('blob');
 }

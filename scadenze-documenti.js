@@ -18,8 +18,55 @@ function calcolaStatoScadenza(doc) {
 // 2. Recupera documenti con scadenza
 // ─────────────────────────────────────────────
 async function getDocumentiConScadenza() {
-  const docs = await getDocumenti();
-  return docs.filter(d => d.dataScadenza);
+  const allDocs = [];
+  
+  // 1. Documenti fisici (file caricati)
+  try {
+    const docs = await getDocumenti();
+    allDocs.push(...docs.filter(d => d.dataScadenza).map(d => ({
+      ...d,
+      tipoOrigine: 'file'
+    })));
+  } catch (_) {}
+
+  // 2. Scadenze DURC (dalle imprese assegnate al cantiere)
+  const currentProject = window.appState?.currentProject;
+  if (currentProject) {
+    try {
+      const assegnazioni = await getAll('imprese_cantieri');
+      const impreseLotto = assegnazioni.filter(a => a.projectId === currentProject).map(a => a.impresaId);
+      const tutteImprese = await getAll('imprese');
+      
+      tutteImprese.filter(i => impreseLotto.includes(i.id) && i.scadenzaDurc).forEach(i => {
+        allDocs.push({
+          id: `durc-${i.id}`,
+          nome: `DURC: ${i.nome}`,
+          dataScadenza: i.scadenzaDurc,
+          tipoOrigine: 'impresa',
+          link: `apriSchedaImpresa('${i.id}')`
+        });
+      });
+    } catch (_) {}
+
+    // 3. Scadenze Visite Mediche (dai lavoratori delle imprese del cantiere)
+    try {
+      const tuttiLav = await getAll('lavoratori');
+      const assegnazioni = await getAll('imprese_cantieri');
+      const impreseLotto = assegnazioni.filter(a => a.projectId === currentProject).map(a => a.impresaId);
+
+      tuttiLav.filter(l => impreseLotto.includes(l.impresaId) && l.scadenzaIdoneita).forEach(l => {
+        allDocs.push({
+          id: `visita-${l.id}`,
+          nome: `Idoneità: ${l.nome} ${l.cognome}`,
+          dataScadenza: l.scadenzaIdoneita,
+          tipoOrigine: 'lavoratore',
+          link: `apriSchedaLavoratore('${l.id}')`
+        });
+      });
+    } catch (_) {}
+  }
+
+  return allDocs;
 }
 
 // ─────────────────────────────────────────────
@@ -79,20 +126,29 @@ async function renderListaScadenze(containerId) {
   container.innerHTML = ordinati.map(doc => {
     const stato  = calcolaStatoScadenza(doc);
     const classe = colori[stato] || colori.nessuna;
+    
+    let icona = '📄';
+    if (doc.tipoOrigine === 'impresa') icona = '🏢';
+    if (doc.tipoOrigine === 'lavoratore') icona = '👷';
+
+    const action = doc.link ? doc.link : `mostraPreviewDocumento('${doc.id}')`;
 
     return `
-      <div class="p-3 rounded-lg border ${classe} flex justify-between items-center mb-2">
-        <div>
-          <div class="font-semibold text-slate-800 text-sm">${doc.nome}</div>
-          <div class="text-xs text-slate-500">
-            Scadenza: ${new Date(doc.dataScadenza).toLocaleDateString('it-IT')}
+      <div class="p-3 rounded-lg border ${classe} flex justify-between items-center mb-2 shadow-sm transition-all hover:scale-[1.01]">
+        <div class="flex items-center gap-3">
+          <div class="text-xl">${icona}</div>
+          <div>
+            <div class="font-bold text-slate-800 text-sm">${doc.nome}</div>
+            <div class="text-[10px] uppercase tracking-wider font-bold ${stato === 'scaduto' ? 'text-red-600' : 'text-slate-500'}">
+              Scadenza: ${new Date(doc.dataScadenza).toLocaleDateString('it-IT')}
+            </div>
           </div>
         </div>
-        <button onclick="mostraPreviewDocumento('${doc.id}')"
-                class="text-xs bg-slate-800 text-white px-2 py-1 rounded
+        <button onclick="${action}"
+                class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg font-semibold
                        hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Apri ${doc.nome}">
-          Apri
+                aria-label="Gestisci ${doc.nome}">
+          Vedi →
         </button>
       </div>
     `;

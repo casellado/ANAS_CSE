@@ -2,7 +2,7 @@
 // v7: store foto, imprese_cantieri, impostazioni
 
 const DB_NAME    = 'ANAS_SafeHub_DB';
-const DB_VERSION = 8;           // v8: forza aggiornamento per fix store impostazioni
+const DB_VERSION = 10;          // v10: Forza allineamento cache v2.2.2 (MOD-25)
 
 let db = null;
 
@@ -75,6 +75,12 @@ function initDB() {
       // 10. Impostazioni personalizzazione verbale
       if (!db.objectStoreNames.contains('impostazioni')) {
         db.createObjectStore('impostazioni', { keyPath: 'id' });
+      }
+
+      // 11. Coda di sincronizzazione (MOD-24)
+      if (!db.objectStoreNames.contains('sync_queue')) {
+        const s = db.createObjectStore('sync_queue', { keyPath: 'id' });
+        s.createIndex('status', 'status', { unique: false });
       }
     };
 

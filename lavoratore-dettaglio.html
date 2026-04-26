@@ -1,46 +1,73 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scheda Lavoratore · ANAS SafeHub</title>
 
+  <script>
+    // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
+    const origWarn = console.warn;
+    console.warn = function (...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
+      origWarn.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
-  <style>body { font-family: Inter, sans-serif; }</style>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+    }
+  </style>
 
-  <script defer src="./db.js"></script>
-  <script defer src="./storage.js"></script>
-  <script defer src="./ui.js"></script>
-  <script defer src="./navigation.js"></script>
-  <script defer src="./documenti-indexeddb.js"></script>
-  <script defer src="./documenti-preview.js"></script>
-  <script defer src="./documenti-collegamento.js"></script>
-  <script defer src="./documenti-popup.js"></script>
-  <script defer src="./documenti-imprese-lavoratori.js"></script>
-  <script defer src="./impostazioni.js"></script>
-  <script defer src="./salvataggio.js"></script>
-  <script defer src="./email.js"></script>
-  <script defer src="./export.js"></script>
+  <script defer src="./db.js?v=2.2.4"></script>
+  <script defer src="./storage.js?v=2.2.4"></script>
+  <script defer src="./ui.js?v=2.2.4"></script>
+  <script defer src="./navigation.js?v=2.2.4"></script>
+  <script defer src="./documenti-indexeddb.js?v=2.2.4"></script>
+  <script defer src="./documenti-preview.js?v=2.2.4"></script>
+  <script defer src="./documenti-collegamento.js?v=2.2.4"></script>
+  <script defer src="./documenti-popup.js?v=2.2.4"></script>
+  <script defer src="./documenti-imprese-lavoratori.js?v=2.2.4"></script>
+  <script defer src="./impostazioni.js?v=2.2.4"></script>
+  <script defer src="./salvataggio.js?v=2.2.4"></script>
+  <script defer src="./email.js?v=2.2.4"></script>
+  <script defer src="./export.js?v=2.2.4"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <!-- firma.js -->
-  <script defer src="./firma.js"></script>
-  <script defer src="./smart-memory.js"></script>
+  <script defer src="./firma.js?v=2.2.4"></script>
+  <script defer src="./smart-memory.js?v=2.2.4"></script>
   <style>
-    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
-    button, [role="button"] { min-height: 44px; }
-    [role="tablist"] {
-      overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; flex-wrap: nowrap !important;
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 0.875rem) !important;
     }
-    [role="tablist"]::-webkit-scrollbar { display: none; }
+
+    button,
+    [role="button"] {
+      min-height: 44px;
+    }
+
+    [role="tablist"] {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap !important;
+    }
+
+    [role="tablist"]::-webkit-scrollbar {
+      display: none;
+    }
   </style>
   <link rel="stylesheet" href="./animazioni.css" />
   <link rel="stylesheet" href="./mobile.css" />
@@ -56,10 +83,9 @@
         <h1 class="text-2xl font-bold text-slate-800">Scheda Lavoratore</h1>
         <p class="text-sm text-slate-500">Dettaglio DPI, idoneità e formazione</p>
       </div>
-      <button onclick="window.history.back()"
-              class="shrink-0 bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
+      <button onclick="window.history.back()" class="shrink-0 bg-slate-800 text-white text-sm px-4 py-2 rounded-lg
                      hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              aria-label="Torna indietro">
+        aria-label="Torna indietro">
         ← Indietro
       </button>
     </header>
@@ -79,10 +105,9 @@
         <h2 id="h-doc-lav" class="text-base font-semibold text-slate-700">
           📎 Documenti del Lavoratore
         </h2>
-        <button id="btn-collega-doc"
-                class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
+        <button id="btn-collega-doc" class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg
                        hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Collega documento al lavoratore">
+          aria-label="Collega documento al lavoratore">
           + Collega Documento
         </button>
       </div>
@@ -95,42 +120,57 @@
     let currentLavoratoreId = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
-      await initDB();
+      console.log('[SafeHub] Caricamento scheda lavoratore...');
+      const container = document.getElementById('lavoratore-dettaglio-container');
 
-      currentLavoratoreId = sessionStorage.getItem('currentLavoratoreId');
-      const container     = document.getElementById('lavoratore-dettaglio-container');
+      try {
+        await initDB();
+        console.log('[SafeHub] DB aperto. Versione:', DB_VERSION);
 
-      if (!currentLavoratoreId) {
-        container.innerHTML = '<p class="text-red-600 font-semibold">⚠️ Nessun lavoratore selezionato.</p>';
-        return;
-      }
+        const urlParams = new URLSearchParams(window.location.search);
+        currentLavoratoreId = urlParams.get('id') || sessionStorage.getItem('currentLavoratoreId');
 
-      const lavoratori = await getAll('lavoratori');
-      const l          = lavoratori.find(x => x.id === currentLavoratoreId);
+        if (!currentLavoratoreId) {
+          container.innerHTML = '<p class="text-red-600 font-semibold text-center py-10">⚠️ Nessun lavoratore selezionato.</p>';
+          return;
+        }
 
-      if (!l) {
-        container.innerHTML = '<p class="text-red-600 font-semibold">⚠️ Lavoratore non trovato.</p>';
-        return;
-      }
+        const l = await getItem('lavoratori', currentLavoratoreId);
+        if (!l) {
+          container.innerHTML = '<p class="text-red-600 font-semibold text-center py-10">⚠️ Lavoratore non trovato nel database.</p>';
+          return;
+        }
 
-      const idoneitaColore = {
-        'idoneo':         'bg-green-100 text-green-800 border-green-300',
-        'non idoneo':     'bg-red-100 text-red-800 border-red-300',
-        'non verificata': 'bg-slate-100 text-slate-600 border-slate-300'
-      };
-      const badgeClass = idoneitaColore[l.idoneita] || idoneitaColore['non verificata'];
+        // MOD-21: Calcolo scadenza idoneità medica
+        const oggi = new Date();
+        const scadenza = l.scadenzaVisita ? new Date(l.scadenzaVisita) : null;
+        const isScaduto = scadenza && scadenza < oggi;
 
-      container.innerHTML = `
+        const idoneitaColore = {
+          'idoneo': isScaduto ? 'bg-red-100 text-red-800 border-red-300' : 'bg-green-100 text-green-800 border-green-300',
+          'non idoneo': 'bg-red-100 text-red-800 border-red-300',
+          'non verificata': 'bg-slate-100 text-slate-600 border-slate-300'
+        };
+
+        const badgeClass = idoneitaColore[l.idoneita] || idoneitaColore['non verificata'];
+        const labelVisita = isScaduto ? '⚠️ VISITA SCADUTA' : (l.idoneita || 'Non verificata');
+        const dataVisitaFmt = l.scadenzaVisita ? new Date(l.scadenzaVisita).toLocaleDateString('it-IT') : 'N.D.';
+
+        container.innerHTML = `
         <div class="bg-white p-6 rounded-xl shadow border border-slate-200 space-y-5">
 
           <div class="flex items-start justify-between gap-4">
             <div>
               <h2 class="text-xl font-bold text-slate-800">${l.nome || ''} ${l.cognome || ''}</h2>
               <div class="text-sm text-slate-500 mt-0.5">${l.mansione || 'Mansione non specificata'}</div>
-              ${l.cf ? `<div class="text-xs text-slate-400 font-mono mt-0.5">C.F.: ${l.cf}</div>` : ''}
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Scadenza Visita:</span>
+                <span class="text-xs font-mono ${isScaduto ? 'text-red-600 font-bold' : 'text-slate-600'}">${dataVisitaFmt}</span>
+              </div>
+              ${l.cf ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">C.F.: ${l.cf}</div>` : ''}
             </div>
-            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg border ${badgeClass} shrink-0">
-              ${l.idoneita || 'Non verificata'}
+            <span class="text-[10px] font-bold px-2.5 py-1 rounded-lg border ${badgeClass} shrink-0 uppercase tracking-tight ${isScaduto ? 'animate-pulse' : ''}">
+              ${labelVisita}
             </span>
           </div>
 
@@ -139,7 +179,7 @@
               DPI Consegnati
             </div>
             ${l.dpi?.length > 0
-              ? `<ul class="flex flex-wrap gap-2">
+            ? `<ul class="flex flex-wrap gap-2">
                    ${l.dpi.map(d => `
                      <li class="text-xs bg-blue-50 border border-blue-200 text-blue-800
                                  px-2.5 py-1 rounded-full font-semibold">
@@ -147,8 +187,8 @@
                      </li>
                    `).join('')}
                  </ul>`
-              : '<p class="text-sm text-slate-400 italic">Nessun DPI registrato.</p>'
-            }
+            : '<p class="text-sm text-slate-400 italic">Nessun DPI registrato.</p>'
+          }
           </div>
 
           <div>
@@ -156,15 +196,15 @@
               Formazione
             </div>
             ${l.formazione?.length > 0
-              ? `<ul class="space-y-1">
+            ? `<ul class="space-y-1">
                    ${l.formazione.map(f => `
                      <li class="text-sm text-slate-700 flex items-start gap-2">
                        <span class="text-green-500 mt-0.5">✓</span>${f}
                      </li>
                    `).join('')}
                  </ul>`
-              : '<p class="text-sm text-slate-400 italic">Nessuna formazione registrata.</p>'
-            }
+            : '<p class="text-sm text-slate-400 italic">Nessuna formazione registrata.</p>'
+          }
           </div>
 
           <div class="flex flex-wrap gap-3 pt-2">
@@ -197,27 +237,38 @@
         </div>
       `;
 
-      // Helper salvataggio scheda lavoratore — evita arrow in onclick HTML
-      window.apriSalvataggioScheda = function(lavId) {
-        if (typeof mostraPannelloSalvataggio === 'function') {
-          mostraPannelloSalvataggio({
-            titolo: 'Scheda Lavoratore',
-            nascondJSON: true,
-            onPDF:  function() { if (typeof exportLavoratorePDF  === 'function') exportLavoratorePDF(lavId);  },
-            onWord: function() { if (typeof exportLavoratoreWord === 'function') exportLavoratoreWord(lavId); }
-          });
-        } else if (typeof exportLavoratorePDF === 'function') {
-          exportLavoratorePDF(lavId);
-        }
-      };
+        // Helper salvataggio scheda lavoratore — evita arrow in onclick HTML
+        window.apriSalvataggioScheda = function (lavId) {
+          if (typeof mostraPannelloSalvataggio === 'function') {
+            mostraPannelloSalvataggio({
+              titolo: 'Scheda Lavoratore',
+              nascondJSON: true,
+              onPDF: function () { if (typeof exportLavoratorePDF === 'function') exportLavoratorePDF(lavId); },
+              onWord: function () { if (typeof exportLavoratoreWord === 'function') exportLavoratoreWord(lavId); }
+            });
+          } else if (typeof exportLavoratorePDF === 'function') {
+            exportLavoratorePDF(lavId);
+          }
+        };
 
-      // Carica documenti lavoratore
-      await renderDocumentiLavoratore('documenti-lavoratore', currentLavoratoreId);
+        // Carica documenti lavoratore
+        await renderDocumentiLavoratore('documenti-lavoratore', currentLavoratoreId);
 
-      // Collega documento
-      document.getElementById('btn-collega-doc')?.addEventListener('click', () => {
-        collegaDocumentoALavoratoreDaPopup(currentLavoratoreId);
-      });
+        // Collega documento
+        document.getElementById('btn-collega-doc')?.addEventListener('click', () => {
+          collegaDocumentoALavoratoreDaPopup(currentLavoratoreId);
+        });
+
+      } catch (err) {
+        console.error('[SafeHub] Errore critico scheda lavoratore:', err);
+        container.innerHTML = `
+          <div class="bg-red-50 border border-red-200 p-6 rounded-xl text-center">
+            <p class="text-red-700 font-bold mb-2">⚠️ Errore durante il caricamento della scheda</p>
+            <p class="text-xs text-red-500 font-mono">${err.message || err}</p>
+            <button onclick="window.location.reload()" class="mt-4 text-xs bg-red-600 text-white px-4 py-2 rounded-lg">Riprova</button>
+          </div>
+        `;
+      }
     });
   </script>
 
@@ -232,11 +283,10 @@
       </div>
 
       <!-- Pulsante installa PWA — destra -->
-      <button id="btn-pwa-install"
-              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+      <button id="btn-pwa-install" class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
                      px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
                      focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              aria-label="Installa ANAS SafeHub come app">
+        aria-label="Installa ANAS SafeHub come app">
         <span aria-hidden="true">📲</span> Installa App
       </button>
 
@@ -286,4 +336,5 @@
   </script>
 
 </body>
+
 </html>

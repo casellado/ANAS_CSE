@@ -20,6 +20,7 @@ async function creaLavoratore(impresaId, dati) {
     cf:         dati.cf         || '',
     dpi:        dati.dpi        || [],
     idoneita:   dati.idoneita   || 'non verificata',
+    scadenzaVisita: dati.scadenzaVisita || '',
     formazione: dati.formazione || [],
     createdAt:  new Date().toISOString()
   };
@@ -53,7 +54,7 @@ async function rimuoviLavoratore(id, impresaId) {
 // ─────────────────────────────────────────────
 function apriSchedaLavoratore(id) {
   sessionStorage.setItem('currentLavoratoreId', id);
-  window.location.href = 'lavoratore-dettaglio.html';
+  window.location.href = `lavoratore-dettaglio.html?id=${id}`;
 }
 
 // ─────────────────────────────────────────────
@@ -107,11 +108,15 @@ async function renderLavoratoriImpresa(containerId, impresaId) {
           <div class="flex-1 min-w-0">
             <div class="font-bold text-slate-800 text-base">${nome} ${cognome}</div>
             <div class="text-xs text-slate-500 mt-0.5">Mansione: ${mansione || '–'}</div>
-            <div class="mt-1">
               <span class="text-xs px-2 py-0.5 rounded border font-semibold
                            ${idoneitaColore[l.idoneita] || idoneitaColore['non verificata']}">
                 ${l.idoneita || 'Non verificata'}
               </span>
+              ${l.scadenzaVisita ? `
+                <span class="text-[10px] ml-2 font-mono ${new Date(l.scadenzaVisita) < new Date() ? 'text-red-600 font-bold animate-pulse' : 'text-slate-500'}">
+                  Scad. ${new Date(l.scadenzaVisita).toLocaleDateString('it-IT')}
+                </span>
+              ` : ''}
             </div>
             ${dpiTesto
               ? `<div class="text-xs text-slate-400 mt-1">DPI: ${dpiTesto}</div>`
@@ -238,6 +243,16 @@ function mostraPopupNuovoLavoratore(impresaId) {
           </select>
         </div>
 
+        <div>
+          <label for="lav-scadenza" class="text-xs font-semibold text-slate-600 block mb-1">
+            Scadenza Idoneità Medica
+          </label>
+          <input id="lav-scadenza"
+                 type="date"
+                 class="w-full border border-slate-300 rounded-lg p-2 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
+
         <div class="flex justify-end gap-3 pt-2">
           <button onclick="document.getElementById('popup-lavoratore').remove()"
                   class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
@@ -281,21 +296,14 @@ async function confermaNuovoLavoratore(impresaId) {
     cf:       (document.getElementById('lav-cf')?.value       || '').toUpperCase(),
     mansione: document.getElementById('lav-mansione')?.value   || '',
     dpi,
-    idoneita: document.getElementById('lav-idoneita')?.value   || 'non verificata'
+    idoneita: document.getElementById('lav-idoneita')?.value   || 'non verificata',
+    scadenzaVisita: document.getElementById('lav-scadenza')?.value || ''
   });
 
   document.getElementById('popup-lavoratore')?.remove();
 }
 
-// ─────────────────────────────────────────────
-// 7. Hook automatico
-// ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
-  if (!window.location.pathname.includes('impresa-dettaglio.html')) return;
-
-  const impresaId = sessionStorage.getItem('currentImpresaId');
-  if (impresaId) await renderLavoratoriImpresa('lavoratori-list', impresaId);
-});
+// Inizializzazione centralizzata spostata nei file HTML principali.
 
 // ─────────────────────────────────────────────
 // 8. Modal MODIFICA lavoratore — GAP-5
@@ -358,6 +366,12 @@ async function apriModalModificaLavoratore(lavId) {
             <option value="non verificata" ${l.idoneita==='non verificata' ? 'selected':''}>⬜ Non Verificata</option>
           </select>
         </div>
+        <div class="col-span-2">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Scadenza Idoneità Medica</label>
+          <input id="mod-lav-scadenza" type="date" value="${l.scadenzaVisita || ''}"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
       </div>
 
       <div>
@@ -402,6 +416,7 @@ async function confermaModificaLavoratore(lavId) {
   const cf       = (document.getElementById('mod-lav-cf')?.value       || '').toUpperCase().trim();
   const mansione = (document.getElementById('mod-lav-mansione')?.value || '').trim();
   const idoneita = document.getElementById('mod-lav-idoneita')?.value  || 'non verificata';
+  const scadenzaVisita = document.getElementById('mod-lav-scadenza')?.value || '';
   const dpi      = Array.from(document.querySelectorAll('.mod-lav-dpi-check:checked')).map(c => c.value);
 
   if (!nome || !cognome) { showToast('Nome e Cognome sono obbligatori.', 'warning'); return; }
@@ -409,7 +424,7 @@ async function confermaModificaLavoratore(lavId) {
   const l = await getItem('lavoratori', lavId);
   if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
 
-  const updated = { ...l, nome, cognome, cf, mansione, idoneita, dpi, updatedAt: new Date().toISOString() };
+  const updated = { ...l, nome, cognome, cf, mansione, idoneita, scadenzaVisita, dpi, updatedAt: new Date().toISOString() };
   await saveItem('lavoratori', updated);
 
   document.getElementById('modal-modifica-lavoratore')?.remove();
@@ -514,4 +529,86 @@ async function _rimuoviCorso(lavId, indice) {
 
   showToast('Corso rimosso.', 'info');
   await apriPannelloFormazione(lavId); // ricarica il pannello
+}
+
+// ─────────────────────────────────────────────
+// 10. Modal rapido lavoratori (per Dashboard) — MOD-22
+// ─────────────────────────────────────────────
+async function mostraLavoratoriImpresaModal(impresaId) {
+  const [impresa, lavoratori] = await Promise.all([
+    getItem('imprese', impresaId),
+    getLavoratoriByImpresa(impresaId)
+  ]);
+
+  if (!impresa) { showToast('Impresa non trovata.', 'error'); return; }
+
+  document.getElementById('modal-lavoratori-rapido')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id        = 'modal-lavoratori-rapido';
+  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4';
+  modal.setAttribute('role', 'dialog');
+
+  const idoneitaColore = {
+    'idoneo':         'text-green-600',
+    'non idoneo':     'text-red-600',
+    'non verificata': 'text-slate-400'
+  };
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">${escapeHtml(impresa.nome)}</h2>
+          <p class="text-xs text-slate-500 uppercase tracking-wide font-semibold">Registro Lavoratori Attivi</p>
+        </div>
+        <button onclick="document.getElementById('modal-lavoratori-rapido').remove()" 
+                class="text-slate-400 hover:text-slate-600 text-2xl font-light">&times;</button>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-5">
+        ${lavoratori.length === 0 
+          ? `<div class="text-center py-10 text-slate-400 italic text-sm">Nessun lavoratore registrato per questa impresa.</div>`
+          : `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${lavoratori.map(l => {
+              const isScaduto = l.scadenzaIdoneita && new Date(l.scadenzaIdoneita) < new Date();
+              return `
+                <div class="p-3 rounded-xl border ${isScaduto ? 'border-red-200 bg-red-50' : 'border-slate-100 bg-white'} shadow-sm">
+                  <div class="flex justify-between items-start">
+                    <div class="font-bold text-slate-800 text-sm">${escapeHtml(l.nome)} ${escapeHtml(l.cognome)}</div>
+                    ${isScaduto ? '<span class="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">SCADUTO</span>' : ''}
+                  </div>
+                  <div class="text-[10px] text-slate-500 font-medium">${escapeHtml(l.mansione || '–')}</div>
+                  <div class="mt-2 flex items-center justify-between">
+                    <span class="text-[10px] font-bold ${idoneitaColore[l.idoneita] || 'text-slate-400'}">
+                      ● ${l.idoneita?.toUpperCase() || 'DA VERIFICARE'}
+                    </span>
+                    ${l.scadenzaIdoneita ? `
+                      <span class="text-[9px] font-mono ${isScaduto ? 'text-red-700 font-bold' : 'text-slate-400'}">
+                        Scad: ${new Date(l.scadenzaIdoneita).toLocaleDateString('it-IT')}
+                      </span>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="text-[10px] text-slate-400">Totale: ${lavoratori.length} lavoratori</div>
+        <button onclick="apriSchedaImpresa('${impresa.id}')"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">
+          Gestisci Anagrafica Full →
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
 }

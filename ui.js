@@ -487,62 +487,69 @@ function projectCard(project, ncStat) {
   }
 
   return `
-    <article class="bg-white p-4 rounded-xl shadow-sm ${borderClass}
-                    hover:shadow-md transition-all card-hover"
+    <article class="bg-white p-6 rounded-2xl shadow-sm ${borderClass}
+                    hover:shadow-lg transition-all card-hover group"
+             style="display: flex !important; flex-direction: column !important; height: 100% !important; min-height: 240px !important;"
              aria-label="Cantiere ${nome}, codice ${id}">
 
-      <div class="flex justify-between items-start">
-        <div class="text-xs text-slate-400 font-mono">
+      <!-- Header Card: ID e Status -->
+      <div class="flex justify-between items-start mb-4 shrink-0">
+        <div class="text-[10px] text-slate-400 font-mono font-bold tracking-tighter uppercase">
           <span aria-label="Codice cantiere">${id}</span>
         </div>
-        <div class="flex items-center gap-1">
-          <span class="text-xs px-2 py-0.5 rounded-full ${badgeClass}" aria-label="${statusLabel}">
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tight ${badgeClass}" aria-label="${statusLabel}">
             ${statusIcon} ${statusLabel}
           </span>
-          <button onclick="apriModalModificaCantiere('${escapeHtml(project.id)}')"
-                  class="text-slate-400 hover:text-slate-700 p-1 rounded
-                         focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  aria-label="Modifica cantiere ${nome}" title="Modifica">
-            ✏️
-          </button>
-          <button onclick="eliminaCantiere('${escapeHtml(project.id)}', '${escapeSingleQuotes(project.nome)}')"
-                  class="text-slate-400 hover:text-red-600 p-1 rounded
-                         focus:outline-none focus:ring-1 focus:ring-red-400"
-                  aria-label="Elimina cantiere ${nome}" title="Elimina">
-            🗑️
-          </button>
+          <div class="flex gap-1">
+            <button onclick="apriModalModificaCantiere('${escapeHtml(project.id)}')"
+                    class="text-slate-300 hover:text-blue-600 p-1 rounded-md hover:bg-blue-50
+                           focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
+                    aria-label="Modifica cantiere ${nome}" title="Modifica">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            </button>
+            <button onclick="eliminaCantiere('${escapeHtml(project.id)}', '${escapeSingleQuotes(project.nome)}')"
+                    class="text-slate-300 hover:text-red-600 p-1 rounded-md hover:bg-red-50
+                           focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors"
+                    aria-label="Elimina cantiere ${nome}" title="Elimina">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="font-bold text-base mt-2 text-slate-800">${nome}</div>
-      <div class="text-sm text-slate-500 mt-1">${loc}</div>
+      <!-- Body Card: Titolo e Info (Flex-1 spinge il footer giù) -->
+      <div class="flex-1 flex flex-col mb-6">
+        <h3 class="font-bold text-lg text-slate-800 leading-tight group-hover:text-blue-700 transition-colors line-clamp-2 mb-1">${nome}</h3>
+        <p class="text-sm text-slate-500 line-clamp-2 italic">${loc}</p>
 
-      ${ncBadges.length > 0 ? `
-        <div class="flex flex-wrap gap-1.5 mt-3" aria-label="Stato NC cantiere">
-          ${ncBadges.join('')}
-        </div>` : ''}
+        ${ncBadges.length > 0 ? `
+          <div class="flex flex-wrap gap-1.5 mt-4" aria-label="Stato NC cantiere">
+            ${ncBadges.join('')}
+          </div>` : ''}
+      </div>
 
-      <div class="mt-4 flex justify-between items-center">
-        <div class="text-xs text-slate-400 flex flex-col gap-0.5">
-          ${project.createdAt ? 'Creato: ' + new Date(project.createdAt).toLocaleDateString('it-IT') : ''}
+      <!-- Footer Card: Metadati e Bottone Entra (Ancorato al fondo) -->
+      <div class="mt-auto pt-4 border-t border-slate-100 flex justify-between items-center shrink-0">
+        <div class="text-[10px] text-slate-400 flex flex-col gap-0.5 uppercase tracking-wider font-semibold">
+          ${project.createdAt ? '<span>📅 ' + new Date(project.createdAt).toLocaleDateString('it-IT') + '</span>' : ''}
           ${(() => {
-            // MOD-5: badge modifiedBy — solo se OneDrive attivo e metadati presenti
-            if (!(project.modifiedBy || project.updatedBy)) return '';
             const attivo = typeof _odConfigured !== 'undefined' && _odConfigured;
             if (!attivo) return '';
             const autore = escapeHtml(project.modifiedBy || project.updatedBy || '');
             const ts     = project.modifiedAt || project.updatedAt;
             const tempo  = typeof formatTempoRelativo === 'function' ? formatTempoRelativo(ts) : null;
-            return `<span class="flex items-center gap-1 text-sky-500" title="Ultima modifica OneDrive">
-              ☁️ ${autore ? `<strong>${autore}</strong>` : ''}${tempo ? ' · ' + tempo : ''}
+            return `<span class="flex items-center gap-1 text-sky-600 font-bold" title="Ultima modifica OneDrive">
+              ☁️ ${autore ? autore : 'Sistema'}${tempo ? ' · ' + tempo : ''}
             </span>`;
           })()}
         </div>
         <button onclick="enterProject('${escapeHtml(project.id)}', '${escapeSingleQuotes(project.nome)}')"
-                class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold uppercase tracking-widest text-[10px]
+                       hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400 
+                       transition-all active:scale-95 shadow-md flex items-center gap-2"
                 aria-label="Entra nel cantiere ${nome}">
-          Entra →
+          Entra <span class="text-xs">→</span>
         </button>
       </div>
     </article>
@@ -1175,6 +1182,7 @@ function wireUI() {
 
     const piva  = (document.getElementById('partita_iva')?.value    || '').trim();
     const nome  = (document.getElementById('ragione_sociale')?.value || '').trim();
+    const scadenzaDurc = document.getElementById('scadenza_durc')?.value || '';
 
     if (!nome) {
       showToast('La ragione sociale è obbligatoria.', 'warning');
@@ -1188,6 +1196,7 @@ function wireUI() {
       ruolo:      document.getElementById('tipo_soggetto')?.value || '',
       referente:  document.getElementById('referente')?.value     || '',
       contatto:   document.getElementById('contatto')?.value      || '',
+      scadenzaDurc,
       createdAt:  new Date().toISOString()
     };
 
@@ -1250,3 +1259,8 @@ function enterProject(id, nome) {
   // navigation.js sovrascriverà questa funzione per la navigazione reale
   // Non chiamiamo alert() qui: è navigation.js che naviga
 }
+
+// Inizializzazione automatica UI
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof wireUI === 'function') wireUI();
+});

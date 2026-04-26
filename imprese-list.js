@@ -70,6 +70,15 @@ async function renderDettaglioImpresa(containerId) {
           <div class="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Contatto (PEC / Email / Tel)</div>
           <div class="font-medium text-slate-800">${escapeHtml(impresa.contatto) || '–'}</div>
         </div>
+        <div class="bg-slate-50 p-3 rounded-lg sm:col-span-2 border-l-4 ${impresa.scadenzaDurc && new Date(impresa.scadenzaDurc) < new Date() ? 'border-red-500 bg-red-50' : 'border-blue-500'}">
+          <div class="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Scadenza DURC</div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold ${impresa.scadenzaDurc && new Date(impresa.scadenzaDurc) < new Date() ? 'text-red-700' : 'text-slate-800'}">
+              ${impresa.scadenzaDurc ? new Date(impresa.scadenzaDurc).toLocaleDateString('it-IT') : 'Non inserita'}
+            </span>
+            ${impresa.scadenzaDurc && new Date(impresa.scadenzaDurc) < new Date() ? '<span class="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black animate-pulse">SCADUTO</span>' : ''}
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -137,6 +146,12 @@ async function apriModalModificaImpresa(impresaId) {
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />
         </div>
+        <div class="sm:col-span-2">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Data Scadenza DURC</label>
+          <input id="mod-imp-durc" type="date" value="${imp.scadenzaDurc || ''}"
+                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+        </div>
       </div>
 
       <div class="flex justify-end gap-3 pt-2">
@@ -166,6 +181,7 @@ async function confermaModificaImpresa(impresaId) {
   const ruolo    = document.getElementById('mod-imp-ruolo')?.value     || '';
   const referente= (document.getElementById('mod-imp-referente')?.value || '').trim();
   const contatto = (document.getElementById('mod-imp-contatto')?.value  || '').trim();
+  const scadenzaDurc = document.getElementById('mod-imp-durc')?.value || '';
 
   if (!nome) { showToast('La ragione sociale è obbligatoria.', 'warning'); return; }
 
@@ -173,7 +189,7 @@ async function confermaModificaImpresa(impresaId) {
   const imp     = imprese.find(i => i.id === impresaId);
   if (!imp) { showToast('Impresa non trovata.', 'error'); return; }
 
-  const updated = { ...imp, nome, piva, ruolo, referente, contatto, updatedAt: new Date().toISOString() };
+  const updated = { ...imp, nome, piva, ruolo, referente, contatto, scadenzaDurc, updatedAt: new Date().toISOString() };
   await saveItem('imprese', updated);
 
   document.getElementById('modal-modifica-impresa')?.remove();
@@ -225,11 +241,4 @@ async function eliminaImpresa(impresaId) {
   }, 700);
 }
 
-// ─────────────────────────────────────────────
-// 4. Hook automatico
-// ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
-  if (window.location.pathname.includes('impresa-dettaglio.html')) {
-    await renderDettaglioImpresa('impresa-dettaglio-container');
-  }
-});
+// Inizializzazione centralizzata spostata nei file HTML principali.

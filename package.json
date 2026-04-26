@@ -4,14 +4,17 @@
   "description": "ANAS SafeHub - Suite CSE - Geom. Dogano Casella",
   "private": true,
   "scripts": {
-    "build":   "node build.js",
-    "clean":   "node -e \"require('fs').rmSync('dist', {recursive:true, force:true})\"",
-    "deploy":  "npm run clean && npm run build"
+    "build": "node build.js",
+    "clean": "node -e \"require('fs').rmSync('dist', {recursive:true, force:true})\"",
+    "deploy": "npm run clean && npm run build"
   },
   "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "fs-extra": "^11.2.0",
     "javascript-obfuscator": "^4.1.1",
-    "terser": "^5.31.0",
-    "fs-extra": "^11.2.0"
+    "postcss": "^8.5.10",
+    "tailwindcss": "^3.4.19",
+    "terser": "^5.31.0"
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "author": "Geom. Dogano Casella"

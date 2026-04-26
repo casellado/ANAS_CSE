@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="ANAS SafeHub - Pannello CSE per la gestione della sicurezza nei cantieri ANAS SpA" />
+  <meta name="description"
+    content="ANAS SafeHub - Pannello CSE per la gestione della sicurezza nei cantieri ANAS SpA" />
   <title>ANAS SafeHub · Hub Cantieri CSE</title>
   <link rel="icon" type="image/png" href="icon-192.png" />
   <script>
     // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
     const origWarn = console.warn;
-    console.warn = function(...args) {
+    console.warn = function (...args) {
       if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
       origWarn.apply(console, args);
     };
@@ -18,28 +20,41 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
   <style>
-    body           { font-family: Inter, system-ui, -apple-system, sans-serif; }
-    .page-hidden   { opacity: 0; transform: translateY(8px); pointer-events: none; }
-    .page-transition { transition: opacity .2s ease, transform .2s ease; }
-    [aria-hidden="true"] { display: none; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
+
+    .page-hidden {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+    }
+
+    .page-transition {
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    [aria-hidden="true"] {
+      display: none;
+    }
   </style>
 
   <!-- Core -->
-  <script defer src="./db.js"></script>
-  <script defer src="./storage.js?v=2.2.1"></script>
+  <script defer src="./db.js?v=2.2.4"></script>
+  <script defer src="./storage.js?v=2.2.4"></script>
   <!-- UI (showToast usato anche da storage) -->
-  <script defer src="./ui.js"></script>
+  <script defer src="./ui.js?v=2.2.4"></script>
   <!-- Bootstrap -->
-  <script defer src="./app.js?v=2.2.1"></script>
+  <script defer src="./app.js?v=2.2.4"></script>
   <!-- Navigation (sovrascrive enterProject di ui.js) -->
-  <script defer src="./navigation.js"></script>
+  <script defer src="./navigation.js?v=2.2.4"></script>
   <!-- Foto (senza apertura DB extra) -->
   <script defer src="./foto.js"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -48,16 +63,34 @@
   <script defer src="./ricerca-normativa.js"></script>
   <script defer src="./smart-memory.js"></script>
   <style>
-    input, textarea, select { font-size: max(16px, 0.875rem) !important; }
-    button, [role="button"] { min-height: 44px; }
-    [role="tablist"] {
-      overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; flex-wrap: nowrap !important;
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 0.875rem) !important;
     }
-    [role="tablist"]::-webkit-scrollbar { display: none; }
+
+    button,
+    [role="button"] {
+      min-height: 44px;
+    }
+
+    [role="tablist"] {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap !important;
+    }
+
+    [role="tablist"]::-webkit-scrollbar {
+      display: none;
+    }
   </style>
   <link rel="stylesheet" href="./animazioni.css" />
   <link rel="stylesheet" href="./mobile.css" />
+  <!-- Librerie Export (MOD-25) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
@@ -65,12 +98,14 @@
   <div class="min-h-screen flex">
 
     <!-- ───── OVERLAY SIDEBAR MOBILE ───── -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity" aria-hidden="true" onclick="toggleSidebar()"></div>
+    <div id="sidebar-overlay"
+      class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity" aria-hidden="true"
+      onclick="toggleSidebar()"></div>
 
     <!-- ───── SIDEBAR ───── -->
-    <aside id="main-sidebar" class="w-64 bg-slate-900 text-white flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 shadow-2xl lg:shadow-none"
-           role="navigation"
-           aria-label="Menu principale">
+    <aside id="main-sidebar"
+      class="w-64 bg-slate-900 text-white flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 shadow-2xl lg:shadow-none"
+      role="navigation" aria-label="Menu principale">
 
       <!-- Brand -->
       <div class="p-4 border-b border-slate-800">
@@ -85,41 +120,28 @@
 
       <!-- Nav links -->
       <nav class="flex-1 p-3 space-y-1" aria-label="Sezioni">
-        <button id="btn-hub"
-                data-view-btn="hub-view"
-                class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-800 font-semibold
+        <button id="btn-hub" data-view-btn="hub-view" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-800 font-semibold
                        hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2"
-                aria-pressed="true"
-                aria-controls="hub-view">
+                       transition text-sm flex items-center gap-2" aria-pressed="true" aria-controls="hub-view">
           <span aria-hidden="true">📂</span> Hub Cantieri
         </button>
 
-        <button id="btn-anagrafica"
-                data-view-btn="anagrafica-view"
-                class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
+        <button id="btn-anagrafica" data-view-btn="anagrafica-view" class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
                        hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2"
-                aria-pressed="false"
-                aria-controls="anagrafica-view">
+                       transition text-sm flex items-center gap-2" aria-pressed="false"
+          aria-controls="anagrafica-view">
           <span aria-hidden="true">👥</span> Anagrafiche
         </button>
 
-        <button onclick="window.location.href='ANAS_CSE_html.html'"
-                class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
+        <button onclick="window.location.href='ANAS_CSE_html.html'" class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
                        hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2 text-blue-400"
-                aria-label="Apri Suite CSE completa">
+                       transition text-sm flex items-center gap-2 text-blue-400" aria-label="Apri Suite CSE completa">
           <span aria-hidden="true">🚀</span> Suite CSE Completa
         </button>
 
-        <button id="btn-sync"
-                data-view-btn="sync-view"
-                class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
+        <button id="btn-sync" data-view-btn="sync-view" class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
                        hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2"
-                aria-pressed="false"
-                aria-controls="sync-view">
+                       transition text-sm flex items-center gap-2" aria-pressed="false" aria-controls="sync-view">
           <span aria-hidden="true">⚙️</span> Gestione Dati
         </button>
       </nav>
@@ -141,8 +163,12 @@
       <!-- HEADER -->
       <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-4 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3">
-          <button id="btn-hamburger" onclick="toggleSidebar()" class="lg:hidden text-slate-500 hover:text-slate-800 focus:outline-none p-2 rounded-lg hover:bg-slate-100 transition" aria-label="Menu">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          <button id="btn-hamburger" onclick="toggleSidebar()"
+            class="lg:hidden text-slate-500 hover:text-slate-800 focus:outline-none p-2 rounded-lg hover:bg-slate-100 transition"
+            aria-label="Menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
           </button>
           <div>
             <h1 class="text-xl font-bold text-slate-800">Hub Globale di Coordinamento (CSE)</h1>
@@ -153,23 +179,19 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button id="btn-load-usb"
-                  class="flex items-center gap-2 bg-slate-800 text-white text-sm px-3 py-2 rounded-lg
+          <button id="btn-load-usb" class="flex items-center gap-2 bg-slate-800 text-white text-sm px-3 py-2 rounded-lg
                          hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
-                  aria-label="Carica database da file USB">
+            aria-label="Carica database da file USB">
             <span aria-hidden="true">📂</span> Carica da USB
           </button>
-          <button onclick="apriPannelloRicerca()"
-                  class="flex items-center gap-1.5 bg-indigo-700 text-white text-sm px-3 py-2
+          <button onclick="apriPannelloRicerca()" class="flex items-center gap-1.5 bg-indigo-700 text-white text-sm px-3 py-2
                          rounded-lg hover:bg-indigo-800 focus:outline-none focus:ring-2
-                         focus:ring-indigo-400 transition"
-                  aria-label="Apri ricerca normativa AI">
+                         focus:ring-indigo-400 transition" aria-label="Apri ricerca normativa AI">
             <span aria-hidden="true">📚</span> Normativa
           </button>
-          <button id="btn-save-usb"
-                  class="flex items-center gap-2 bg-green-600 text-white text-sm px-3 py-2 rounded-lg
+          <button id="btn-save-usb" class="flex items-center gap-2 bg-green-600 text-white text-sm px-3 py-2 rounded-lg
                          hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-                  aria-label="Salva database su USB">
+            aria-label="Salva database su USB">
             <span aria-hidden="true">💾</span> Salva su USB
           </button>
         </div>
@@ -179,18 +201,13 @@
       <div class="flex-1 overflow-auto p-6 space-y-6">
 
         <!-- ── HUB VIEW ── -->
-        <section id="hub-view"
-                 class="page-transition"
-                 role="region"
-                 aria-label="Hub Cantieri"
-                 aria-live="polite">
+        <section id="hub-view" class="page-transition" role="region" aria-label="Hub Cantieri" aria-live="polite">
 
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-base font-semibold text-slate-700">Seleziona o crea un cantiere</h2>
-            <button id="btn-new-project"
-                    class="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2
+            <button id="btn-new-project" class="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2
                            rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                    aria-label="Crea un nuovo cantiere">
+              aria-label="Crea un nuovo cantiere">
               <span aria-hidden="true">+</span> Nuovo Cantiere
             </button>
           </div>
@@ -198,10 +215,8 @@
           <!-- P5: Alert globale NC scadenza (nascosto se nulla da segnalare) -->
           <div id="hub-nc-alert" class="hidden" role="region" aria-label="Alert non conformità"></div>
 
-          <div id="projects-grid"
-               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-               role="list"
-               aria-label="Lista cantieri"></div>
+          <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
+            style="grid-auto-rows: 1fr;" role="list" aria-label="Lista cantieri"></div>
 
           <div id="empty-state" class="empty-state hidden" aria-live="polite">
             <div class="empty-state-icon">🚧</div>
@@ -210,7 +225,8 @@
               Non hai ancora configurato alcun cantiere in questo hub. Crea il tuo primo cantiere per iniziare.
             </p>
             <div class="flex justify-center gap-3 mt-4">
-              <button onclick="document.getElementById('btn-new-project').click()" class="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none transition">
+              <button onclick="document.getElementById('btn-new-project').click()"
+                class="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none transition">
                 + Crea Primo Cantiere
               </button>
             </div>
@@ -218,29 +234,22 @@
         </section>
 
         <!-- ── ANAGRAFICA VIEW ── -->
-        <section id="anagrafica-view"
-                 class="page-transition"
-                 role="region"
-                 aria-label="Gestione Anagrafiche"
-                 aria-hidden="true">
+        <section id="anagrafica-view" class="page-transition" role="region" aria-label="Gestione Anagrafiche"
+          aria-hidden="true">
 
           <h2 class="text-base font-semibold text-slate-700 mb-4">
             Anagrafica Soggetti (Imprese, D.L., RUP…)
           </h2>
 
-          <form id="form-anagrafica"
-                class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200
-                       grid grid-cols-1 md:grid-cols-2 gap-4"
-                novalidate
-                aria-label="Form anagrafica soggetto" onsubmit="return false">
+          <form id="form-anagrafica" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200
+                       grid grid-cols-1 md:grid-cols-2 gap-4" novalidate aria-label="Form anagrafica soggetto"
+            onsubmit="return false">
 
             <div class="md:col-span-2">
               <label for="tipo_soggetto" class="text-xs font-semibold text-slate-600 block mb-1">
                 Tipo soggetto
               </label>
-              <select id="tipo_soggetto"
-                      name="tipo_soggetto"
-                      class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+              <select id="tipo_soggetto" name="tipo_soggetto" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
                              focus:ring-2 focus:ring-blue-400 focus:outline-none">
                 <option value="affidataria">Impresa Affidataria</option>
                 <option value="esecutrice">Impresa Esecutrice / Subappalto</option>
@@ -254,28 +263,17 @@
               <label for="ragione_sociale" class="text-xs font-semibold text-slate-600 block mb-1">
                 Ragione Sociale / Nome <span class="text-red-500">*</span>
               </label>
-              <input id="ragione_sociale"
-                     name="ragione_sociale"
-                     type="text"
-                     placeholder="Es. Costruzioni Rossi S.r.l."
-                     autocomplete="organization"
-                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                     aria-required="true" />
+              <input id="ragione_sociale" name="ragione_sociale" type="text" placeholder="Es. Costruzioni Rossi S.r.l."
+                autocomplete="organization" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-required="true" />
             </div>
 
             <div>
               <label for="partita_iva" class="text-xs font-semibold text-slate-600 block mb-1">
                 P.IVA / Codice Fiscale
               </label>
-              <input id="partita_iva"
-                     name="partita_iva"
-                     type="text"
-                     placeholder="Es. 01234567890"
-                     maxlength="16"
-                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                     aria-describedby="piva-hint" />
+              <input id="partita_iva" name="partita_iva" type="text" placeholder="Es. 01234567890" maxlength="16" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-describedby="piva-hint" />
               <div id="piva-hint" class="text-xs text-slate-400 mt-1">
                 11 cifre per P.IVA · 16 caratteri per Codice Fiscale
               </div>
@@ -285,11 +283,8 @@
               <label for="referente" class="text-xs font-semibold text-slate-600 block mb-1">
                 Referente / Preposto
               </label>
-              <input id="referente"
-                     name="referente"
-                     type="text"
-                     placeholder="Es. Ing. Mario Rossi (Direttore Tecnico)"
-                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+              <input id="referente" name="referente" type="text" placeholder="Es. Ing. Mario Rossi (Direttore Tecnico)"
+                class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                             focus:ring-2 focus:ring-blue-400 focus:outline-none" />
             </div>
 
@@ -297,23 +292,26 @@
               <label for="contatto" class="text-xs font-semibold text-slate-600 block mb-1">
                 PEC / Email / Telefono
               </label>
-              <input id="contatto"
-                     name="contatto"
-                     type="text"
-                     placeholder="Es. info@costruzionirossi.it · +39 06 1234567"
-                     class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+              <input id="contatto" name="contatto" type="text"
+                placeholder="Es. info@costruzionirossi.it · +39 06 1234567" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+            </div>
+
+            <div>
+              <label for="scadenza_durc" class="text-xs font-semibold text-slate-600 block mb-1">
+                Data Scadenza DURC
+              </label>
+              <input id="scadenza_durc" name="scadenza_durc" type="date" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                             focus:ring-2 focus:ring-blue-400 focus:outline-none" />
             </div>
 
             <!-- Campo assegnazione cantiere — opzionale -->
             <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <label for="assegna-cantiere"
-                     class="text-xs font-semibold text-blue-800 block mb-1">
+              <label for="assegna-cantiere" class="text-xs font-semibold text-blue-800 block mb-1">
                 📍 Assegna subito a un cantiere
                 <span class="font-normal text-blue-600">(opzionale)</span>
               </label>
-              <select id="assegna-cantiere"
-                      class="w-full border border-blue-300 rounded-lg p-2.5 text-sm bg-white
+              <select id="assegna-cantiere" class="w-full border border-blue-300 rounded-lg p-2.5 text-sm bg-white
                              focus:ring-2 focus:ring-blue-400 focus:outline-none">
                 <option value="">— Solo registro globale (senza cantiere) —</option>
               </select>
@@ -324,11 +322,9 @@
             </div>
 
             <div class="md:col-span-2 flex justify-end">
-              <button id="btn-save-anagrafica"
-                      type="button"
-                      class="bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold
+              <button id="btn-save-anagrafica" type="button" class="bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold
                              hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-                      aria-label="Salva anagrafica soggetto">
+                aria-label="Salva anagrafica soggetto">
                 ✅ Salva Anagrafica
               </button>
             </div>
@@ -336,11 +332,7 @@
         </section>
 
         <!-- ── SYNC VIEW ── -->
-        <section id="sync-view"
-                 class="page-transition"
-                 role="region"
-                 aria-label="Gestione dati USB"
-                 aria-hidden="true">
+        <section id="sync-view" class="page-transition" role="region" aria-label="Gestione dati USB" aria-hidden="true">
 
           <h2 class="text-base font-semibold text-slate-700 mb-4">Gestione Dati USB</h2>
 
@@ -361,11 +353,9 @@
                     Seleziona manualmente il file <code>database.json</code> dalla chiavetta.
                     I dati verranno uniti a quelli già presenti.
                   </div>
-                  <button id="btn-load-usb-2"
-                          class="bg-slate-800 text-white text-xs px-4 py-2 rounded-lg
+                  <button id="btn-load-usb-2" class="bg-slate-800 text-white text-xs px-4 py-2 rounded-lg
                                  hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                          onclick="document.getElementById('btn-load-usb').click()"
-                          aria-label="Carica database da file JSON">
+                    onclick="document.getElementById('btn-load-usb').click()" aria-label="Carica database da file JSON">
                     Scegli file JSON…
                   </button>
                 </div>
@@ -381,8 +371,7 @@
                   </div>
                   <button class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg
                                  hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
-                          onclick="exportDatabaseToFile()"
-                          aria-label="Scarica database come file JSON">
+                    onclick="exportDatabaseToFile()" aria-label="Scarica database come file JSON">
                     Scarica database.json
                   </button>
                 </div>
@@ -407,11 +396,10 @@
       </div>
 
       <!-- Pulsante installa PWA — destra -->
-      <button id="btn-pwa-install"
-              class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
+      <button id="btn-pwa-install" class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
                      px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
                      focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              aria-label="Installa ANAS SafeHub come app">
+        aria-label="Installa ANAS SafeHub come app">
         <span aria-hidden="true">📲</span> Installa App
       </button>
 
@@ -474,4 +462,5 @@
     }
   </script>
 </body>
+
 </html>

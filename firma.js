@@ -114,28 +114,40 @@ function _initFirmaCanvas(firmaId, onSave) {
   if (!canvas) return;
 
   const ctx     = canvas.getContext('2d');
+  
+  // MOD-23: High-DPI / Retina Support
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  
+  // Imposta risoluzione interna elevata
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  // Mantieni dimensioni CSS costanti
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  
+  ctx.scale(ratio, ratio);
+  
   let drawing   = false;
   let strokes   = []; // array di ImageData per undo
   let hasStroke = false;
 
-  // Stile penna
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth   = 2.5;
+  // Stile penna migliorato (MOD-23)
+  ctx.strokeStyle = '#0f172a'; // Slate 900
+  ctx.lineWidth   = 2.2;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
 
   // Salva onSave callback nel dataset
   canvas._firmaOnSave = onSave;
 
-  // Helper coordinate normalizzate
+  // Helper coordinate normalizzate (ora tengono conto del ratio via rect)
   function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width  / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const r = canvas.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
     return {
-      x: (src.clientX - rect.left) * scaleX,
-      y: (src.clientY - rect.top)  * scaleY
+      x: src.clientX - r.left,
+      y: src.clientY - r.top
     };
   }
 
