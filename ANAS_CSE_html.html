@@ -94,10 +94,16 @@
     #sidebar-overlay {
       display: none;
       position: fixed;
+      top: 0; right: 0; bottom: 0; left: 0;
       inset: 0;
       background: rgba(0, 0, 0, .55);
       z-index: 49;
     }
+
+    /* Radio card POS — stili checked (fallback per browser senza :has()) */
+    .pos-radio-card.pos-checked-green  { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
+    .pos-radio-card.pos-checked-amber  { border-color: #f59e0b !important; background-color: #fffbeb !important; }
+    .pos-radio-card.pos-checked-red    { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
 
     #sidebar-overlay.open {
       display: block;
@@ -964,22 +970,20 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             </label>
             <div class="space-y-2" role="radiogroup" aria-label="Esito verifica POS">
 
-              <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200
-                          hover:border-green-400 hover:bg-green-50 cursor-pointer transition
-                          has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+              <label id="pos-card-idoneo" class="pos-radio-card flex items-start gap-3 p-3 rounded-xl border border-slate-200
+                          hover:border-green-400 hover:bg-green-50 cursor-pointer transition">
                 <input type="radio" name="pos-esito" value="idoneo" class="mt-0.5 accent-green-600"
-                  onchange="document.getElementById('pos-integrazioni-block').classList.add('hidden')" />
+                  onchange="_aggiornaRadioCardPOS(this); document.getElementById('pos-integrazioni-block').classList.add('hidden')" />
                 <div>
                   <div class="text-sm font-semibold text-green-700">✅ Idoneo</div>
                   <div class="text-xs text-slate-500">Il POS è conforme al D.Lgs 81/08</div>
                 </div>
               </label>
 
-              <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200
-                          hover:border-amber-400 hover:bg-amber-50 cursor-pointer transition
-                          has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+              <label id="pos-card-integrazioni" class="pos-radio-card flex items-start gap-3 p-3 rounded-xl border border-slate-200
+                          hover:border-amber-400 hover:bg-amber-50 cursor-pointer transition">
                 <input type="radio" name="pos-esito" value="idoneo-con-integrazioni" class="mt-0.5 accent-amber-600"
-                  onchange="document.getElementById('pos-integrazioni-block').classList.remove('hidden')" />
+                  onchange="_aggiornaRadioCardPOS(this); document.getElementById('pos-integrazioni-block').classList.remove('hidden')" />
                 <div>
                   <div class="text-sm font-semibold text-amber-700">⚠️ Idoneo con integrazioni</div>
                   <div class="text-xs text-slate-500">
@@ -988,11 +992,10 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
                 </div>
               </label>
 
-              <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200
-                          hover:border-red-400 hover:bg-red-50 cursor-pointer transition
-                          has-[:checked]:border-red-500 has-[:checked]:bg-red-50">
+              <label id="pos-card-non-idoneo" class="pos-radio-card flex items-start gap-3 p-3 rounded-xl border border-slate-200
+                          hover:border-red-400 hover:bg-red-50 cursor-pointer transition">
                 <input type="radio" name="pos-esito" value="non-idoneo" class="mt-0.5 accent-red-600"
-                  onchange="document.getElementById('pos-integrazioni-block').classList.add('hidden')" />
+                  onchange="_aggiornaRadioCardPOS(this); document.getElementById('pos-integrazioni-block').classList.add('hidden')" />
                 <div>
                   <div class="text-sm font-semibold text-red-700">❌ Non Idoneo</div>
                   <div class="text-xs text-slate-500">
@@ -1002,6 +1005,21 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
               </label>
 
             </div>
+
+            <script>
+              // Gestione feedback visuale radio card POS — compatibile con TUTTI i browser
+              function _aggiornaRadioCardPOS(radio) {
+                var cards = document.querySelectorAll('.pos-radio-card');
+                for (var i = 0; i < cards.length; i++) {
+                  cards[i].classList.remove('pos-checked-green', 'pos-checked-amber', 'pos-checked-red');
+                }
+                var card = radio.closest('.pos-radio-card');
+                if (!card) return;
+                var colorMap = { 'idoneo': 'pos-checked-green', 'idoneo-con-integrazioni': 'pos-checked-amber', 'non-idoneo': 'pos-checked-red' };
+                var cls = colorMap[radio.value];
+                if (cls) card.classList.add(cls);
+              }
+            </script>
           </div>
 
           <!-- INTEGRAZIONI (visibile solo se idoneo-con-integrazioni) -->
