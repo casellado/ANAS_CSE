@@ -9,36 +9,36 @@ const IMPOSTAZIONI_KEY = 'impostazioni_verbale';
 // Valori di default
 const IMPOSTAZIONI_DEFAULT = {
   // Intestazione sinistra (studio / ufficio CSE)
-  studioNome:      'Studio Tecnico Geom. Dogano Casella',
+  studioNome: 'Studio Tecnico Geom. Dogano Casella',
   studioIndirizzo: 'Via Roma, 1 — 00100 Roma (RM)',
-  studioTel:       '+39 06 0000000',
-  studioPEC:       'dogano.casella@pec.it',
-  studioEmail:     'info@studiocasella.it',
+  studioTel: '+39 06 0000000',
+  studioPEC: 'dogano.casella@pec.it',
+  studioEmail: 'info@studiocasella.it',
 
   // Intestazione destra (committente)
-  committenteNome:    'ANAS SpA',
+  committenteNome: 'ANAS SpA',
   committenteContrat: '',   // es. "Contratto rep. n. 1234/2024"
 
   // Dati cantiere (pre-compilazione suggerita)
   cantiereDescrizione: '',  // es. "Manutenzione programmata SS 106"
-  rup:                 '',  // es. "Ing. Mario Verdi"
-  dl:                  '',  // es. "Ing. Lucia Bianchi"
+  rup: '',  // es. "Ing. Mario Verdi"
+  dl: '',  // es. "Ing. Lucia Bianchi"
 
   // Riferimenti normativi da citare nel footer del PDF
-  normativa:   'D.Lgs 81/2008 · D.I. 22/01/2019 · Contratto ANAS',
+  normativa: 'D.Lgs 81/2008 · D.I. 22/01/2019 · Contratto ANAS',
 
   // Footer PDF
   footerSinistro: 'Geom. Dogano Casella — Coordinatore Sicurezza in Esecuzione (CSE)',
-  footerDestro:   'Documento riservato — uso interno ANAS SpA',
+  footerDestro: 'Documento riservato — uso interno ANAS SpA',
 
   // Loghi (base64 PNG/JPG) — null se non caricati
   logoSinistro: null,   // logo studio / CSE
-  logoDestro:   null,   // logo ANAS o committente
+  logoDestro: null,   // logo ANAS o committente
 
   // Firma pre-impostata (nome stampato sotto la firma canvas)
-  firmaNome:    'Geom. Dogano Casella',
+  firmaNome: 'Geom. Dogano Casella',
   firmaQualifica: 'Coordinatore per la Sicurezza in Esecuzione (CSE)',
-  firmaAlbo:    'Albo Geometri — n. ____',
+  firmaAlbo: 'Albo Geometri — n. ____',
 
   // P2: Firma persistente (base64 PNG) — se presente, precompila automaticamente
   // il canvas firma in ogni verbale, evitando di ri-firmare ogni volta.
@@ -55,7 +55,7 @@ async function caricaImpostazioni() {
     if (item && item.data) {
       return { ...IMPOSTAZIONI_DEFAULT, ...item.data };
     }
-  } catch (_) {}
+  } catch (_) { }
   return { ...IMPOSTAZIONI_DEFAULT };
 }
 
@@ -72,7 +72,7 @@ async function salvaImpostazioni(dati) {
 function leggiLogoBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result); // data:image/...;base64,...
+    reader.onload = () => resolve(reader.result); // data:image/...;base64,...
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -107,8 +107,8 @@ async function renderViewImpostazioni(containerId) {
                  class="w-full h-20 border-2 border-dashed border-slate-300 rounded-xl
                         flex items-center justify-center bg-slate-50 mb-2 overflow-hidden">
               ${imp.logoSinistro
-                ? `<img src="${imp.logoSinistro}" class="max-h-16 max-w-full object-contain" alt="Logo sinistro">`
-                : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
+      ? `<img src="${imp.logoSinistro}" class="max-h-16 max-w-full object-contain" alt="Logo sinistro">`
+      : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
             </div>
             <div class="flex gap-2">
               <label class="cursor-pointer flex-1">
@@ -137,8 +137,8 @@ async function renderViewImpostazioni(containerId) {
                  class="w-full h-20 border-2 border-dashed border-slate-300 rounded-xl
                         flex items-center justify-center bg-slate-50 mb-2 overflow-hidden">
               ${imp.logoDestro
-                ? `<img src="${imp.logoDestro}" class="max-h-16 max-w-full object-contain" alt="Logo destro">`
-                : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
+      ? `<img src="${imp.logoDestro}" class="max-h-16 max-w-full object-contain" alt="Logo destro">`
+      : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
             </div>
             <div class="flex gap-2">
               <label class="cursor-pointer flex-1">
@@ -167,11 +167,11 @@ async function renderViewImpostazioni(containerId) {
           🏢 Dati Studio / CSE (intestazione sinistra)
         </h4>
 
-        ${_campo('studioNome',      'Studio / Ragione Sociale',   imp.studioNome,      'Es. Studio Tecnico Geom. Dogano Casella')}
-        ${_campo('studioIndirizzo', 'Indirizzo',                   imp.studioIndirizzo, 'Es. Via Roma, 1 — 00100 Roma (RM)')}
+        ${_campo('studioNome', 'Studio / Ragione Sociale', imp.studioNome, 'Es. Studio Tecnico Geom. Dogano Casella')}
+        ${_campo('studioIndirizzo', 'Indirizzo', imp.studioIndirizzo, 'Es. Via Roma, 1 — 00100 Roma (RM)')}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          ${_campo('studioTel',   'Telefono',   imp.studioTel,   'Es. +39 06 0000000')}
-          ${_campo('studioEmail', 'Email',       imp.studioEmail, 'Es. info@studiocasella.it')}
+          ${_campo('studioTel', 'Telefono', imp.studioTel, 'Es. +39 06 0000000')}
+          ${_campo('studioEmail', 'Email', imp.studioEmail, 'Es. info@studiocasella.it')}
         </div>
         ${_campo('studioPEC', 'PEC', imp.studioPEC, 'Es. dogano.casella@pec.it')}
       </div>
@@ -182,7 +182,7 @@ async function renderViewImpostazioni(containerId) {
           🏛️ Committente (intestazione destra)
         </h4>
 
-        ${_campo('committenteNome',    'Nome Committente', imp.committenteNome,    'Es. ANAS SpA')}
+        ${_campo('committenteNome', 'Nome Committente', imp.committenteNome, 'Es. ANAS SpA')}
         ${_campo('committenteContrat', 'Contratto / Rep.', imp.committenteContrat, 'Es. Contratto rep. n. 1234/2024')}
       </div>
 
@@ -192,10 +192,10 @@ async function renderViewImpostazioni(containerId) {
           🚧 Dati Cantiere (pre-compilazione)
         </h4>
 
-        ${_campo('cantiereDescrizione', 'Oggetto Lavori',       imp.cantiereDescrizione, 'Es. Manutenzione programmata SS 106 Jonica')}
+        ${_campo('cantiereDescrizione', 'Oggetto Lavori', imp.cantiereDescrizione, 'Es. Manutenzione programmata SS 106 Jonica')}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          ${_campo('rup', 'R.U.P.',              imp.rup, 'Es. Ing. Mario Verdi')}
-          ${_campo('dl',  'Direttore Lavori (D.L.)', imp.dl,  'Es. Ing. Lucia Bianchi')}
+          ${_campo('rup', 'R.U.P.', imp.rup, 'Es. Ing. Mario Verdi')}
+          ${_campo('dl', 'Direttore Lavori (D.L.)', imp.dl, 'Es. Ing. Lucia Bianchi')}
         </div>
       </div>
 
@@ -205,9 +205,9 @@ async function renderViewImpostazioni(containerId) {
           ✍️ Dati Firma CSE
         </h4>
 
-        ${_campo('firmaNome',      'Nome Completo',  imp.firmaNome,      'Es. Geom. Dogano Casella')}
-        ${_campo('firmaQualifica', 'Qualifica',       imp.firmaQualifica, 'Es. Coordinatore per la Sicurezza in Esecuzione (CSE)')}
-        ${_campo('firmaAlbo',      'Iscrizione Albo', imp.firmaAlbo,      'Es. Albo Geometri Prov. RM — n. 12345')}
+        ${_campo('firmaNome', 'Nome Completo', imp.firmaNome, 'Es. Geom. Dogano Casella')}
+        ${_campo('firmaQualifica', 'Qualifica', imp.firmaQualifica, 'Es. Coordinatore per la Sicurezza in Esecuzione (CSE)')}
+        ${_campo('firmaAlbo', 'Iscrizione Albo', imp.firmaAlbo, 'Es. Albo Geometri Prov. RM — n. 12345')}
 
         <!-- ── Firma persistente (P2) ── -->
         <div class="border-t border-slate-200 pt-3 mt-2">
@@ -223,8 +223,8 @@ async function renderViewImpostazioni(containerId) {
                  class="w-48 h-20 border-2 border-dashed border-slate-300 rounded-lg
                         flex items-center justify-center bg-slate-50 shrink-0">
               ${imp.firmaImmagine
-                ? `<img src="${imp.firmaImmagine}" class="max-h-16 max-w-full object-contain" alt="Firma persistente" />`
-                : `<span class="text-xs text-slate-400">Nessuna firma</span>`}
+      ? `<img src="${imp.firmaImmagine}" class="max-h-16 max-w-full object-contain" alt="Firma persistente" />`
+      : `<span class="text-xs text-slate-400">Nessuna firma</span>`}
             </div>
             <div class="flex flex-col gap-2">
               <button onclick="apriPannelloCreaFirma()"
@@ -252,25 +252,25 @@ async function renderViewImpostazioni(containerId) {
         </h4>
 
         ${_campo('footerSinistro', 'Testo piè di pagina sinistro', imp.footerSinistro, 'Es. Geom. Dogano Casella — CSE')}
-        ${_campo('footerDestro',   'Testo piè di pagina destro',   imp.footerDestro,   'Es. Documento riservato — uso interno ANAS SpA')}
-        ${_campo('normativa',      'Riferimenti normativi',         imp.normativa,      'Es. D.Lgs 81/2008 · D.I. 22/01/2019')}
+        ${_campo('footerDestro', 'Testo piè di pagina destro', imp.footerDestro, 'Es. Documento riservato — uso interno ANAS SpA')}
+        ${_campo('normativa', 'Riferimenti normativi', imp.normativa, 'Es. D.Lgs 81/2008 · D.I. 22/01/2019')}
       </div>
 
       <!-- ── AZIONI ── -->
       <div class="flex flex-wrap gap-3">
-        <button id="btn-salva-imp"
+        <button id="btn-salva-imp" onclick="salvaImpostazioniUI()"
                 class="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold
                        hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
                 aria-label="Salva tutte le impostazioni">
           ✅ Salva Impostazioni
         </button>
-        <button id="btn-anteprima-verbale"
+        <button id="btn-anteprima-verbale" onclick="anteprimaVerbale()"
                 class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold
                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 aria-label="Apri anteprima verbale PDF con le impostazioni correnti">
           👁️ Anteprima Verbale
         </button>
-        <button id="btn-ripristina-imp"
+        <button id="btn-ripristina-imp" onclick="ripristinaDefault()"
                 class="bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold
                        hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400">
           ↩ Ripristina default
@@ -279,13 +279,6 @@ async function renderViewImpostazioni(containerId) {
 
     </div>
   `;
-
-  // Attach event listeners safely
-  setTimeout(() => {
-    document.getElementById('btn-salva-imp')?.addEventListener('click', salvaImpostazioniUI);
-    document.getElementById('btn-anteprima-verbale')?.addEventListener('click', anteprimaVerbale);
-    document.getElementById('btn-ripristina-imp')?.addEventListener('click', ripristinaDefault);
-  }, 0);
 }
 
 // Helper render campo input
@@ -326,7 +319,7 @@ async function aggiornaLogo(lato, input) {
   // Salva subito
   const imp = await caricaImpostazioni();
   if (lato === 'sx') imp.logoSinistro = base64;
-  else               imp.logoDestro   = base64;
+  else imp.logoDestro = base64;
   await salvaImpostazioni(imp);
   showToast('Logo aggiornato ✓', 'success');
 }
@@ -340,7 +333,7 @@ async function rimuoviLogo(lato) {
 
   const imp = await caricaImpostazioni();
   if (lato === 'sx') imp.logoSinistro = null;
-  else               imp.logoDestro   = null;
+  else imp.logoDestro = null;
   await salvaImpostazioni(imp);
   showToast('Logo rimosso.', 'info');
 }
@@ -390,19 +383,19 @@ async function anteprimaVerbale() {
   const imp = await caricaImpostazioni();
 
   const verbaleEsempio = {
-    id:              'ESEMPIO',
-    projectId:       'CZ399',
-    data:            new Date().toISOString().slice(0, 10),
-    km:              'KM 42+350 — KM 42+800',
-    meteo:           'Soleggiato',
-    oggetto:         'Verifica DPI lavoratori e segnaletica cantiere',
+    id: 'ESEMPIO',
+    projectId: 'CZ399',
+    data: new Date().toISOString().slice(0, 10),
+    km: 'KM 42+350 — KM 42+800',
+    meteo: 'Soleggiato',
+    oggetto: 'Verifica DPI lavoratori e segnaletica cantiere',
     impresePresenti: ['Costruzioni Rossi S.r.l.', 'Elettrica Bianchi S.r.l.'],
-    referenti:       'Geom. Bianchi (Preposto) · Ing. Verdi (D.L.)',
-    statoLuoghi:     'Fresatura manto bituminoso in corso tra KM 42+350 e KM 42+800.\nSegnaletica conforme al D.I. 22/01/2019.',
-    note:            'Si prescrive integrazione segnaletica verticale entro 48h.\nNessuna NC rilevata.',
-    firma:           null,
-    firmaTimestamp:  null,
-    firmante:        imp.firmaNome + ' — ' + imp.firmaQualifica
+    referenti: 'Geom. Bianchi (Preposto) · Ing. Verdi (D.L.)',
+    statoLuoghi: 'Fresatura manto bituminoso in corso tra KM 42+350 e KM 42+800.\nSegnaletica conforme al D.I. 22/01/2019.',
+    note: 'Si prescrive integrazione segnaletica verticale entro 48h.\nNessuna NC rilevata.',
+    firma: null,
+    firmaTimestamp: null,
+    firmante: imp.firmaNome + ' — ' + imp.firmaQualifica
   };
 
   apriStampaVerbaleConImpostazioni(verbaleEsempio, imp);
@@ -443,9 +436,9 @@ function generaHTMLVerbale(v, imp) {
           </div>
           <div style="font-size:10px; color:#64748b; line-height:1.5;">
             ${imp.studioIndirizzo ? imp.studioIndirizzo + '<br>' : ''}
-            ${imp.studioTel      ? 'Tel: ' + imp.studioTel + '<br>' : ''}
-            ${imp.studioPEC      ? 'PEC: ' + imp.studioPEC + '<br>' : ''}
-            ${imp.studioEmail    ? 'Email: ' + imp.studioEmail : ''}
+            ${imp.studioTel ? 'Tel: ' + imp.studioTel + '<br>' : ''}
+            ${imp.studioPEC ? 'PEC: ' + imp.studioPEC + '<br>' : ''}
+            ${imp.studioEmail ? 'Email: ' + imp.studioEmail : ''}
           </div>
         </td>
         <td style="width:50%; vertical-align:middle; text-align:right; padding-left:16px;">
@@ -520,8 +513,8 @@ function generaHTMLVerbale(v, imp) {
         <td class="c-label" style="vertical-align:top; padding-top:8px;">Imprese Presenti</td>
         <td class="c-val" colspan="3">
           ${(v.impresePresenti || []).length > 0
-            ? v.impresePresenti.map(i => `· ${i}`).join('<br>')
-            : '–'}
+      ? v.impresePresenti.map(i => `· ${i}`).join('<br>')
+      : '–'}
         </td>
       </tr>
 
@@ -566,10 +559,10 @@ function generaHTMLVerbale(v, imp) {
             ${imp.firmaAlbo || ''}
           </div>
           ${v.firmaTimestamp
-            ? `<div style="color:#94a3b8; font-size:10px; margin-top:4px;">
+      ? `<div style="color:#94a3b8; font-size:10px; margin-top:4px;">
                  Firmato il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}
                </div>`
-            : ''}
+      : ''}
         </td>
         <td style="width:50%; padding-left:20px; vertical-align:top;">
           <div style="color:#64748b; font-size:10px; text-transform:uppercase;
@@ -669,102 +662,361 @@ function apriStampaVerbaleConImpostazioni(v, imp) {
 // ─────────────────────────────────────────────
 
 /**
- * Apre un pannello modale con canvas per disegnare la firma.
- * La firma viene salvata nelle impostazioni IndexedDB come base64 PNG.
+ * Apre un pannello modale con 3 opzioni:
+ *  1) Disegna firma a mano (canvas)
+ *  2) Importa immagine firma (file JPG/PNG)
+ *  3) Incolla firma dagli appunti (Ctrl+V)
  */
 async function apriPannelloCreaFirma() {
-  const existing = document.getElementById('modal-crea-firma');
+  var existing = document.getElementById('modal-crea-firma');
   if (existing) existing.remove();
 
-  const modal = document.createElement('div');
+  var modal = document.createElement('div');
   modal.id = 'modal-crea-firma';
   modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4';
+  modal.style.cssText = 'top:0;right:0;bottom:0;left:0;position:fixed;';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
   modal.setAttribute('aria-label', 'Crea firma persistente');
 
   modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-      <div>
-        <h3 class="text-lg font-bold text-slate-800">✍️ Firma persistente CSE</h3>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[92vh] overflow-y-auto">
+
+      <!-- Header -->
+      <div class="p-5 border-b border-slate-200">
+        <div class="flex justify-between items-center">
+          <h3 class="text-lg font-bold text-slate-800">✍️ Firma persistente CSE</h3>
+          <button onclick="document.getElementById('modal-crea-firma').remove()"
+                  class="text-slate-400 hover:text-slate-800 text-2xl leading-none"
+                  aria-label="Chiudi">✕</button>
+        </div>
         <p class="text-xs text-slate-500 mt-1">
-          Disegna la tua firma una sola volta. Verrà applicata in automatico a tutti i verbali futuri.
+          La firma verrà applicata automaticamente a ogni verbale futuro.
         </p>
       </div>
 
-      <div id="firma-persistente-container" class="border border-slate-300 rounded-lg"></div>
-
-      <div class="flex flex-wrap justify-end gap-2">
-        <button onclick="document.getElementById('modal-crea-firma').remove()"
-                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
-                       hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Annulla">
-          Annulla
+      <!-- Tab selettore metodo -->
+      <div class="flex border-b border-slate-200" role="tablist">
+        <button id="tab-firma-disegna" onclick="_switchFirmaTab('disegna')"
+                class="flex-1 py-2.5 text-xs font-bold text-blue-600 border-b-2 border-blue-600
+                       focus:outline-none" role="tab" aria-selected="true">
+          ✍️ Disegna a mano
         </button>
-        <button onclick="salvaFirmaPersistente()"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold
-                       hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
-                aria-label="Salva firma persistente">
-          ✅ Salva come firma predefinita
+        <button id="tab-firma-importa" onclick="_switchFirmaTab('importa')"
+                class="flex-1 py-2.5 text-xs font-bold text-slate-400 border-b-2 border-transparent
+                       hover:text-slate-600 focus:outline-none" role="tab" aria-selected="false">
+          📁 Importa file
+        </button>
+        <button id="tab-firma-incolla" onclick="_switchFirmaTab('incolla')"
+                class="flex-1 py-2.5 text-xs font-bold text-slate-400 border-b-2 border-transparent
+                       hover:text-slate-600 focus:outline-none" role="tab" aria-selected="false">
+          📋 Incolla
         </button>
       </div>
+
+      <!-- Pannello: DISEGNA -->
+      <div id="panel-firma-disegna" class="p-4">
+        <div id="firma-persistente-canvas-wrap"></div>
+        <div class="text-[10px] text-slate-400 mt-2 text-center">
+          Disegna con il mouse o il dito, poi premi "Salva firma"
+        </div>
+      </div>
+
+      <!-- Pannello: IMPORTA FILE -->
+      <div id="panel-firma-importa" class="p-4 hidden">
+        <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center
+                    hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer"
+             onclick="document.getElementById('input-firma-file').click()">
+          <div class="text-3xl mb-2">📁</div>
+          <p class="text-sm font-semibold text-slate-600">Clicca per selezionare un'immagine</p>
+          <p class="text-xs text-slate-400 mt-1">JPG, PNG · Sfondo bianco o trasparente</p>
+          <input type="file" id="input-firma-file" accept="image/png,image/jpeg,image/jpg"
+                 class="hidden" onchange="_importaFirmaFile(this)" />
+        </div>
+        <div id="firma-importata-preview" class="hidden mt-3 text-center">
+          <img id="firma-importata-img" class="max-h-24 mx-auto border border-slate-200 rounded-lg bg-white p-2" alt="Anteprima firma importata" />
+          <div class="text-xs text-green-600 font-semibold mt-2">✅ Firma caricata — premi "Salva firma" per confermare</div>
+        </div>
+      </div>
+
+      <!-- Pannello: INCOLLA -->
+      <div id="panel-firma-incolla" class="p-4 hidden">
+        <div id="firma-incolla-area"
+             tabindex="0"
+             class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center
+                    hover:border-indigo-400 hover:bg-indigo-50/50 transition cursor-pointer
+                    focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+          <div class="text-3xl mb-2">📋</div>
+          <p class="text-sm font-semibold text-slate-600">Clicca qui e premi Ctrl+V</p>
+          <p class="text-xs text-slate-400 mt-1">
+            Copia un'immagine della firma negli appunti, poi incollala qui
+          </p>
+        </div>
+        <div id="firma-incollata-preview" class="hidden mt-3 text-center">
+          <img id="firma-incollata-img" class="max-h-24 mx-auto border border-slate-200 rounded-lg bg-white p-2" alt="Anteprima firma incollata" />
+          <div class="text-xs text-green-600 font-semibold mt-2">✅ Firma incollata — premi "Salva firma" per confermare</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-slate-200 flex justify-between items-center">
+        <button onclick="document.getElementById('modal-crea-firma').remove()"
+                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
+                       hover:bg-slate-200 focus:outline-none">
+          Annulla
+        </button>
+        <button onclick="_salvaFirmaDaModale()"
+                class="px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-bold
+                       hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400">
+          ✅ Salva firma
+        </button>
+      </div>
+
     </div>
   `;
 
   document.body.appendChild(modal);
 
-  // Monta il canvas firma (usa firma.js già caricato)
-  if (typeof renderFirmaCanvas === 'function') {
-    window._firmaPersistenteCorrente = null;
-    renderFirmaCanvas('firma-persistente-container', (firmaData) => {
-      window._firmaPersistenteCorrente = firmaData;
-    });
-  } else {
-    document.getElementById('firma-persistente-container').innerHTML =
-      '<div class="p-4 text-sm text-red-600">Errore: modulo firma non disponibile.</div>';
-  }
+  // Inizializza il canvas firma (Tab "Disegna")
+  _initFirmaPersistenteCanvas();
+
+  // Inizializza il listener paste (Tab "Incolla")
+  _initFirmaPasteListener();
 
   // Chiudi con ESC
-  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
-  // Chiudi cliccando fuori
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('keydown', function (e) { if (e.key === 'Escape') modal.remove(); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
 }
 
-/**
- * Salva la firma corrente (dal canvas) nelle impostazioni IndexedDB.
- */
-async function salvaFirmaPersistente() {
-  const firma = window._firmaPersistenteCorrente;
-  if (!firma || !firma.png) {
-    showToast('Disegna una firma prima di salvarla.', 'warning');
+// ── Tab switcher ──
+function _switchFirmaTab(tab) {
+  var tabs = ['disegna', 'importa', 'incolla'];
+  tabs.forEach(function (t) {
+    var panel = document.getElementById('panel-firma-' + t);
+    var btn = document.getElementById('tab-firma-' + t);
+    if (panel) panel.classList.toggle('hidden', t !== tab);
+    if (btn) {
+      btn.classList.toggle('text-blue-600', t === tab);
+      btn.classList.toggle('border-blue-600', t === tab);
+      btn.classList.toggle('text-slate-400', t !== tab);
+      btn.classList.toggle('border-transparent', t !== tab);
+      btn.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+    }
+  });
+  // Reset sorgente attiva
+  window._firmaPersistenteSorgente = tab;
+}
+
+// ── Canvas firma (metodo Disegna) ──
+function _initFirmaPersistenteCanvas() {
+  var container = document.getElementById('firma-persistente-canvas-wrap');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+      <div class="relative bg-white">
+        <canvas id="firma-persist-canvas"
+                width="500" height="130"
+                class="w-full touch-none cursor-crosshair block"
+                style="max-height:130px;"
+                aria-label="Disegna la tua firma qui"></canvas>
+        <div class="absolute bottom-6 left-6 right-6 h-px bg-slate-200 pointer-events-none"></div>
+        <div class="absolute bottom-1 left-6 text-[10px] text-slate-300 pointer-events-none select-none">Firma qui</div>
+      </div>
+      <div class="flex justify-between px-3 py-2 bg-slate-50 border-t border-slate-200">
+        <div class="flex gap-2">
+          <button type="button" onclick="_firmaPersistUndo()"
+                  class="text-xs px-3 py-1 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 focus:outline-none">
+            ↩ Annulla
+          </button>
+          <button type="button" onclick="_firmaPersistClear()"
+                  class="text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none">
+            🗑 Pulisci
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Init canvas drawing
+  var canvas = document.getElementById('firma-persist-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  var ratio = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(ratio, ratio);
+
+  var drawing = false;
+  var strokes = [];
+
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  canvas._strokes = strokes;
+  canvas._ctx = ctx;
+
+  function getPos(e) {
+    var r = canvas.getBoundingClientRect();
+    var src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  }
+
+  function start(e) { e.preventDefault(); drawing = true; strokes.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function move(e) { if (!drawing) return; e.preventDefault(); var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+  function stop(e) { if (!drawing) return; if (e) e.preventDefault(); drawing = false; ctx.beginPath(); }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', stop);
+
+  window._firmaPersistenteSorgente = 'disegna';
+}
+
+function _firmaPersistUndo() {
+  var canvas = document.getElementById('firma-persist-canvas');
+  if (!canvas || !canvas._strokes || canvas._strokes.length === 0) return;
+  canvas._ctx.putImageData(canvas._strokes.pop(), 0, 0);
+}
+
+function _firmaPersistClear() {
+  var canvas = document.getElementById('firma-persist-canvas');
+  if (!canvas) return;
+  canvas._ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (canvas._strokes) canvas._strokes.length = 0;
+}
+
+// ── Import da file (metodo Importa) ──
+function _importaFirmaFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    if (typeof showToast === 'function') showToast('File troppo grande. Max 5MB.', 'warning');
     return;
   }
 
+  var reader = new FileReader();
+  reader.onload = function () {
+    var base64 = reader.result;
+    window._firmaImportataBase64 = base64;
+
+    var preview = document.getElementById('firma-importata-preview');
+    var img = document.getElementById('firma-importata-img');
+    if (preview) preview.classList.remove('hidden');
+    if (img) img.src = base64;
+
+    window._firmaPersistenteSorgente = 'importa';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Incolla dagli appunti (metodo Incolla) ──
+function _initFirmaPasteListener() {
+  var area = document.getElementById('firma-incolla-area');
+  if (!area) return;
+
+  area.addEventListener('paste', function (e) {
+    e.preventDefault();
+    var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        var blob = items[i].getAsFile();
+        var reader = new FileReader();
+        reader.onload = function () {
+          window._firmaIncollataBase64 = reader.result;
+
+          var preview = document.getElementById('firma-incollata-preview');
+          var img = document.getElementById('firma-incollata-img');
+          if (preview) preview.classList.remove('hidden');
+          if (img) img.src = reader.result;
+
+          window._firmaPersistenteSorgente = 'incolla';
+          if (typeof showToast === 'function') showToast('Firma incollata! Premi "Salva firma" per confermare.', 'info');
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+    }
+    if (typeof showToast === 'function') showToast('Nessuna immagine trovata negli appunti.', 'warning');
+  });
+
+  // Gestisci anche click per focus (necessario per Ctrl+V)
+  area.addEventListener('click', function () { area.focus(); });
+}
+
+// ── Salvataggio unificato (da qualsiasi sorgente) ──
+async function _salvaFirmaDaModale() {
+  var base64 = null;
+  var sorgente = window._firmaPersistenteSorgente || 'disegna';
+
+  if (sorgente === 'disegna') {
+    // Prendi dal canvas
+    var canvas = document.getElementById('firma-persist-canvas');
+    if (!canvas) { showToast('Canvas non trovato.', 'error'); return; }
+    var data = canvas._ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    var isEmpty = !data.some(function (v) { return v !== 0; });
+    if (isEmpty) {
+      showToast('Disegna una firma prima di salvarla.', 'warning');
+      return;
+    }
+    base64 = canvas.toDataURL('image/png');
+  } else if (sorgente === 'importa') {
+    base64 = window._firmaImportataBase64;
+    if (!base64) { showToast('Seleziona prima un\'immagine.', 'warning'); return; }
+  } else if (sorgente === 'incolla') {
+    base64 = window._firmaIncollataBase64;
+    if (!base64) { showToast('Incolla prima un\'immagine (Ctrl+V).', 'warning'); return; }
+  }
+
+  if (!base64) { showToast('Nessuna firma da salvare.', 'warning'); return; }
+
   try {
-    const imp = await caricaImpostazioni();
-    imp.firmaImmagine = firma.png; // base64 PNG
+    var imp = await caricaImpostazioni();
+    imp.firmaImmagine = base64;
     await salvaImpostazioni(imp);
 
-    document.getElementById('modal-crea-firma')?.remove();
+    var m = document.getElementById('modal-crea-firma');
+    if (m) m.remove();
     showToast('Firma persistente salvata ✓', 'success');
+
     // Ri-render la view impostazioni
     if (document.getElementById('view-impostazioni-inner')) {
       renderViewImpostazioni('view-impostazioni-inner');
     }
+
+    // Cleanup
+    window._firmaImportataBase64 = null;
+    window._firmaIncollataBase64 = null;
   } catch (err) {
     console.error('Errore salvataggio firma persistente:', err);
     showToast('Errore nel salvataggio della firma.', 'error');
   }
 }
 
+// Mantieni salvaFirmaPersistente come alias per retrocompatibilità
+async function salvaFirmaPersistente() {
+  return _salvaFirmaDaModale();
+}
+
 /**
- * Rimuove la firma persistente (chiederà conferma).
+ * Rimuove la firma persistente (con conferma).
  */
 async function rimuoviFirmaPersistente() {
   if (!confirm('Rimuovere la firma persistente?\n\nDovrai disegnare la firma manualmente in ogni nuovo verbale.')) return;
 
   try {
-    const imp = await caricaImpostazioni();
+    var imp = await caricaImpostazioni();
     imp.firmaImmagine = null;
     await salvaImpostazioni(imp);
     showToast('Firma persistente rimossa.', 'info');
@@ -782,7 +1034,7 @@ async function rimuoviFirmaPersistente() {
  */
 async function getFirmaPersistente() {
   try {
-    const imp = await caricaImpostazioni();
+    var imp = await caricaImpostazioni();
     return imp.firmaImmagine || null;
   } catch (_) {
     return null;

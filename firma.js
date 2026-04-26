@@ -9,10 +9,10 @@ function renderFirmaCanvas(containerId, onSave) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const firmaId    = containerId + '-canvas';
+  const firmaId = containerId + '-canvas';
   const timestampNow = new Date().toLocaleString('it-IT', {
-    day:    '2-digit', month: '2-digit', year: 'numeric',
-    hour:   '2-digit', minute: '2-digit'
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
   });
 
   container.innerHTML = `
@@ -110,33 +110,33 @@ function renderFirmaCanvas(containerId, onSave) {
 // 2. Inizializza eventi canvas (mouse + touch)
 // ─────────────────────────────────────────────
 function _initFirmaCanvas(firmaId, onSave) {
-  const canvas  = document.getElementById(firmaId);
+  const canvas = document.getElementById(firmaId);
   if (!canvas) return;
 
-  const ctx     = canvas.getContext('2d');
-  
+  const ctx = canvas.getContext('2d');
+
   // MOD-23: High-DPI / Retina Support
   const ratio = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  
+
   // Imposta risoluzione interna elevata
   canvas.width = rect.width * ratio;
   canvas.height = rect.height * ratio;
   // Mantieni dimensioni CSS costanti
   canvas.style.width = rect.width + 'px';
   canvas.style.height = rect.height + 'px';
-  
+
   ctx.scale(ratio, ratio);
-  
-  let drawing   = false;
-  let strokes   = []; // array di ImageData per undo
+
+  let drawing = false;
+  let strokes = []; // array di ImageData per undo
   let hasStroke = false;
 
   // Stile penna migliorato (MOD-23)
   ctx.strokeStyle = '#0f172a'; // Slate 900
-  ctx.lineWidth   = 2.2;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
   // Salva onSave callback nel dataset
   canvas._firmaOnSave = onSave;
@@ -178,27 +178,27 @@ function _initFirmaCanvas(firmaId, onSave) {
   }
 
   // Mouse
-  canvas.addEventListener('mousedown',  startDraw);
-  canvas.addEventListener('mousemove',  draw);
-  canvas.addEventListener('mouseup',    stopDraw);
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
   canvas.addEventListener('mouseleave', stopDraw);
 
   // Touch (mobile / tablet)
   canvas.addEventListener('touchstart', startDraw, { passive: false });
-  canvas.addEventListener('touchmove',  draw,      { passive: false });
-  canvas.addEventListener('touchend',   stopDraw);
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', stopDraw);
 
   // Salva strokes e hasStroke in canvas per accesso globale
-  canvas._strokes   = strokes;
+  canvas._strokes = strokes;
   canvas._hasStroke = () => hasStroke;
-  canvas._ctx       = ctx;
+  canvas._ctx = ctx;
 }
 
 // ─────────────────────────────────────────────
 // 3. Undo (un tratto alla volta)
 // ─────────────────────────────────────────────
 function _firmaUndo(firmaId) {
-  const canvas  = document.getElementById(firmaId);
+  const canvas = document.getElementById(firmaId);
   if (!canvas) return;
   const strokes = canvas._strokes;
   if (!strokes || strokes.length === 0) return;
@@ -232,18 +232,18 @@ function _firmaConferma(firmaId, containerId) {
   }
 
   // Aggiunge il timestamp dentro il canvas (bordo in basso a destra)
-  const now        = new Date();
-  const tsLabel    = now.toLocaleString('it-IT', {
-    day:'2-digit', month:'2-digit', year:'numeric',
-    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  const now = new Date();
+  const tsLabel = now.toLocaleString('it-IT', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
   });
-  const tsISO      = now.toISOString();
+  const tsISO = now.toISOString();
 
   const ctx = canvas._ctx;
   ctx.save();
-  ctx.font         = '11px monospace';
-  ctx.fillStyle    = '#64748b';
-  ctx.textAlign    = 'right';
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'right';
   ctx.fillText('CSE: Geom. Dogano Casella — ' + tsLabel, canvas.width - 8, canvas.height - 6);
   ctx.restore();
 
@@ -251,13 +251,13 @@ function _firmaConferma(firmaId, containerId) {
   const dataURL = canvas.toDataURL('image/png');
 
   // Mostra preview
-  const preview    = document.getElementById(firmaId + '-preview');
+  const preview = document.getElementById(firmaId + '-preview');
   const previewImg = document.getElementById(firmaId + '-preview-img');
-  const previewTs  = document.getElementById(firmaId + '-preview-ts');
+  const previewTs = document.getElementById(firmaId + '-preview-ts');
 
-  if (preview)    preview.classList.remove('hidden');
+  if (preview) preview.classList.remove('hidden');
   if (previewImg) previewImg.src = dataURL;
-  if (previewTs)  previewTs.textContent = 'Firmato il ' + tsLabel;
+  if (previewTs) previewTs.textContent = 'Firmato il ' + tsLabel;
 
   // Nascondi canvas principale
   const canvasWrapper = canvas.closest('.border');
@@ -269,10 +269,10 @@ function _firmaConferma(firmaId, containerId) {
 
   // Callback con i dati firma
   const firmaData = {
-    png:       dataURL,
+    png: dataURL,
     timestamp: tsISO,
-    label:     tsLabel,
-    firmante:  'Geom. Dogano Casella — CSE'
+    label: tsLabel,
+    firmante: 'Geom. Dogano Casella — CSE'
   };
 
   if (typeof canvas._firmaOnSave === 'function') {
@@ -289,7 +289,7 @@ function _firmaConferma(firmaId, containerId) {
 // 6. Reset → permette di rifirmare
 // ─────────────────────────────────────────────
 function _firmaReset(firmaId, containerId) {
-  const canvas  = document.getElementById(firmaId);
+  const canvas = document.getElementById(firmaId);
   if (!canvas) return;
 
   _firmaClear(firmaId);
@@ -333,9 +333,9 @@ function caricaFirmaSuCanvas(containerId, base64PNG) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     // Scala per adattare
     const scale = Math.min(canvas.width / img.width, canvas.height / img.height, 1);
-    const w = img.width  * scale;
+    const w = img.width * scale;
     const h = img.height * scale;
-    const x = (canvas.width  - w) / 2;
+    const x = (canvas.width - w) / 2;
     const y = (canvas.height - h) / 2;
     ctx.drawImage(img, x, y, w, h);
     // Marca che c'è una firma valida (usata da _firmaConferma)
