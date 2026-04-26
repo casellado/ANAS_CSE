@@ -99,6 +99,14 @@ async function renderVerbaliList(containerId) {
            </button>`
         : '';
 
+      // Bottone cancella — disponibile per tutti i tipi
+      const btnCancella = `<button onclick="confermaEliminaVerbale('${v.id}', '${info.label}', '${dataLabel}')"
+                   class="bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg
+                          hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
+                   aria-label="Elimina verbale del ${dataLabel}">
+             🗑️
+           </button>`;
+
       return `
         <div class="p-4 rounded-xl shadow-sm border mb-3 ${info.color}"
              role="article"
@@ -119,6 +127,7 @@ async function renderVerbaliList(containerId) {
             </div>
 
             <div class="flex flex-wrap gap-2 shrink-0">
+              ${btnCancella}
               ${btnEmail}
               ${btnApri}
             </div>
@@ -159,6 +168,70 @@ function apriSalvataggioVerbale(verbaleId) {
     });
   } else if (typeof exportVerbalePDF === 'function') {
     exportVerbalePDF(verbaleId);
+  }
+}
+
+// ─────────────────────────────────────────────
+// 3b. Elimina verbale con conferma
+// ─────────────────────────────────────────────
+function confermaEliminaVerbale(verbaleId, tipoLabel, dataLabel) {
+  var existing = document.getElementById('modal-elimina-verbale');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id        = 'modal-elimina-verbale';
+  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+  modal.style.cssText = 'top:0;right:0;bottom:0;left:0;position:fixed;';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.innerHTML = '\n' +
+    '<div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4 text-center">\n' +
+    '  <div class="text-4xl">🗑️</div>\n' +
+    '  <h2 class="text-base font-bold text-slate-800">Elimina Verbale</h2>\n' +
+    '  <p class="text-sm text-slate-600">\n' +
+    '    Vuoi eliminare il <strong>' + tipoLabel + '</strong> del <strong>' + dataLabel + '</strong>?<br>\n' +
+    '    <span class="text-red-600 text-xs">Questa azione è irreversibile.</span>\n' +
+    '  </p>\n' +
+    '  <div class="flex justify-center gap-3 pt-2">\n' +
+    '    <button id="btn-annulla-elim-verb" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200 focus:outline-none">\n' +
+    '      Annulla\n' +
+    '    </button>\n' +
+    '    <button id="btn-conferma-elim-verb" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400">\n' +
+    '      🗑️ Elimina\n' +
+    '    </button>\n' +
+    '  </div>\n' +
+    '</div>\n';
+
+  document.body.appendChild(modal);
+
+  modal.querySelector('#btn-annulla-elim-verb').addEventListener('click', function() {
+    modal.remove();
+  });
+  modal.querySelector('#btn-conferma-elim-verb').addEventListener('click', function() {
+    _eseguiEliminaVerbale(verbaleId);
+  });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('keydown', function(e) { if (e.key === 'Escape') modal.remove(); });
+}
+
+async function _eseguiEliminaVerbale(verbaleId) {
+  try {
+    await deleteItem('verbali', verbaleId);
+    document.getElementById('modal-elimina-verbale')?.remove();
+
+    // Aggiorna la lista nel container corretto
+    if (typeof renderVerbaliList === 'function') {
+      // dashboard-cantiere.html usa 'verbali-list-container'
+      var container = document.getElementById('verbali-list-container');
+      if (container) await renderVerbaliList('verbali-list-container');
+      // SPA usa diversi container — prova tutti
+      var spaContainer = document.getElementById('verbali-spa-list');
+      if (spaContainer) await renderVerbaliList('verbali-spa-list');
+    }
+
+    if (typeof showToast === 'function') showToast('Verbale eliminato.', 'info');
+  } catch (err) {
+    if (typeof showToast === 'function') showToast('Errore nell\'eliminazione.', 'error');
   }
 }
 
