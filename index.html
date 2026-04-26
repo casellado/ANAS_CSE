@@ -10,11 +10,16 @@
   <link rel="icon" type="image/png" href="icon-192.png" />
   <script>
     // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
-    const origWarn = console.warn;
-    console.warn = function (...args) {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
-      origWarn.apply(console, args);
-    };
+    (function() {
+      var _tw = 'cdn.tailwindcss.com should not be used in production';
+      ['warn','log'].forEach(function(m) {
+        var orig = console[m];
+        console[m] = function() {
+          if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].indexOf(_tw) !== -1) return;
+          return orig.apply(console, arguments);
+        };
+      });
+    })();
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
