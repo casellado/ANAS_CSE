@@ -18,7 +18,7 @@ const IMPOSTAZIONI_DEFAULT = {
   dl: '',  // es. "Ing. Lucia Bianchi"
 
   // Riferimenti normativi da citare nel footer del PDF
-  normativa: 'D.Lgs 81/2008 · D.I. 22/01/2019 · Contratto ANAS',
+  normativa: 'D.Lgs 81/2008 · D.I. 22/01/2019',
 
   // Footer PDF
   footerSinistro: 'Geom. Dogano Casella — Coordinatore Sicurezza in Esecuzione (CSE)',
@@ -31,7 +31,7 @@ const IMPOSTAZIONI_DEFAULT = {
   // Firma pre-impostata (nome stampato sotto la firma canvas)
   firmaNome: 'Geom. Dogano Casella',
   firmaQualifica: 'Coordinatore per la Sicurezza in Esecuzione (CSE)',
-  firmaAlbo: 'Albo Geometri — n. ____',
+  firmaAlbo: '',
 
   // P2: Firma persistente (base64 PNG) — se presente, precompila automaticamente
   // il canvas firma in ogni verbale, evitando di ri-firmare ogni volta.

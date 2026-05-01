@@ -321,6 +321,11 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     ? `<img src="${v.firma}" style="max-width:180pt; max-height:70pt; border:1px solid #e2e8f0;">`
     : `<div class="firma-box"></div>`;
 
+  let normativaClean = imp.normativa || 'D.Lgs 81/08 · D.I. 22/01/2019';
+  if (normativaClean.includes('Contratto ANAS')) {
+    normativaClean = normativaClean.replace(' · Contratto ANAS', '').replace('· Contratto ANAS', '');
+  }
+
   const html = `
     <!-- INTESTAZIONE -->
     <div class="intestazione">
@@ -332,7 +337,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         <tr>
           <td colspan="2" style="border:none; text-align:center; padding-top:8pt;">
             <h1 style="margin:0;">VERBALE DI SOPRALLUOGO CSE</h1>
-            <div style="font-size:10pt; color:#64748b;">${imp.normativa || 'D.Lgs 81/08 · D.I. 22/01/2019'}</div>
+            <div style="font-size:10pt; color:#64748b;">${normativaClean}</div>
           </td>
         </tr>
       </table>
@@ -389,7 +394,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
           ${firmaImg}
           <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(imp.firmaNome || v.firmante || 'Dogano Casella')}</div>
           <div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaQualifica || 'CSE')}</div>
-          <div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo || '')}</div>
+          ${imp.firmaAlbo && !imp.firmaAlbo.includes('Albo Geometri') ? `<div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo)}</div>` : ''}
           ${v.firmaTimestamp ? `<div style="font-size:9pt; color:#94a3b8;">Firmato il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}</div>` : ''}
         </td>
         <td style="width:50%; vertical-align:top; border:none; padding-left:16pt;">
