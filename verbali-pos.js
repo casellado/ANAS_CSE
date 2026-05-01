@@ -299,7 +299,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
 // 3. Export PDF Verifica POS
 // ─────────────────────────────────────────────
 async function exportPOSPDF(posId) {
-  await exportPOSWord(posId);
+  await exportPOSWord(posId, 'anteprima');
 }
 
 // ─────────────────────────────────────────────

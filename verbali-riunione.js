@@ -332,13 +332,7 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
 // 3. Export PDF Riunione
 // ─────────────────────────────────────────────
 async function exportRiunionePDF(riunioneId) {
-  await exportRiunioneWord(riunioneId);  // genera Word
-  // Poi apri stampa
-  if (typeof apriStampaRiunione === 'function') {
-    apriStampaRiunione(riunioneId);
-  } else {
-    window.print();
-  }
+  await exportRiunioneWord(riunioneId, 'anteprima');
 }
 
 // ─────────────────────────────────────────────
