@@ -83,7 +83,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
 
   const logoAnas = imp.logoDestro || imp.logoSinistro;
   const logoAnasHtml = logoAnas
-    ? `<img src="${logoAnas}" style="max-height:15mm; max-width:25mm; object-fit:contain;">`
+    ? `<img src="${logoAnas}" style="max-height:22.5mm; max-width:37.5mm; object-fit:contain;">`
     : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
 
   const html = `

@@ -279,26 +279,42 @@ function scaricaComeWord(htmlContenuto, nomeFile = 'documento') {
 // ─────────────────────────────────────────────
 // 3. Export Word del Verbale
 // ─────────────────────────────────────────────
-async function exportVerbaleWord(verbaleId) {
-  const verbali = await getAll('verbali').catch(() => []);
-  const v       = verbali.find(x => x.id === verbaleId);
-  if (!v) { showToast('Verbale non trovato.', 'error'); return; }
-
+async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
   let imp = {};
   if (typeof caricaImpostazioni === 'function') {
     imp = await caricaImpostazioni();
   }
+
+  let v = null;
+  if (verbaleId) {
+    const verbali = await getAll('verbali').catch(() => []);
+    v = verbali.find(x => x.id === verbaleId);
+  } else {
+    v = {
+      data: document.getElementById('verbale-data')?.value,
+      km: document.getElementById('verbale-km')?.value,
+      oggetto: document.getElementById('verbale-oggetto')?.value,
+      meteo: document.getElementById('verbale-meteo')?.value,
+      impresePresenti: Array.from(document.getElementById('verbale-imprese')?.selectedOptions || []).map(o => o.value),
+      referenti: document.getElementById('verbale-referenti')?.value,
+      statoLuoghi: document.getElementById('verbale-stato-luoghi')?.value,
+      note: document.getElementById('verbale-note')?.value,
+      projectId: window.appState?.currentProject,
+      firmante: imp.firmaNome || 'Geom. Dogano Casella'
+    };
+  }
+  if (!v) { showToast('Verbale non trovato.', 'error'); return; }
 
   const dataLabel = v.data
     ? new Date(v.data).toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' })
     : '–';
 
   const logoSxHtml = imp.logoSinistro
-    ? `<img src="${imp.logoSinistro}" style="max-height:50pt; max-width:150pt;">`
+    ? `<img src="${imp.logoSinistro}" style="max-height:75pt; max-width:225pt;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.studioNome || ''}</div>`;
 
   const logoDxHtml = imp.logoDestro
-    ? `<img src="${imp.logoDestro}" style="max-height:50pt; max-width:150pt;">`
+    ? `<img src="${imp.logoDestro}" style="max-height:75pt; max-width:225pt;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.committenteNome || 'ANAS SpA'}</div>`;
 
   const firmaImg = v.firma
@@ -383,6 +399,45 @@ async function exportVerbaleWord(verbaleId) {
       </tr>
     </table>
   `;
+
+  if (tipoExport === 'anteprima') {
+    const win = window.open('', '_blank');
+    if (!win) {
+      showToast('Popup bloccato — abilita i popup per la stampa.', 'warning');
+      return;
+    }
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="it">
+      <head>
+        <meta charset="UTF-8">
+        <title>Anteprima Verbale di Sopralluogo</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 11pt; color: #000; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12pt; }
+          th, td { border: 1px solid #000; padding: 6pt 8pt; vertical-align: top; text-align: left; }
+          th { background-color: #f8fafc; width: 20%; font-weight: bold; }
+          .label { font-weight: bold; color: #1e293b; margin-top: 12pt; margin-bottom: 4pt; }
+          .valore { padding: 6pt 8pt; border: 1px solid #000; background: #fff; min-height: 24pt; }
+          @media print {
+            body { padding: 0; margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 12px;">
+          <button onclick="window.print()" style="padding: 8px 16px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🖨️ Stampa Verbale
+          </button>
+        </div>
+        ${html}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    return;
+  }
 
   scaricaComeWord(html, `Verbale_CSE_${v.projectId || ''}_${dataLabel.replace(/\//g, '-')}`);
 }
