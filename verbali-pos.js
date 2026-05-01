@@ -83,212 +83,170 @@ async function exportPOSWord(posId, tipoExport = 'word') {
 
   const logoAnas = imp.logoDestro || imp.logoSinistro;
   const logoAnasHtml = logoAnas
-    ? `<img src="${logoAnas}" style="max-height:45pt; max-width:140pt; object-fit:contain;">`
+    ? `<img src="${logoAnas}" style="max-height:15mm; max-width:25mm; object-fit:contain;">`
     : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
 
   const html = `
-    <!-- INTESTAZIONE MODULO QUALITÀ ANAS -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:12pt; border-bottom:1.5pt solid #0f172a; padding-bottom:6pt;">
-      <tr>
-        <td style="width:33%; border:none; vertical-align:middle; text-align:left;">
-          ${logoAnasHtml}
-        </td>
-        <td style="width:34%; border:none; vertical-align:middle; text-align:center;">
-          <div style="font-size:12pt; font-weight:bold; color:#0f172a; text-transform:uppercase; letter-spacing:0.02em; line-height:1.2;">
-            Verifica Piano Operativo<br>di Sicurezza
+    <!-- CONTENITORE LAYOUT INDUSTRIALE DETERMINISTICO -->
+    <div style="width:180mm; min-height:257mm; margin:0 auto; font-family:Arial, sans-serif; box-sizing:border-box; color:#000; font-size:10pt;">
+
+      <!-- 3) HEADER COMPLETO -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm; border-bottom:1.5pt solid #0f172a;">
+        <tr>
+          <td style="width:25mm; height:15mm; vertical-align:middle; text-align:left; padding:0; border:none;">
+            ${logoAnasHtml}
+          </td>
+          <td style="width:95mm; height:15mm; vertical-align:middle; text-align:center; padding:0; border:none;">
+            <div style="font-size:12pt; font-weight:bold; text-transform:uppercase;">
+              Verifica Piano Operativo di Sicurezza
+            </div>
+          </td>
+          <td style="width:60mm; height:15mm; vertical-align:middle; text-align:right; padding:0; border:none;">
+            <div style="font-size:9pt; color:#475569; line-height:1.3;">
+              <strong>Mod. RE. 01-5</strong><br>
+              Vers. 3.0 del 22/01/2024<br>
+              <span style="font-size:8pt; font-style:italic;">Ai sensi dell'art. 92 c.1 lett. b) D.Lgs 81/08</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- 4) METADATI (Griglia Stretta) -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <!-- Riga 1 -->
+        <tr>
+          <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; height:10mm; vertical-align:top;">
+            <strong style="font-size:8pt; color:#475569;">PPM/SIL/OdA</strong><br>
+            <div style="font-size:10pt;">${escapeHtml(imp.posCodicePpm || '___________')}</div>
+          </td>
+          <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; height:10mm; vertical-align:top;">
+            <strong style="font-size:8pt; color:#475569;">Commessa</strong><br>
+            <div style="font-size:10pt;">${escapeHtml(imp.posCommessa || '___________')}</div>
+          </td>
+          <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; height:10mm; vertical-align:top;">
+            <strong style="font-size:8pt; color:#475569;">Protocollo</strong><br>
+            <div style="font-size:10pt;">___________</div>
+          </td>
+        </tr>
+        <!-- Riga 2 -->
+        <tr>
+          <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; height:10mm; vertical-align:top;">
+            <strong style="font-size:8pt; color:#475569;">Voce Budget/Spesa</strong><br>
+            <div style="font-size:10pt;">${escapeHtml(imp.posStruttura || '___________')}</div>
+          </td>
+          <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; height:10mm; vertical-align:top;">
+            <strong style="font-size:8pt; color:#475569;">CUP</strong><br>
+            <div style="font-size:10pt;">${escapeHtml(imp.posCUP || '___________')}</div>
+          </td>
+          <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; height:10mm; vertical-align:top;">
+            <strong style="font-size:8pt; color:#475569;">CIG</strong><br>
+            <div style="font-size:10pt;">${escapeHtml(imp.posCIG || '___________')}</div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- 5) DESTINATARIO -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr>
+          <td style="width:20mm; border:none; padding:4pt 0; vertical-align:top; font-size:10pt;">
+            <strong>All'</strong>
+          </td>
+          <td style="width:160mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:10pt; vertical-align:top;">
+            <strong>Impresa Affidataria:</strong> ${escapeHtml(nomeImpresa || '___________________________')}
+          </td>
+        </tr>
+        <tr>
+          <td style="width:20mm; border:none; padding:4pt 0; vertical-align:top; font-size:10pt;">
+            <strong>PEC:</strong>
+          </td>
+          <td style="width:160mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:10pt; vertical-align:top;">
+            ${escapeHtml(pecImpresa || '_____________________________')}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 6) OGGETTO / LAVORI -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; font-size:10pt; vertical-align:top;">
+            <strong>Oggetto:</strong> S.S. n° ${escapeHtml(cantiere)} — ${escapeHtml(nomeCant || '___________________________')}
+          </td>
+        </tr>
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; font-size:10pt; vertical-align:top;">
+            <strong>Lavori:</strong> ${escapeHtml(nomeCant || '___________________________________________')}
+          </td>
+        </tr>
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; font-size:10pt; vertical-align:top;">
+            <strong>Cod. PPM/SIL:</strong> ${escapeHtml(imp.posCodicePpm || '___________')}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 7) BLOCCO TESTO (Normativo) -->
+      <div style="margin-bottom:5mm; text-align:justify; line-height:1.4; font-size:10pt;">
+        <p style="margin-bottom:3mm;">
+          Il sottoscritto <strong>${escapeHtml(cse)}</strong>, nella sua qualità di Coordinatore per l'Esecuzione dei lavori ai sensi e per gli effetti dell'art. 92 comma 1 del D.Lgs. 81/2008,
+        </p>
+        <div style="text-align:center; font-weight:bold; margin-bottom:3mm; font-size:11pt;">VISTO</div>
+        <p style="margin-bottom:3mm;">
+          il Piano Operativo di Sicurezza inoltrato da codesta Impresa Affidataria e verificata la congruenza dello stesso a quanto previsto dal D.Lgs 81/08,
+        </p>
+        <div style="text-align:center; font-weight:bold; margin-bottom:3mm; font-size:11pt;">DICHIARA</div>
+      </div>
+
+      <!-- 8) BLOCCO ESITO -->
+      <div style="margin-bottom:5mm; font-size:10pt;">
+        <!-- Riga 1: Idoneo -->
+        <div style="display:flex; align-items:flex-start; margin-bottom:4mm;">
+          <div style="font-size:14pt; margin-right:8mm; line-height:1;">${chk(isIdoneo)}</div>
+          <div>
+            <strong>idoneo</strong> il Piano Operativo di Sicurezza dell'impresa <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong>.
           </div>
-        </td>
-        <td style="width:33%; border:none; vertical-align:middle; text-align:right;">
-          <div style="font-size:8.5pt; color:#475569; line-height:1.3;">
-            <strong>Mod. RE. 01-5</strong><br>
-            Vers. 3.0 del 22/01/2024<br>
-            <span style="font-size:7.5pt; font-style:italic;">Ai sensi dell'art. 92 c.1 lett. b) D.Lgs 81/08</span>
+        </div>
+
+        <!-- Riga 2: Idoneo con integrazioni -->
+        <div style="display:flex; align-items:flex-start; margin-bottom:4mm;">
+          <div style="font-size:14pt; margin-right:8mm; line-height:1;">${chk(isConInt)}</div>
+          <div>
+            <strong>idoneo</strong> il Piano Operativo di Sicurezza dell'impresa <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong> con la richiesta delle seguenti integrazioni:
           </div>
-        </td>
-      </tr>
-    </table>
-
-    <!-- TABELLA RIFERIMENTI CANTIERE -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:6pt;">
-      <tr>
-        <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>PPM/SIL/OdA</strong><br>${escapeHtml(imp.posCodicePpm || '___________')}
-        </td>
-        <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>Commessa</strong><br>${escapeHtml(imp.posCommessa || '___________')}
-        </td>
-        <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>Protocollo</strong><br>___________
-        </td>
-        <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>CUP</strong><br>${escapeHtml(imp.posCUP || '___________')}
-        </td>
-        <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>CIG</strong><br>${escapeHtml(imp.posCIG || '___________')}
-        </td>
-      </tr>
-      <tr>
-        <td colspan="5" style="border:1px solid #000; padding:4pt 6pt; font-size:10pt;">
-          ${escapeHtml(imp.posStruttura || '___________')}
-        </td>
-      </tr>
-    </table>
-
-    <!-- TABELLA DESTINATARIO -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:6pt;">
-      <tr>
-        <td style="border:none; padding:4pt 6pt; font-size:10pt; width:6%; vertical-align:top;">
-          All'
-        </td>
-        <td style="border:none; padding:4pt 6pt; font-size:10pt; vertical-align:top;">
-        </td>
-        <td style="border:1px solid #000; padding:4pt 8pt; font-size:10pt; width:36%;">
-          <strong>Impresa Affidataria</strong><br>
-          <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong><br>
-          PEC: ${escapeHtml(pecImpresa || '_____________________________')}
-        </td>
-      </tr>
-      <tr>
-        <td colspan="3" style="border:1px solid #000; padding:4pt 6pt; font-size:10pt;">
-          <strong>Oggetto:</strong> S.S. n° ${escapeHtml(cantiere)} 
-          — ${escapeHtml(nomeCant || '___________________________')}
-        </td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt;">
-          <strong>Lavori</strong>
-        </td>
-        <td colspan="2" style="border:1px solid #000; padding:4pt 6pt; font-size:10pt;">
-          ${escapeHtml(nomeCant || '___________________________________________')}
-        </td>
-      </tr>
-      <tr>
-        <td colspan="3" style="border:1px solid #000; padding:4pt 6pt; font-size:10pt;">
-          <strong>Cod. PPM/SIL</strong> ___________________________________________
-        </td>
-      </tr>
-    </table>
-
-    <!-- TITOLO -->
-    <div style="text-align:center; font-weight:bold; font-size:11pt;
-                margin:12pt 0 8pt; text-transform:uppercase; letter-spacing:0.03em;">
-      Verifica Piano Operativo di Sicurezza ai sensi dell'art. 92 c.1 lettera b) del D.Lgs 81/08
-    </div>
-
-    <!-- CORPO -->
-    <p style="font-size:10pt; text-align:justify; margin:6pt 0;">
-      Il sottoscritto <strong>${escapeHtml(cse)}</strong>, nella sua qualità di
-      Coordinatore per l'Esecuzione dei lavori ai sensi e per gli effetti dell'art. 92
-      comma 1 del D.Lgs. 81/2008
-    </p>
-
-    <div style="text-align:center; font-weight:bold; font-size:11pt; margin:10pt 0 6pt;">VISTO</div>
-
-    <p style="font-size:10pt; text-align:justify; margin:6pt 0;">
-      Il Piano Operativo di Sicurezza inoltrato da codesta Impresa Affidataria e verificata
-      la congruenza dello stesso a quanto previsto dal D.lgs 81/08,
-    </p>
-
-    <div style="text-align:center; font-weight:bold; font-size:11pt; margin:10pt 0 6pt;">DICHIARA</div>
-
-    <!-- ESITO CON CHECKBOX -->
-    <table style="border-collapse:collapse; width:100%; margin:8pt 0;">
-
-      <!-- OPZIONE 1: IDONEO -->
-      <tr>
-        <td style="width:24pt; border:none; vertical-align:top; padding:4pt 6pt; font-size:14pt;">
-          ${chk(isIdoneo)}
-        </td>
-        <td style="border:none; vertical-align:top; padding:4pt 0; font-size:10pt;">
-          <strong>idoneo</strong> il Piano Operativo di Sicurezza dell'impresa
-          <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong>
-        </td>
-      </tr>
-
-      <!-- SPAZIO -->
-      <tr><td colspan="2" style="height:8pt; border:none;"></td></tr>
-
-      <!-- OPZIONE 2: IDONEO CON INTEGRAZIONI -->
-      <tr>
-        <td style="width:24pt; border:none; vertical-align:top; padding:4pt 6pt; font-size:14pt;">
-          ${chk(isConInt)}
-        </td>
-        <td style="border:none; vertical-align:top; padding:4pt 0; font-size:10pt;">
-          <strong>idoneo</strong> il Piano Operativo di Sicurezza dell'impresa
-          <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong>
-          con la richiesta delle seguenti integrazioni:
-        </td>
-      </tr>
-      ${isConInt && integrazioni ? `
-      <tr>
-        <td style="border:none;"></td>
-        <td style="border:none; padding:4pt 0 4pt 8pt; font-size:10pt; font-style:italic;">
+        </div>
+        ${isConInt && integrazioni ? `
+        <div style="margin-left:12mm; margin-bottom:4mm; font-style:italic;">
           ${escapeHtml(integrazioni).replace(/\n/g,'<br>')}
-        </td>
-      </tr>` : `
-      <tr>
-        <td style="border:none;"></td>
-        <td style="border:none; padding:4pt 0 4pt 8pt;">
-          <div style="border-bottom:1px solid #ccc; height:16pt; margin:3pt 0;"></div>
-          <div style="border-bottom:1px solid #ccc; height:16pt; margin:3pt 0;"></div>
-        </td>
-      </tr>`}
+        </div>` : `
+        <div style="margin-left:12mm; margin-bottom:4mm; border-bottom:0.5pt solid #000; height:16pt;"></div>`}
 
-      <!-- SPAZIO -->
-      <tr><td colspan="2" style="height:8pt; border:none;"></td></tr>
-
-      <!-- OPZIONE 3: NON IDONEO -->
-      <tr>
-        <td style="width:24pt; border:none; vertical-align:top; padding:4pt 6pt; font-size:14pt;">
-          ${chk(isNonId)}
-        </td>
-        <td style="border:none; vertical-align:top; padding:4pt 0; font-size:10pt;">
-          <strong>NON idoneo</strong> il Piano Operativo di Sicurezza dell'impresa
-          <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong>
-          in quanto non conforme con quanto previsto dall'Allegato XV del D.Lgs. 81/2008,
-          con la richiesta di ripresentare il Piano Operativo di Sicurezza conformemente
-          a quanto previsto dal citato Decreto.
-        </td>
-      </tr>
-
-    </table>
-
-    <!-- FIRME PERFETTAMENTE ALLINEATE -->
-    <table style="width:100%; border-collapse:collapse; margin-top:24pt; page-break-inside:avoid;">
-      <tr>
-        <td style="width:33%; border:none; text-align:center; vertical-align:bottom; padding:0 6pt; height:42pt;">
-          <div style="font-size:10pt; font-weight:bold; line-height:1.2;">
-            Il Coordinatore per l'Esecuzione<br>&nbsp;
+        <!-- Riga 3: Non idoneo -->
+        <div style="display:flex; align-items:flex-start; margin-bottom:4mm;">
+          <div style="font-size:14pt; margin-right:8mm; line-height:1;">${chk(isNonId)}</div>
+          <div>
+            <strong>non idoneo</strong> il Piano Operativo di Sicurezza dell'impresa <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong>.
           </div>
-        </td>
-        <td style="width:33%; border:none; text-align:center; vertical-align:bottom; padding:0 6pt; height:42pt;">
-          <div style="font-size:10pt; font-weight:bold; line-height:1.2;">
-            Visto:<br>Il Responsabile dei Lavori
-          </div>
-        </td>
-        <td style="width:34%; border:none; text-align:center; vertical-align:bottom; padding:0 6pt; height:42pt;">
-          <div style="font-size:10pt; font-weight:bold; line-height:1.2;">
-            Visto:<br>
-            <span style="font-style:italic;">Il Responsabile della Struttura Territoriale</span><br>
-            <span style="font-size:8pt; color:#64748b; font-weight:normal;">(se figura diversa da RL)</span>
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td style="width:33%; border:none; text-align:center; vertical-align:top; padding:4pt 6pt 0;">
-          <div style="width:165pt; height:55pt; border:1px solid #94a3b8; margin:0 auto; border-radius:3pt;"></div>
-          <div style="font-size:9.5pt; margin-top:4pt;">(${escapeHtml(cse)})</div>
-        </td>
-        <td style="width:33%; border:none; text-align:center; vertical-align:top; padding:4pt 6pt 0;">
-          <div style="width:165pt; height:55pt; border:1px solid #94a3b8; margin:0 auto; border-radius:3pt;"></div>
-          <div style="font-size:9.5pt; margin-top:4pt;">(${escapeHtml(imp.posRup || imp.rup || '_______________________')})</div>
-        </td>
-        <td style="width:34%; border:none; text-align:center; vertical-align:top; padding:4pt 6pt 0;">
-          <div style="width:165pt; height:55pt; border:1px solid #94a3b8; margin:0 auto; border-radius:3pt;"></div>
-          <div style="font-size:9.5pt; margin-top:4pt;">(______________________)</div>
-        </td>
-      </tr>
-    </table>
+        </div>
+      </div>
+
+      <!-- 9) FIRME -->
+      <table style="width:100%; border-collapse:collapse; margin-top:6mm;">
+        <tr>
+          <td style="width:60mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">
+            <strong>Coordinatore Sicurezza (CSE)</strong><br><br><br><br>
+            <span>__________________________</span>
+          </td>
+          <td style="width:60mm; border:none; padding:4pt 0; text-align:center; vertical-align:top; font-size:9pt;">
+            <strong>Responsabile dei Lavori</strong><br><br><br><br>
+            <span>__________________________</span>
+          </td>
+          <td style="width:60mm; border:none; padding:4pt 0; text-align:right; vertical-align:top; font-size:9pt;">
+            <strong>Responsabile Struttura</strong><br><br><br><br>
+            <span>__________________________</span>
+          </td>
+        </tr>
+      </table>
+
+    </div>
   `;
 
   const nomeSafe = (nomeImpresa || 'impresa').replace(/[^a-z0-9_\-]/gi,'_');
