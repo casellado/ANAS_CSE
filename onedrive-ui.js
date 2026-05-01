@@ -207,15 +207,22 @@ async function apriPannelloOneDrive() {
         ${nomeCartella ? `<span class="font-normal text-xs ml-2 opacity-75">· ${escapeHtml ? escapeHtml(nomeCartella) : nomeCartella}</span>` : ''}
       </div>
 
-      <!-- Descrizione funzionamento -->
-      <div class="bg-slate-50 rounded-xl p-4 space-y-2 text-xs text-slate-600">
-        <p class="font-semibold text-slate-700">Come funziona:</p>
-        <ul class="space-y-1 list-disc list-inside">
-          <li>Seleziona la cartella OneDrive sincronizzata localmente (es. <code>C:\\OneDrive\\CSE\\</code>)</li>
-          <li>SafeHub salva i dati in file JSON nella sottocartella <code>_safehub\\</code></li>
-          <li>Gli altri tecnici vedono solo i lotti per cui hanno i permessi OneDrive</li>
-          <li>Se OneDrive non è accessibile, SafeHub usa i dati in cache locale</li>
-        </ul>
+      <!-- Procedura Guidata (Wizard) -->
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3 text-xs text-blue-900">
+        <p class="font-bold text-blue-800 text-sm flex items-center gap-1">
+          <span aria-hidden="true">📖</span> Guida alla Configurazione Iniziale
+        </p>
+        <ol class="space-y-2 list-decimal list-inside pl-1">
+          <li>
+            <strong>Prepara la cartella:</strong> Apri l'Esplora Risorse del tuo PC, vai in OneDrive e crea una cartella vuota (es. <code class="bg-white border border-blue-200 px-1.5 py-0.5 rounded text-blue-800 font-mono text-[10px]">ANAS_SafeHub</code>).
+          </li>
+          <li>
+            <strong>Aggancia l'App:</strong> Clicca sul tasto azzurro qui sotto e seleziona la cartella appena creata. Quando Chrome te lo chiede, clicca su <strong>Consenti</strong>.
+          </li>
+          <li>
+            <strong>Automazione:</strong> Finito! L'App prenderà il controllo della cartella, generando da sola tutto l'archivio <strong>TOP ASSOLUTO (D.Lgs 81/08)</strong> per ogni nuovo cantiere.
+          </li>
+        </ol>
       </div>
 
       <!-- Azioni -->

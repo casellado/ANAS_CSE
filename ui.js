@@ -1155,7 +1155,7 @@ function wireUI() {
   el('#btn-load-usb')?.addEventListener('click', () => {
     const input    = document.createElement('input');
     input.type     = 'file';
-    input.accept   = 'application/json';
+    input.accept   = 'application/json,.json';
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;

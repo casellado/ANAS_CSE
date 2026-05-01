@@ -55,6 +55,12 @@
   <script defer src="./navigation.js?v=2.2.4"></script>
   <!-- Foto (senza apertura DB extra) -->
   <script defer src="./foto.js"></script>
+  <!-- ── OneDrive e Moduli Comuni ── -->
+  <script defer src="./storage-onedrive.js?v=2.2.5"></script>
+  <script defer src="./onedrive-ui.js?v=2.2.5"></script>
+  <script defer src="./salvataggio.js?v=2.2.4"></script>
+  <script defer src="./export.js?v=2.2.4"></script>
+  <script defer src="./emergenza.js?v=2.2.5"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
@@ -165,39 +171,49 @@
     <!-- ───── MAIN ───── -->
     <main class="flex-1 flex flex-col overflow-hidden">
 
-      <!-- HEADER -->
-      <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-4 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-3">
+      <!-- HEADER GLOBALE TOPBAR -->
+      <header class="bg-white border-b flex items-center justify-between px-3 py-2 shrink-0 relative z-40"
+        style="border-color:var(--color-border)">
+        <div class="flex items-center gap-2 min-w-0">
           <button id="btn-hamburger" onclick="toggleSidebar()"
-            class="lg:hidden text-slate-500 hover:text-slate-800 focus:outline-none p-2 rounded-lg hover:bg-slate-100 transition"
+            class="lg:hidden topbar-btn text-slate-500"
             aria-label="Menu">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>
           </button>
-          <div>
-            <h1 class="text-xl font-bold text-slate-800">Hub Globale di Coordinamento (CSE)</h1>
-            <p class="text-xs text-slate-500 mt-0.5 hidden sm:block">
-              Offline-first · IndexedDB cache · USB master
-            </p>
-          </div>
+          <h2 id="topbar-title" class="text-lg font-bold text-slate-800 hide-on-mobile truncate">
+            ANAS SafeHub · Hub Cantieri (CSE)
+          </h2>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button id="btn-load-usb" class="flex items-center gap-2 bg-slate-800 text-white text-sm px-3 py-2 rounded-lg
-                         hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
-            aria-label="Carica database da file USB">
-            <span aria-hidden="true">📂</span> Carica da USB
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Pulsante OneDrive -->
+          <button id="btn-onedrive-status" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
+                       bg-slate-700 text-slate-200 hover:bg-slate-600 px-3 py-1.5 rounded-lg
+                       focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
+            aria-label="Gestisci archivio OneDrive">
+            <span id="onedrive-status-icon" aria-hidden="true">🔗</span>
+            <span id="onedrive-status-label" class="hide-on-mobile">OneDrive</span>
           </button>
-          <button onclick="apriPannelloRicerca()" class="flex items-center gap-1.5 bg-indigo-700 text-white text-sm px-3 py-2
-                         rounded-lg hover:bg-indigo-800 focus:outline-none focus:ring-2
-                         focus:ring-indigo-400 transition" aria-label="Apri ricerca normativa AI">
-            <span aria-hidden="true">📚</span> Normativa
+          <!-- Pulsante Numeri di Emergenza -->
+          <button onclick="apriNumeriEmergenza()" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
+                       bg-red-700 text-white hover:bg-red-800 px-3 py-1.5 rounded-lg
+                       focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+            aria-label="Numeri di emergenza cantiere">
+            <span aria-hidden="true">🚨</span>
+            <span class="hide-on-mobile">Emergenza</span>
           </button>
-          <button id="btn-save-usb" class="flex items-center gap-2 bg-green-600 text-white text-sm px-3 py-2 rounded-lg
-                         hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+          <!-- Normativa AI -->
+          <button onclick="apriPannelloRicerca()" class="topbar-btn topbar-btn-indigo" aria-label="Apri ricerca normativa AI">
+            <span aria-hidden="true">🔍</span>
+            <span class="hide-on-mobile">Normativa AI</span>
+          </button>
+          <!-- Salva dati unificato -->
+          <button id="btn-topbar-salvadati" class="topbar-btn topbar-btn-dark"
             aria-label="Salva database su USB">
-            <span aria-hidden="true">💾</span> Salva su USB
+            <span aria-hidden="true">💾</span>
+            <span class="hide-on-mobile">Salva dati</span>
           </button>
         </div>
       </header>
@@ -411,8 +427,29 @@
     </div>
   </footer>
 
-  <!-- ═══════════ PWA + SW REGISTRATION ═══════════ -->
+  <!-- ═══════════ PWA + SW REGISTRATION E TOPBAR WIRING ═══════════ -->
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wiring Salva Dati
+      document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
+        if (typeof mostraPannelloSalvataggio === 'function') {
+          mostraPannelloSalvataggio({
+            titolo: 'Backup Hub Cantieri',
+            onJSON: () => { if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile(); },
+            nascondWord: true
+          });
+        } else if (typeof exportDatabaseToFile === 'function') {
+          exportDatabaseToFile();
+        }
+      });
+      
+      // Pulsante Ricarica OneDrive (MOD-4)
+      document.getElementById('btn-onedrive-ricarica')?.addEventListener('click', async () => {
+        if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
+        if (typeof refreshProjectsGrid === 'function') await refreshProjectsGrid();
+        if (typeof showToast === 'function') showToast('Dati aggiornati da OneDrive ✓', 'success');
+      });
+    });
     // Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

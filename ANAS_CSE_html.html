@@ -371,7 +371,15 @@
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
-          if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile();
+          if (typeof mostraPannelloSalvataggio === 'function') {
+            mostraPannelloSalvataggio({
+              titolo: 'Backup Cantiere / Hub',
+              onJSON: () => { if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile(); },
+              nascondWord: true
+            });
+          } else if (typeof exportDatabaseToFile === 'function') {
+            exportDatabaseToFile();
+          }
         });
 
         // Pulsante Ricarica OneDrive (MOD-4)
