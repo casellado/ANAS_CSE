@@ -134,148 +134,151 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
 
   const logoAnas = imp.logoDestro || imp.logoSinistro;
   const logoAnasHtml = logoAnas
-    ? `<img src="${logoAnas}" style="max-height:45pt; max-width:140pt; object-fit:contain;">`
+    ? `<img src="${logoAnas}" style="max-height:15mm; max-width:25mm; object-fit:contain;">`
     : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
 
   const html = `
-    <!-- INTESTAZIONE MODULO QUALITÀ ANAS -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:12pt; border-bottom:1.5pt solid #0f172a; padding-bottom:6pt;">
-      <tr>
-        <td style="width:33%; border:none; vertical-align:middle; text-align:left;">
-          ${logoAnasHtml}
-        </td>
-        <td style="width:34%; border:none; vertical-align:middle; text-align:center;">
-          <div style="font-size:12pt; font-weight:bold; color:#0f172a; text-transform:uppercase; letter-spacing:0.02em; line-height:1.2;">
-            Riunione di<br>Coordinamento
-          </div>
-        </td>
-        <td style="width:33%; border:none; vertical-align:middle; text-align:right;">
-          <div style="font-size:8.5pt; color:#475569; line-height:1.3;">
-            <strong>Mod. RE. 01-10</strong><br>
-            Vers. 3.0 del 22/01/2024<br>
-            <span style="font-size:7.5pt; font-style:italic;">D.Lgs 81/08</span>
-          </div>
-        </td>
-      </tr>
-    </table>
+    <!-- CONTENITORE LAYOUT INDUSTRIALE DETERMINISTICO -->
+    <div style="width:180mm; min-height:257mm; margin:0 auto; font-family:Arial, sans-serif; box-sizing:border-box; color:#000; font-size:10pt;">
 
-    <!-- DATI CANTIERE -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:8pt;">
-      <tr>
-        <td style="font-size:10pt; padding:3pt 4pt; border:1px solid #ccc;">
-          <strong>S.S.N°</strong> ${escapeHtml(cantiere)}
-        </td>
-        <td style="font-size:10pt; padding:3pt 4pt; border:1px solid #ccc;">
-          <strong>Codice PPM/SIL</strong> ___________________
-        </td>
-      </tr>
-      <tr>
-        <td colspan="2" style="font-size:10pt; padding:3pt 4pt; border:1px solid #ccc;">
-          <strong>Lavoro di</strong> ${escapeHtml(nomeCant || '_______________________________')}
-        </td>
-      </tr>
-      <tr>
-        <td colspan="2" style="font-size:10pt; padding:3pt 4pt; border:1px solid #ccc;">
-          <strong>Contratto n°</strong> _____________ <strong>del</strong> _____________
-        </td>
-      </tr>
-    </table>
-
-    <!-- TABELLA PRESENZE E TIPO RIUNIONE -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:8pt;">
-      <thead>
-        <tr style="background:#f1f5f9;">
-          <th style="width:33%; padding:5pt 6pt; border:1px solid #000; font-size:10pt; text-align:left;">
-            Data riunione: <strong>${data}</strong>
-          </th>
-          <th style="width:33%; padding:5pt 6pt; border:1px solid #000; font-size:10pt;">
-            Presenti ANAS (firma leggibile)
-          </th>
-          <th style="width:34%; padding:5pt 6pt; border:1px solid #000; font-size:10pt;">
-            Imprese presenti (firma leggibile)
-          </th>
-        </tr>
-      </thead>
-      <tbody>
+      <!-- 3) HEADER COMPLETO -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm; border-bottom:1.5pt solid #0f172a;">
         <tr>
-          <td style="padding:5pt 6pt; border:1px solid #000; vertical-align:top;">
-            <div style="font-size:10pt; font-weight:bold; margin-bottom:4pt;">Tipo riunione</div>
-            <table style="border-collapse:collapse;">
-              ${tipiHtml}
-            </table>
+          <td style="width:25mm; height:15mm; vertical-align:middle; text-align:left; padding:0; border:none;">
+            ${logoAnasHtml}
           </td>
-          <td style="padding:5pt 6pt; border:1px solid #000; vertical-align:top; font-size:10pt;">
-            ${righeAnas}
+          <td style="width:95mm; height:15mm; vertical-align:middle; text-align:center; padding:0; border:none;">
+            <div style="font-size:12pt; font-weight:bold; text-transform:uppercase;">
+              Riunione di Coordinamento
+            </div>
           </td>
-          <td style="padding:5pt 6pt; border:1px solid #000; vertical-align:top; font-size:10pt;">
-            ${righeImprese}
+          <td style="width:60mm; height:15mm; vertical-align:middle; text-align:right; padding:0; border:none;">
+            <div style="font-size:9pt; color:#475569; line-height:1.3;">
+              <strong>Mod. RE. 01-10</strong><br>
+              Vers. 3.0 del 22/01/2024<br>
+              <span style="font-size:8pt; font-style:italic;">D.Lgs 81/08</span>
+            </div>
           </td>
         </tr>
-        <tr><td style="height:40pt; border:1px solid #000;"></td>
-            <td style="border:1px solid #000;"></td>
-            <td style="border:1px solid #000;"></td></tr>
-        <tr><td style="height:40pt; border:1px solid #000;"></td>
-            <td style="border:1px solid #000;"></td>
-            <td style="border:1px solid #000;"></td></tr>
-        <tr><td style="height:40pt; border:1px solid #000;"></td>
-            <td style="border:1px solid #000;"></td>
-            <td style="border:1px solid #000;"></td></tr>
-      </tbody>
-    </table>
+      </table>
 
-    <!-- ARGOMENTI DISCUSSI -->
-    <table style="width:100%; border-collapse:collapse; margin-bottom:4pt;">
-      <tr>
-        <th style="padding:5pt 6pt; border:1px solid #000; font-size:10pt;
-                   text-align:left; background:#f1f5f9;">
-          Argomenti Discussi
-        </th>
-      </tr>
-      <tr>
-        <td style="padding:6pt 8pt; border:1px solid #000;">
-          <ul style="margin:0; padding-left:16pt;">
-            ${argHtml}
-            ${argLibHtml}
-          </ul>
-          <div style="margin-top:8pt;">
-            ${Array(10).fill('<div style="border-bottom:1px solid #ccc; height:14pt; margin:3pt 0;"></div>').join('')}
-          </div>
-        </td>
-      </tr>
-      <tr><td style="height:20pt; border:1px solid #000;"></td></tr>
-      <tr>
-        <th style="padding:5pt 6pt; border:1px solid #000; font-size:10pt;
-                   text-align:left; background:#f1f5f9;">
-          Criticità riscontrate ed Osservazioni Emerse
-        </th>
-      </tr>
-      <tr>
-        <td style="padding:6pt 8pt; border:1px solid #000; min-height:60pt; font-size:10pt;">
-          ${critVal ? escapeHtml(critVal).replace(/\n/g,'<br>') : '<div style="height:60pt;"></div>'}
-        </td>
-      </tr>
-      <tr>
-        <th style="padding:5pt 6pt; border:1px solid #000; font-size:10pt;
-                   text-align:left; background:#f1f5f9;">
-          Istruzioni operative e Decisioni Intraprese
-        </th>
-      </tr>
-      <tr>
-        <td style="padding:6pt 8pt; border:1px solid #000; min-height:60pt; font-size:10pt;">
-          ${decVal ? escapeHtml(decVal).replace(/\n/g,'<br>') : '<div style="height:60pt;"></div>'}
-        </td>
-      </tr>
-    </table>
+      <!-- 4) BLOCCO DATI INIZIALI -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr>
+          <td style="width:90mm; border:0.5pt solid #000; padding:4pt 6pt; height:8mm; vertical-align:top;">
+            <strong>S.S. N°:</strong> ${escapeHtml(cantiere)}
+          </td>
+          <td style="width:90mm; border:0.5pt solid #000; padding:4pt 6pt; height:8mm; vertical-align:top;">
+            <strong>Codice PPM/SIL:</strong> ${escapeHtml(imp.posCodicePpm || '___________')}
+          </td>
+        </tr>
+        <tr>
+          <td style="width:90mm; border:0.5pt solid #000; padding:4pt 6pt; height:8mm; vertical-align:top;">
+            <strong>Lavoro di:</strong> ${escapeHtml(nomeCant || '_______________________________')}
+          </td>
+          <td style="width:90mm; border:0.5pt solid #000; padding:4pt 6pt; height:8mm; vertical-align:top;">
+            <strong>Contratto n°:</strong> ___________________________________
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="width:180mm; border:0.5pt solid #000; padding:4pt 6pt; height:8mm; vertical-align:top;">
+            <strong>Data riunione:</strong> ${data}
+          </td>
+        </tr>
+      </table>
 
-    <!-- FIRMA CSE -->
-    <div style="margin-top:24pt; text-align:center;">
-      <div style="font-size:10pt; font-weight:bold;">Il Coordinatore per la Sicurezza in fase di Esecuzione</div>
-      <div style="margin-top:4pt; font-size:10pt;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</div>
-      <div style="width:220pt; height:50pt; border:1px solid #94a3b8;
-                  margin:6pt auto 0; border-radius:3pt;"></div>
-      <div style="font-size:9pt; color:#64748b; margin-top:2pt;">
-        ${escapeHtml(imp.riuTecnicoQualifica || imp.firmaQualifica || 'Coordinatore per la Sicurezza in Esecuzione (CSE)')}
-      </div>
+      <!-- 5 & 6) TIPO RIUNIONE (CHECKLIST) E FIRME PRESENTI -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <thead>
+          <tr style="background:#f1f5f9;">
+            <th style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+              Tipo Riunione
+            </th>
+            <th style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+              Presenti ANAS
+            </th>
+            <th style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+              Imprese Presenti
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; vertical-align:top;">
+              <table style="width:100%; border-collapse:collapse;">
+                ${tipiHtml}
+              </table>
+            </td>
+            <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; vertical-align:top; font-size:9pt;">
+              ${righeAnas || '<br><br><br><br>'}
+            </td>
+            <td style="width:60mm; border:0.5pt solid #000; padding:4pt 6pt; vertical-align:top; font-size:9pt;">
+              ${righeImprese || '<br><br><br><br>'}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 7) ARGOMENTI DISCUSSI -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr style="background:#f1f5f9;">
+          <th style="width:180mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+            Argomenti Discussi
+          </th>
+        </tr>
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; vertical-align:top;">
+            <ul style="margin:0; padding-left:14mm; font-size:9pt; line-height:1.4;">
+              ${argHtml}
+              ${argLibHtml}
+            </ul>
+            ${Array(4).fill('<div style="border-bottom:0.5pt solid #ccc; height:16pt;"></div>').join('')}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 8) CRITICITÀ -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr style="background:#f1f5f9;">
+          <th style="width:180mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+            Criticità riscontrate ed Osservazioni Emerse
+          </th>
+        </tr>
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; height:25mm; vertical-align:top; font-size:9pt; line-height:1.4;">
+            ${critVal ? escapeHtml(critVal).replace(/\n/g,'<br>') : '<div style="height:15mm;"></div>'}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 9) DECISIONI -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr style="background:#f1f5f9;">
+          <th style="width:180mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+            Istruzioni operative e Decisioni Intraprese
+          </th>
+        </tr>
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; height:25mm; vertical-align:top; font-size:9pt; line-height:1.4;">
+            ${decVal ? escapeHtml(decVal).replace(/\n/g,'<br>') : '<div style="height:15mm;"></div>'}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 10) FIRMA FINALE -->
+      <table style="width:100%; border-collapse:collapse;">
+        <tr>
+          <td style="width:90mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">
+            <strong>Il Coordinatore per la Sicurezza (CSE)</strong><br><br><br><br>
+            <span>__________________________</span><br>
+            <span style="font-size:8pt; color:#475569;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</span>
+          </td>
+          <td style="width:90mm; border:none; padding:4pt 0; text-align:right; vertical-align:top; font-size:9pt;">
+            &nbsp;
+          </td>
+        </tr>
+      </table>
+
     </div>
   `;
 
