@@ -2,7 +2,7 @@
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Geom. Dogano Casella — ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v2.2.5';
+const CACHE_NAME = 'anas-safehub-v2.2.7';
 
 const CACHE_STATIC = [
   './',
@@ -55,6 +55,7 @@ const CACHE_STATIC = [
   './ods-inviati.js',
   './ods-ricevuti.js',
   './ai-assistente.js',
+  './emergenza.js',
   // OneDrive Livello 2 (v2.0 → v2.2)
   './storage-onedrive.js',
   './onedrive-ui.js',
@@ -104,7 +105,6 @@ self.addEventListener('fetch', event => {
   const request = event.request;
 
   // ▸ IGNORA richieste non-GET (POST, PUT, etc.)
-  //   Le richieste POST (es. API Gemini) non possono essere cachate.
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
@@ -120,7 +120,11 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => {
+          const cached = await caches.match(request, { ignoreSearch: true });
+          if (cached) return cached;
+          return new Response('Network error on db', { status: 408 });
+        })
     );
     return;
   }
@@ -136,14 +140,16 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => {
+          const cached = await caches.match(request, { ignoreSearch: true });
+          if (cached) return cached;
+          return new Response('Network error on external asset', { status: 408 });
+        })
     );
     return;
   }
 
   // ▸ File statici dell'app → Network-first (deploy sempre fresco)
-  //   Se la rete risponde, aggiorna la cache e serve fresco.
-  //   Se offline, serve dalla cache.
   event.respondWith(
     fetch(request)
       .then(res => {
@@ -153,7 +159,11 @@ self.addEventListener('fetch', event => {
         }
         return res;
       })
-      .catch(() => caches.match(request))
+      .catch(async () => {
+        const cached = await caches.match(request, { ignoreSearch: true });
+        if (cached) return cached;
+        return new Response('Offline and not cached', { status: 408 });
+      })
   );
 });
 
