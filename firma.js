@@ -113,7 +113,7 @@ function _initFirmaCanvas(firmaId, onSave) {
   const canvas = document.getElementById(firmaId);
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   // MOD-23: High-DPI / Retina Support
   const ratio = window.devicePixelRatio || 1;
@@ -326,7 +326,7 @@ function caricaFirmaSuCanvas(containerId, base64PNG) {
   const canvas = container.querySelector('canvas');
   if (!canvas) return false;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const img = new Image();
   img.onload = () => {
     // Pulisce e ridisegna la firma centrata

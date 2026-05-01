@@ -841,7 +841,7 @@ function _initFirmaPersistenteCanvas() {
   // Init canvas drawing
   var canvas = document.getElementById('firma-persist-canvas');
   if (!canvas) return;
-  var ctx = canvas.getContext('2d');
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   var ratio = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
