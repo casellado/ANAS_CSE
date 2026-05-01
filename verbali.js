@@ -61,6 +61,23 @@ async function salvaVerbale(event) {
 
   await saveItem('verbali', verbale);
 
+  // Archiviazione automatica PDF del verbale in OneDrive o download locale
+  try {
+    if (typeof generaVerbalePDFBlob === 'function' && typeof salvaDocumento === 'function') {
+      const pdfBlob = await generaVerbalePDFBlob(verbale);
+      const filename = `Verbale_${verbale.data.replace(/\//g, '-')}_${verbale.id.slice(-4)}.pdf`;
+      await salvaDocumento({
+        filename,
+        blob: pdfBlob,
+        cantiereId: verbale.projectId,
+        tipoDoc: 'verbale-sopralluogo',
+        titoloCondivisione: `Verbale di Sopralluogo cantiere ${verbale.projectId} del ${verbale.data}`
+      });
+    }
+  } catch (err) {
+    console.warn('[Verbale] Errore archiviazione PDF automatica:', err);
+  }
+
   // Genera NC automatica se selezionato livello
   const livelloNC    = document.getElementById('livello-nc')?.value      || '';
   const descrizioneNC = document.getElementById('descrizione-nc')?.value || '';

@@ -8,13 +8,6 @@ const IMPOSTAZIONI_KEY = 'impostazioni_verbale';
 
 // Valori di default
 const IMPOSTAZIONI_DEFAULT = {
-  // Intestazione sinistra (studio / ufficio CSE)
-  studioNome: 'Studio Tecnico Geom. Dogano Casella',
-  studioIndirizzo: 'Via Roma, 1 — 00100 Roma (RM)',
-  studioTel: '+39 06 0000000',
-  studioPEC: 'dogano.casella@pec.it',
-  studioEmail: 'info@studiocasella.it',
-
   // Intestazione destra (committente)
   committenteNome: 'ANAS SpA',
   committenteContrat: '',   // es. "Contratto rep. n. 1234/2024"
@@ -44,6 +37,24 @@ const IMPOSTAZIONI_DEFAULT = {
   // il canvas firma in ogni verbale, evitando di ri-firmare ogni volta.
   // Il CSE è sempre lo stesso, la firma è sempre la stessa.
   firmaImmagine: null,
+
+  // Modello Qualità ANAS Mod. RE. 01-5 (Verifica POS)
+  posTecnicoNome: '',
+  posTecnicoQualifica: '',
+  posTecnicoAlbo: '',
+  posRup: '',
+  posDl: '',
+  posCUP: '',
+  posCIG: '',
+  posCommessa: '',
+  posStruttura: '',
+  posCodicePpm: '',
+
+  // Modello Qualità ANAS Mod. RE. 01-10 (Riunione di Coordinamento)
+  riuTecnicoNome: '',
+  riuTecnicoQualifica: '',
+  riuRup: '',
+  riuDl: ''
 };
 
 // ─────────────────────────────────────────────
@@ -90,185 +101,208 @@ async function renderViewImpostazioni(containerId) {
   container.innerHTML = `
     <div class="max-w-3xl space-y-6">
 
-      <!-- ── LOGHI ── -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
-        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          🖼️ Loghi (intestazione verbale PDF)
-        </h4>
+      <!-- Tabs Selector -->
+      <div class="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 gap-2 overflow-x-auto select-none" role="tablist">
+        <button onclick="switchImpostazioniTab('mod-pos')" id="tab-btn-mod-pos"
+                class="tab-btn-active flex-1 py-2 text-xs font-bold text-center rounded-lg transition px-3 select-none outline-none focus:outline-none">
+          📋 Mod. RE. 01-5 (POS)
+        </button>
+        <button onclick="switchImpostazioniTab('mod-riu')" id="tab-btn-mod-riu"
+                class="tab-btn-inactive flex-1 py-2 text-xs font-bold text-center rounded-lg transition px-3 select-none outline-none focus:outline-none">
+          📋 Mod. RE. 01-10 (Riunioni)
+        </button>
+        <button onclick="switchImpostazioniTab('dati-anas')" id="tab-btn-dati-anas"
+                class="tab-btn-inactive flex-1 py-2 text-xs font-bold text-center rounded-lg transition px-3 select-none outline-none focus:outline-none">
+          🏢 Logo e Dati di Base
+        </button>
+      </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <style>
+        .tab-btn-active {
+          background: #0f172a;
+          color: #ffffff;
+          box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+        .tab-btn-inactive {
+          background: transparent;
+          color: #64748b;
+        }
+        .tab-btn-inactive:hover {
+          background: #f8fafc;
+          color: #1e293b;
+        }
+      </style>
 
-          <!-- Logo Sinistro (Studio / CSE) -->
-          <div>
-            <div class="text-xs font-semibold text-slate-600 mb-2">
-              Logo Sinistro — Studio / CSE
+      <!-- ── CONTENUTI TABS ── -->
+
+      <!-- TAB 1: MODELLO POS (01-5) -->
+      <div id="tab-content-mod-pos" class="space-y-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
+              📂 Configurazione Modello Qualità ANAS Mod. RE. 01-5 (Verifica POS)
+            </h4>
+            <button onclick="exportPOSWord(null, 'anteprima')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs focus:outline-none transition">
+              👁️ Anteprima di Stampa
+            </button>
+          </div>
+          <p class="text-xs text-slate-500">
+            Imposta i parametri esatti per i tecnici incaricati e i riferimenti che cambiano da un cantiere ad un altro per questo specifico modello di verbale.
+          </p>
+
+          <div class="space-y-3 pt-2">
+            <h5 class="text-xs font-bold text-slate-600 uppercase border-b pb-1">Tecnici Firmatari</h5>
+            ${_campo('posTecnicoNome', 'Nome CSE / Tecnico Firmatario', imp.posTecnicoNome, 'Es. Geom. Dogano Casella')}
+            ${_campo('posTecnicoQualifica', 'Qualifica Tecnico', imp.posTecnicoQualifica, 'Es. Coordinatore per l\'Esecuzione')}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${_campo('posRup', 'Responsabile dei Lavori / R.U.P.', imp.posRup, 'Es. Ing. Mario Verdi')}
+              ${_campo('posDl', 'Direttore Lavori (D.L.)', imp.posDl, 'Es. Ing. Lucia Bianchi')}
             </div>
-            <div id="preview-logo-sx"
-                 class="w-full h-20 border-2 border-dashed border-slate-300 rounded-xl
-                        flex items-center justify-center bg-slate-50 mb-2 overflow-hidden">
-              ${imp.logoSinistro
-      ? `<img src="${imp.logoSinistro}" class="max-h-16 max-w-full object-contain" alt="Logo sinistro">`
-      : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
+          </div>
+
+          <div class="space-y-3 pt-3">
+            <h5 class="text-xs font-bold text-slate-600 uppercase border-b pb-1">Metadati di Commessa</h5>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              ${_campo('posCUP', 'CUP', imp.posCUP, 'Es. C123456789')}
+              ${_campo('posCIG', 'CIG', imp.posCIG, 'Es. Z123456789')}
+              ${_campo('posCommessa', 'Commessa', imp.posCommessa, 'Es. COMM_01')}
             </div>
-            <div class="flex gap-2">
-              <label class="cursor-pointer flex-1">
-                <input type="file" accept="image/*" id="input-logo-sx" class="hidden"
-                       onchange="aggiornaLogo('sx', this)" />
-                <div class="text-xs text-center bg-slate-800 text-white px-3 py-1.5 rounded-lg
-                            hover:bg-slate-700 transition cursor-pointer">
-                  📁 Carica logo
-                </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${_campo('posStruttura', 'Struttura Territoriale', imp.posStruttura, 'Es. Struttura Territoriale Calabria')}
+              ${_campo('posCodicePpm', 'Codice PPM/SIL/OdA', imp.posCodicePpm, 'Es. OdA n. 123/2024')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MODELLO RIUNIONE (01-10) -->
+      <div id="tab-content-mod-riu" class="space-y-4 hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
+              📂 Configurazione Modello Qualità ANAS Mod. RE. 01-10 (Riunioni di Coordinamento)
+            </h4>
+            <button onclick="exportRiunioneWord(null, 'anteprima')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs focus:outline-none transition">
+              👁️ Anteprima di Stampa
+            </button>
+          </div>
+          <p class="text-xs text-slate-500">
+            Imposta i tecnici, i responsabili e i relativi incarichi da riportare automaticamente nel Mod. RE. 01-10.
+          </p>
+
+          <div class="space-y-3 pt-2">
+            ${_campo('riuTecnicoNome', 'Nome CSE / Tecnico Firmatario', imp.riuTecnicoNome, 'Es. Geom. Dogano Casella')}
+            ${_campo('riuTecnicoQualifica', 'Qualifica Tecnico', imp.riuTecnicoQualifica, 'Es. Coordinatore della Sicurezza')}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${_campo('riuRup', 'R.U.P.', imp.riuRup, 'Es. Ing. Mario Verdi')}
+              ${_campo('riuDl', 'D.L.', imp.riuDl, 'Es. Ing. Lucia Bianchi')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: DATI DI BASE ANAS -->
+      <div id="tab-content-dati-anas" class="space-y-4 hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
+            🏢 Logo e Dati Generali ANAS
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
+            <!-- Logo Destro (ANAS / Committente) -->
+            <div>
+              <div class="text-xs font-semibold text-slate-600 mb-2">
+                Logo Ufficiale ANAS
+              </div>
+              <div id="preview-logo-dx"
+                   class="w-full h-20 border-2 border-dashed border-slate-300 rounded-xl
+                          flex items-center justify-center bg-slate-50 mb-2 overflow-hidden">
+                ${imp.logoDestro
+        ? `<img src="${imp.logoDestro}" class="max-h-16 max-w-full object-contain" alt="Logo ANAS">`
+        : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
+              </div>
+              <div class="flex gap-2">
+                <label class="cursor-pointer flex-1">
+                  <input type="file" accept="image/*" id="input-logo-dx" class="hidden"
+                         onchange="aggiornaLogo('dx', this)" />
+                  <div class="text-xs text-center bg-slate-800 text-white px-3 py-1.5 rounded-lg
+                              hover:bg-slate-700 transition cursor-pointer">
+                    📁 Carica logo
+                  </div>
+                </label>
+                <button onclick="rimuoviLogo('dx')"
+                        class="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700
+                               hover:bg-red-200 focus:outline-none">
+                  Rimuovi
+                </button>
+              </div>
+              <div class="text-xs text-slate-400 mt-1">PNG, JPG · max 2MB</div>
+            </div>
+
+            <!-- Metadati Generali -->
+            <div class="space-y-3">
+              ${_campo('committenteNome', 'Nome Committente', imp.committenteNome || 'ANAS SpA', 'Es. ANAS SpA')}
+              ${_campo('committenteContrat', 'Contratto / Rep.', imp.committenteContrat, 'Es. Contratto rep. n. 1234/2024')}
+              ${_campo('cantiereDescrizione', 'Oggetto Lavori', imp.cantiereDescrizione, 'Es. Manutenzione programmata SS 106')}
+            </div>
+          </div>
+
+          <div class="border-t border-slate-200 pt-3 space-y-3">
+            <h5 class="text-xs font-bold text-slate-600 uppercase border-b pb-1">Firma del Tecnico & Footer</h5>
+            ${_campo('firmaNome', 'Nome Tecnico Principale', imp.firmaNome, 'Es. Geom. Dogano Casella')}
+            ${_campo('firmaQualifica', 'Qualifica Tecnico Principale', imp.firmaQualifica, 'Es. Coordinatore della Sicurezza')}
+
+            <!-- ── Firma persistente (P2) ── -->
+            <div class="border-t border-slate-200 pt-3 mt-2">
+              <label class="text-xs font-semibold text-slate-600 block mb-2">
+                Firma digitale persistente
               </label>
-              <button onclick="rimuoviLogo('sx')"
-                      class="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700
-                             hover:bg-red-200 focus:outline-none">
-                Rimuovi
-              </button>
-            </div>
-            <div class="text-xs text-slate-400 mt-1">PNG, JPG · max 2MB</div>
-          </div>
-
-          <!-- Logo Destro (ANAS / Committente) -->
-          <div>
-            <div class="text-xs font-semibold text-slate-600 mb-2">
-              Logo Destro — ANAS / Committente
-            </div>
-            <div id="preview-logo-dx"
-                 class="w-full h-20 border-2 border-dashed border-slate-300 rounded-xl
-                        flex items-center justify-center bg-slate-50 mb-2 overflow-hidden">
-              ${imp.logoDestro
-      ? `<img src="${imp.logoDestro}" class="max-h-16 max-w-full object-contain" alt="Logo destro">`
-      : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
-            </div>
-            <div class="flex gap-2">
-              <label class="cursor-pointer flex-1">
-                <input type="file" accept="image/*" id="input-logo-dx" class="hidden"
-                       onchange="aggiornaLogo('dx', this)" />
-                <div class="text-xs text-center bg-slate-800 text-white px-3 py-1.5 rounded-lg
-                            hover:bg-slate-700 transition cursor-pointer">
-                  📁 Carica logo
+              <div class="text-xs text-slate-500 mb-2">
+                Carica la tua firma una volta sola. Verrà applicata automaticamente a ogni verbale
+                (puoi sempre sostituirla nel singolo verbale se necessario).
+              </div>
+              <div class="flex items-start gap-3 flex-wrap">
+                <div id="firma-persistente-preview"
+                     class="w-48 h-20 border-2 border-dashed border-slate-300 rounded-lg
+                            flex items-center justify-center bg-slate-50 shrink-0">
+                  ${imp.firmaImmagine
+          ? `<img src="${imp.firmaImmagine}" class="max-h-16 max-w-full object-contain" alt="Firma persistente" />`
+          : `<span class="text-xs text-slate-400">Nessuna firma</span>`}
                 </div>
-              </label>
-              <button onclick="rimuoviLogo('dx')"
-                      class="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700
-                             hover:bg-red-200 focus:outline-none">
-                Rimuovi
-              </button>
+                <div class="flex flex-col gap-2">
+                  <button onclick="apriPannelloCreaFirma()"
+                          class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg
+                                 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          aria-label="Crea o aggiorna la firma persistente">
+                    ✍️ Crea/Aggiorna firma
+                  </button>
+                  ${imp.firmaImmagine ? `
+                    <button onclick="rimuoviFirmaPersistente()"
+                            class="text-xs bg-red-100 text-red-700 border border-red-300 px-3 py-1.5 rounded-lg
+                                   hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+                            aria-label="Rimuovi firma persistente">
+                      🗑️ Rimuovi firma
+                    </button>` : ''}
+                </div>
+              </div>
             </div>
-            <div class="text-xs text-slate-400 mt-1">PNG, JPG · max 2MB</div>
-          </div>
 
-        </div>
-      </div>
-
-      <!-- ── DATI STUDIO / CSE ── -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
-        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          🏢 Dati Studio / CSE (intestazione sinistra)
-        </h4>
-
-        ${_campo('studioNome', 'Studio / Ragione Sociale', imp.studioNome, 'Es. Studio Tecnico Geom. Dogano Casella')}
-        ${_campo('studioIndirizzo', 'Indirizzo', imp.studioIndirizzo, 'Es. Via Roma, 1 — 00100 Roma (RM)')}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          ${_campo('studioTel', 'Telefono', imp.studioTel, 'Es. +39 06 0000000')}
-          ${_campo('studioEmail', 'Email', imp.studioEmail, 'Es. info@studiocasella.it')}
-        </div>
-        ${_campo('studioPEC', 'PEC', imp.studioPEC, 'Es. dogano.casella@pec.it')}
-      </div>
-
-      <!-- ── COMMITTENTE ── -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
-        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          🏛️ Committente (intestazione destra)
-        </h4>
-
-        ${_campo('committenteNome', 'Nome Committente', imp.committenteNome, 'Es. ANAS SpA')}
-        ${_campo('committenteContrat', 'Contratto / Rep.', imp.committenteContrat, 'Es. Contratto rep. n. 1234/2024')}
-      </div>
-
-      <!-- ── CANTIERE CORRENTE ── -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
-        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          🚧 Dati Cantiere (pre-compilazione)
-        </h4>
-
-        ${_campo('cantiereDescrizione', 'Oggetto Lavori', imp.cantiereDescrizione, 'Es. Manutenzione programmata SS 106 Jonica')}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          ${_campo('rup', 'R.U.P.', imp.rup, 'Es. Ing. Mario Verdi')}
-          ${_campo('dl', 'Direttore Lavori (D.L.)', imp.dl, 'Es. Ing. Lucia Bianchi')}
-        </div>
-      </div>
-
-      <!-- ── FIRMA ── -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
-        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          ✍️ Dati Firma CSE
-        </h4>
-
-        ${_campo('firmaNome', 'Nome Completo', imp.firmaNome, 'Es. Geom. Dogano Casella')}
-        ${_campo('firmaQualifica', 'Qualifica', imp.firmaQualifica, 'Es. Coordinatore per la Sicurezza in Esecuzione (CSE)')}
-        ${_campo('firmaAlbo', 'Iscrizione Albo', imp.firmaAlbo, 'Es. Albo Geometri Prov. RM — n. 12345')}
-
-        <!-- ── Firma persistente (P2) ── -->
-        <div class="border-t border-slate-200 pt-3 mt-2">
-          <label class="text-xs font-semibold text-slate-600 block mb-2">
-            Firma digitale persistente
-          </label>
-          <div class="text-xs text-slate-500 mb-2">
-            Carica la tua firma una volta sola. Verrà applicata automaticamente a ogni verbale
-            (puoi sempre sostituirla nel singolo verbale se necessario).
-          </div>
-          <div class="flex items-start gap-3 flex-wrap">
-            <div id="firma-persistente-preview"
-                 class="w-48 h-20 border-2 border-dashed border-slate-300 rounded-lg
-                        flex items-center justify-center bg-slate-50 shrink-0">
-              ${imp.firmaImmagine
-      ? `<img src="${imp.firmaImmagine}" class="max-h-16 max-w-full object-contain" alt="Firma persistente" />`
-      : `<span class="text-xs text-slate-400">Nessuna firma</span>`}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${_campo('footerSinistro', 'Piè di pagina sinistro PDF', imp.footerSinistro, 'Es. Coordinatore Sicurezza — CSE')}
+              ${_campo('footerDestro', 'Piè di pagina destro PDF', imp.footerDestro, 'Es. Uso interno ANAS SpA')}
             </div>
-            <div class="flex flex-col gap-2">
-              <button onclick="apriPannelloCreaFirma()"
-                      class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg
-                             hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      aria-label="Crea o aggiorna la firma persistente">
-                ✍️ Crea/Aggiorna firma
-              </button>
-              ${imp.firmaImmagine ? `
-                <button onclick="rimuoviFirmaPersistente()"
-                        class="text-xs bg-red-100 text-red-700 border border-red-300 px-3 py-1.5 rounded-lg
-                               hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-400"
-                        aria-label="Rimuovi firma persistente">
-                  🗑️ Rimuovi firma
-                </button>` : ''}
-            </div>
+            ${_campo('normativa', 'Riferimenti normativi', imp.normativa, 'Es. D.Lgs 81/2008 · D.I. 22/01/2019')}
           </div>
         </div>
       </div>
 
-      <!-- ── FOOTER PDF ── -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
-        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          📄 Footer del Verbale PDF
-        </h4>
-
-        ${_campo('footerSinistro', 'Testo piè di pagina sinistro', imp.footerSinistro, 'Es. Geom. Dogano Casella — CSE')}
-        ${_campo('footerDestro', 'Testo piè di pagina destro', imp.footerDestro, 'Es. Documento riservato — uso interno ANAS SpA')}
-        ${_campo('normativa', 'Riferimenti normativi', imp.normativa, 'Es. D.Lgs 81/2008 · D.I. 22/01/2019')}
-      </div>
-
-      <!-- ── AZIONI ── -->
+      <!-- ── AZIONI UNIFICATE ── -->
       <div class="flex flex-wrap gap-3">
         <button id="btn-salva-imp" onclick="salvaImpostazioniUI()"
                 class="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold
                        hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
                 aria-label="Salva tutte le impostazioni">
           ✅ Salva Impostazioni
-        </button>
-        <button id="btn-anteprima-verbale" onclick="anteprimaVerbale()"
-                class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                aria-label="Apri anteprima verbale PDF con le impostazioni correnti">
-          👁️ Anteprima Verbale
         </button>
         <button id="btn-ripristina-imp" onclick="ripristinaDefault()"
                 class="bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold
@@ -324,6 +358,22 @@ async function aggiornaLogo(lato, input) {
   showToast('Logo aggiornato ✓', 'success');
 }
 
+function switchImpostazioniTab(tab) {
+  const tabs = ['mod-pos', 'mod-riu', 'dati-anas'];
+  tabs.forEach(t => {
+    const btn = document.getElementById('tab-btn-' + t);
+    const content = document.getElementById('tab-content-' + t);
+    if (btn) {
+      btn.classList.toggle('tab-btn-active', t === tab);
+      btn.classList.toggle('tab-btn-inactive', t !== tab);
+    }
+    if (content) {
+      content.classList.toggle('hidden', t !== tab);
+    }
+  });
+}
+
+
 // ─────────────────────────────────────────────
 // 6. Rimuovi logo
 // ─────────────────────────────────────────────
@@ -345,11 +395,12 @@ async function salvaImpostazioniUI() {
   const imp = await caricaImpostazioni(); // mantieni loghi
 
   const campi = [
-    'studioNome', 'studioIndirizzo', 'studioTel', 'studioPEC', 'studioEmail',
     'committenteNome', 'committenteContrat',
     'cantiereDescrizione', 'rup', 'dl',
     'firmaNome', 'firmaQualifica', 'firmaAlbo',
-    'footerSinistro', 'footerDestro', 'normativa'
+    'footerSinistro', 'footerDestro', 'normativa',
+    'posTecnicoNome', 'posTecnicoQualifica', 'posTecnicoAlbo', 'posRup', 'posDl', 'posCUP', 'posCIG', 'posCommessa', 'posStruttura', 'posCodicePpm',
+    'riuTecnicoNome', 'riuTecnicoQualifica', 'riuRup', 'riuDl'
   ];
 
   try {

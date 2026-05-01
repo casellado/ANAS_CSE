@@ -76,7 +76,7 @@ async function salvaRiunione(event) {
 // 2. Export Word — Mod.RE.01-10
 //    Usa scaricaComeWord() da salvataggio.js
 // ─────────────────────────────────────────────
-async function exportRiunioneWord(riunioneId) {
+async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
   const verbali = await getAll('verbali').catch(() => []);
   const r = riunioneId
     ? verbali.find(x => x.id === riunioneId)
@@ -132,16 +132,32 @@ async function exportRiunioneWord(riunioneId) {
   const righeAnas    = _generaRigheFirma(pAnasVal,    3);
   const righeImprese = _generaRigheFirma(pImpVal,     3);
 
+  const logoAnas = imp.logoDestro || imp.logoSinistro;
+  const logoAnasHtml = logoAnas
+    ? `<img src="${logoAnas}" style="max-height:45pt; max-width:140pt; object-fit:contain;">`
+    : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
+
   const html = `
-    <!-- INTESTAZIONE ANAS -->
-    <div class="intestazione">
-      <h1 style="font-size:13pt; margin:0; text-align:center;">
-        RIUNIONE DI COORDINAMENTO
-      </h1>
-      <div style="font-size:9pt; color:#64748b; text-align:center; margin-top:2pt;">
-        Mod.RE.01-10 · Vers. 3.0 del 22/01/2024 · D.Lgs 81/08
-      </div>
-    </div>
+    <!-- INTESTAZIONE MODULO QUALITÀ ANAS -->
+    <table style="width:100%; border-collapse:collapse; margin-bottom:12pt; border-bottom:1.5pt solid #0f172a; padding-bottom:6pt;">
+      <tr>
+        <td style="width:33%; border:none; vertical-align:middle; text-align:left;">
+          ${logoAnasHtml}
+        </td>
+        <td style="width:34%; border:none; vertical-align:middle; text-align:center;">
+          <div style="font-size:12pt; font-weight:bold; color:#0f172a; text-transform:uppercase; letter-spacing:0.02em; line-height:1.2;">
+            Riunione di<br>Coordinamento
+          </div>
+        </td>
+        <td style="width:33%; border:none; vertical-align:middle; text-align:right;">
+          <div style="font-size:8.5pt; color:#475569; line-height:1.3;">
+            <strong>Mod. RE. 01-10</strong><br>
+            Vers. 3.0 del 22/01/2024<br>
+            <span style="font-size:7.5pt; font-style:italic;">D.Lgs 81/08</span>
+          </div>
+        </td>
+      </tr>
+    </table>
 
     <!-- DATI CANTIERE -->
     <table style="width:100%; border-collapse:collapse; margin-bottom:8pt;">
@@ -254,17 +270,54 @@ async function exportRiunioneWord(riunioneId) {
     <!-- FIRMA CSE -->
     <div style="margin-top:24pt; text-align:center;">
       <div style="font-size:10pt; font-weight:bold;">Il Coordinatore per la Sicurezza in fase di Esecuzione</div>
-      <div style="margin-top:4pt; font-size:10pt;">${escapeHtml(imp.firmaNome || 'Geom. Dogano Casella')}</div>
+      <div style="margin-top:4pt; font-size:10pt;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</div>
       <div style="width:220pt; height:50pt; border:1px solid #94a3b8;
                   margin:6pt auto 0; border-radius:3pt;"></div>
       <div style="font-size:9pt; color:#64748b; margin-top:2pt;">
-        ${escapeHtml(imp.firmaQualifica || 'Coordinatore per la Sicurezza in Esecuzione (CSE)')}
+        ${escapeHtml(imp.riuTecnicoQualifica || imp.firmaQualifica || 'Coordinatore per la Sicurezza in Esecuzione (CSE)')}
       </div>
     </div>
   `;
 
   const nomeCantSafe = (cantiere || '').replace(/[^a-z0-9_\-]/gi,'_');
   const dataSafe     = data.replace(/\//g,'-');
+
+  if (tipoExport === 'anteprima') {
+    const win = window.open('', '_blank');
+    if (!win) {
+      showToast('Popup bloccato — abilita i popup per la stampa.', 'warning');
+      return;
+    }
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="it">
+      <head>
+        <meta charset="UTF-8">
+        <title>Anteprima Riunione Coordinamento — ${cantiere || ''}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 11pt; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12pt; }
+          td, th { border: 1px solid #0f172a; padding: 6pt 8pt; vertical-align: top; }
+          @media print {
+            body { padding: 0; margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 12px;">
+          <button onclick="window.print()" style="padding: 8px 16px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🖨️ Stampa Verbale
+          </button>
+        </div>
+        ${html}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    return;
+  }
+
   if (typeof scaricaComeWord === 'function') {
     scaricaComeWord(html, `Riunione_Coordinamento_${nomeCantSafe}_${dataSafe}`);
   } else {

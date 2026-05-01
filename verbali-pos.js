@@ -50,7 +50,7 @@ async function salvaVerificaPOS(event) {
 // ─────────────────────────────────────────────
 // 2. Export Word — Mod.RE.01-5
 // ─────────────────────────────────────────────
-async function exportPOSWord(posId) {
+async function exportPOSWord(posId, tipoExport = 'word') {
   const verbali = await getAll('verbali').catch(() => []);
   const p = posId ? verbali.find(x => x.id === posId) : null;
 
@@ -62,7 +62,7 @@ async function exportPOSWord(posId) {
   const pecImpresa  = p?.pecImpresa  || (document.getElementById('pos-pec')?.value    || '').trim();
   const esito       = p?.esito       || document.querySelector('input[name="pos-esito"]:checked')?.value || '';
   const integrazioni= p?.integrazioni|| (document.getElementById('pos-integrazioni')?.value || '').trim();
-  const cse         = p?.cse         || imp.firmaNome || 'Geom. Dogano Casella';
+  const cse         = p?.cse         || imp.posTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella';
 
   const data = p?.data
     ? new Date(p.data).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'})
@@ -81,40 +81,55 @@ async function exportPOSWord(posId) {
 
   function chk(val) { return val ? '☑' : '☐'; }
 
+  const logoAnas = imp.logoDestro || imp.logoSinistro;
+  const logoAnasHtml = logoAnas
+    ? `<img src="${logoAnas}" style="max-height:45pt; max-width:140pt; object-fit:contain;">`
+    : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
+
   const html = `
-    <!-- INTESTAZIONE ANAS -->
-    <div class="intestazione">
-      <h1 style="font-size:13pt; margin:0; text-align:center;">
-        VERIFICA PIANO OPERATIVO DI SICUREZZA
-      </h1>
-      <div style="font-size:9pt; color:#64748b; text-align:center; margin-top:2pt;">
-        Ai sensi dell'art. 92 c.1 lett. b) del D.Lgs 81/08 ·
-        Mod.RE.01-5 · Vers. 3.0 del 22/01/2024
-      </div>
-    </div>
+    <!-- INTESTAZIONE MODULO QUALITÀ ANAS -->
+    <table style="width:100%; border-collapse:collapse; margin-bottom:12pt; border-bottom:1.5pt solid #0f172a; padding-bottom:6pt;">
+      <tr>
+        <td style="width:33%; border:none; vertical-align:middle; text-align:left;">
+          ${logoAnasHtml}
+        </td>
+        <td style="width:34%; border:none; vertical-align:middle; text-align:center;">
+          <div style="font-size:12pt; font-weight:bold; color:#0f172a; text-transform:uppercase; letter-spacing:0.02em; line-height:1.2;">
+            Verifica Piano Operativo<br>di Sicurezza
+          </div>
+        </td>
+        <td style="width:33%; border:none; vertical-align:middle; text-align:right;">
+          <div style="font-size:8.5pt; color:#475569; line-height:1.3;">
+            <strong>Mod. RE. 01-5</strong><br>
+            Vers. 3.0 del 22/01/2024<br>
+            <span style="font-size:7.5pt; font-style:italic;">Ai sensi dell'art. 92 c.1 lett. b) D.Lgs 81/08</span>
+          </div>
+        </td>
+      </tr>
+    </table>
 
     <!-- TABELLA RIFERIMENTI CANTIERE -->
     <table style="width:100%; border-collapse:collapse; margin-bottom:6pt;">
       <tr>
         <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>PPM/SIL/OdA</strong><br>___________
+          <strong>PPM/SIL/OdA</strong><br>${escapeHtml(imp.posCodicePpm || '___________')}
         </td>
         <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>Commessa</strong><br>___________
+          <strong>Commessa</strong><br>${escapeHtml(imp.posCommessa || '___________')}
         </td>
         <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
           <strong>Protocollo</strong><br>___________
         </td>
         <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>CUP</strong><br>___________
+          <strong>CUP</strong><br>${escapeHtml(imp.posCUP || '___________')}
         </td>
         <td style="border:1px solid #000; padding:4pt 6pt; font-size:10pt; width:20%;">
-          <strong>CIG</strong><br>___________
+          <strong>CIG</strong><br>${escapeHtml(imp.posCIG || '___________')}
         </td>
       </tr>
       <tr>
         <td colspan="5" style="border:1px solid #000; padding:4pt 6pt; font-size:10pt;">
-          ___________
+          ${escapeHtml(imp.posStruttura || '___________')}
         </td>
       </tr>
     </table>
@@ -238,31 +253,39 @@ async function exportPOSWord(posId) {
 
     </table>
 
-    <!-- FIRME -->
-    <table style="width:100%; border-collapse:collapse; margin-top:24pt;">
+    <!-- FIRME PERFETTAMENTE ALLINEATE -->
+    <table style="width:100%; border-collapse:collapse; margin-top:24pt; page-break-inside:avoid;">
       <tr>
-        <td style="width:33%; border:none; text-align:center; vertical-align:top; padding:0 8pt;">
-          <div style="font-size:10pt; font-weight:bold;">Il Coordinatore per l'Esecuzione</div>
-          <div style="width:180pt; height:50pt; border:1px solid #94a3b8;
-                      margin:6pt auto 0; border-radius:3pt;"></div>
-          <div style="font-size:10pt; margin-top:4pt;">(${escapeHtml(cse)})</div>
-        </td>
-        <td style="width:33%; border:none; text-align:center; vertical-align:top; padding:0 8pt;">
-          <div style="font-size:10pt; font-weight:bold;">Visto:</div>
-          <div style="font-size:10pt; font-weight:bold;">Il Responsabile dei Lavori</div>
-          <div style="width:180pt; height:50pt; border:1px solid #94a3b8;
-                      margin:6pt auto 0; border-radius:3pt;"></div>
-          <div style="font-size:10pt; margin-top:4pt;">(${escapeHtml(imp.rup || '_______________________')})</div>
-        </td>
-        <td style="width:34%; border:none; text-align:center; vertical-align:top; padding:0 8pt;">
-          <div style="font-size:10pt; font-weight:bold;">Visto:</div>
-          <div style="font-size:10pt; font-weight:bold; font-style:italic;">
-            Il Responsabile della Struttura Territoriale/
+        <td style="width:33%; border:none; text-align:center; vertical-align:bottom; padding:0 6pt; height:42pt;">
+          <div style="font-size:10pt; font-weight:bold; line-height:1.2;">
+            Il Coordinatore per l'Esecuzione<br>&nbsp;
           </div>
-          <div style="font-size:9pt; color:#64748b;">(se figura diversa da RL)</div>
-          <div style="width:180pt; height:50pt; border:1px solid #94a3b8;
-                      margin:6pt auto 0; border-radius:3pt;"></div>
-          <div style="font-size:10pt; margin-top:4pt;">(______________________)</div>
+        </td>
+        <td style="width:33%; border:none; text-align:center; vertical-align:bottom; padding:0 6pt; height:42pt;">
+          <div style="font-size:10pt; font-weight:bold; line-height:1.2;">
+            Visto:<br>Il Responsabile dei Lavori
+          </div>
+        </td>
+        <td style="width:34%; border:none; text-align:center; vertical-align:bottom; padding:0 6pt; height:42pt;">
+          <div style="font-size:10pt; font-weight:bold; line-height:1.2;">
+            Visto:<br>
+            <span style="font-style:italic;">Il Responsabile della Struttura Territoriale</span><br>
+            <span style="font-size:8pt; color:#64748b; font-weight:normal;">(se figura diversa da RL)</span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="width:33%; border:none; text-align:center; vertical-align:top; padding:4pt 6pt 0;">
+          <div style="width:165pt; height:55pt; border:1px solid #94a3b8; margin:0 auto; border-radius:3pt;"></div>
+          <div style="font-size:9.5pt; margin-top:4pt;">(${escapeHtml(cse)})</div>
+        </td>
+        <td style="width:33%; border:none; text-align:center; vertical-align:top; padding:4pt 6pt 0;">
+          <div style="width:165pt; height:55pt; border:1px solid #94a3b8; margin:0 auto; border-radius:3pt;"></div>
+          <div style="font-size:9.5pt; margin-top:4pt;">(${escapeHtml(imp.posRup || imp.rup || '_______________________')})</div>
+        </td>
+        <td style="width:34%; border:none; text-align:center; vertical-align:top; padding:4pt 6pt 0;">
+          <div style="width:165pt; height:55pt; border:1px solid #94a3b8; margin:0 auto; border-radius:3pt;"></div>
+          <div style="font-size:9.5pt; margin-top:4pt;">(______________________)</div>
         </td>
       </tr>
     </table>
@@ -270,6 +293,43 @@ async function exportPOSWord(posId) {
 
   const nomeSafe = (nomeImpresa || 'impresa').replace(/[^a-z0-9_\-]/gi,'_');
   const dataSafe = data.replace(/\//g,'-');
+
+  if (tipoExport === 'anteprima') {
+    const win = window.open('', '_blank');
+    if (!win) {
+      showToast('Popup bloccato — abilita i popup per la stampa.', 'warning');
+      return;
+    }
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="it">
+      <head>
+        <meta charset="UTF-8">
+        <title>Anteprima Verifica POS — ${nomeImpresa || ''}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 11pt; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12pt; }
+          td, th { border: 1px solid #0f172a; padding: 6pt 8pt; vertical-align: top; }
+          @media print {
+            body { padding: 0; margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 12px;">
+          <button onclick="window.print()" style="padding: 8px 16px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🖨️ Stampa Verbale
+          </button>
+        </div>
+        ${html}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    return;
+  }
+
   if (typeof scaricaComeWord === 'function') {
     scaricaComeWord(html, `Verifica_POS_${nomeSafe}_${dataSafe}`);
   } else {
