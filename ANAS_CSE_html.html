@@ -89,6 +89,8 @@
   <script defer src="./storage-onedrive.js?v=2.2.5"></script>
   <script defer src="./onedrive-ui.js?v=2.2.5"></script>
   <script defer src="./migrazione-onedrive.js?v=2.2.5"></script>
+  <!-- ── Numeri Emergenza ── -->
+  <script defer src="./emergenza.js?v=2.2.5"></script>
   <style>
     /* ── MOBILE SIDEBAR OVERLAY ── */
     #sidebar-overlay {
@@ -334,6 +336,14 @@
           aria-label="Gestisci archivio OneDrive">
           <span id="onedrive-status-icon" aria-hidden="true">🔗</span>
           <span id="onedrive-status-label" class="hide-on-mobile">OneDrive</span>
+        </button>
+        <!-- Pulsante Numeri di Emergenza -->
+        <button onclick="apriNumeriEmergenza()" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
+                     bg-red-700 text-white hover:bg-red-800 px-3 py-1.5 rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+          aria-label="Numeri di emergenza cantiere">
+          <span aria-hidden="true">🚨</span>
+          <span class="hide-on-mobile">Emergenza</span>
         </button>
         <!-- Pulsante Ricarica — visibile solo quando OneDrive è attivo (MOD-4) -->
         <button id="btn-onedrive-ricarica" class="hidden topbar-btn topbar-btn-indigo"
