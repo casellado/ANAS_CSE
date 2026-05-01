@@ -64,7 +64,13 @@ const JS_FILES = [
   'ods-ricevuti.js',
   'report-giornaliero.js',
   'salva-file.js',
-  'scorciatoie.js'
+  'scorciatoie.js',
+  // Moduli OneDrive e Novità
+  'storage-onedrive.js',
+  'onedrive-ui.js',
+  'migrazione-onedrive.js',
+  'emergenza.js',
+  'lettera-segnalazione-rup.js'
   // NOTA: sw.js NON va offuscato — il browser lo richiede leggibile per il Service Worker
 ];
 
