@@ -327,6 +327,33 @@ async function renderDettaglioVerbale(containerId) {
 
       </div>
 
+      <div class="bg-slate-50 p-4 rounded-lg sm:col-span-2 border border-slate-200">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-200 pb-2">
+          <div class="text-xs text-slate-500 font-bold uppercase tracking-wide">📎 Allegati e Foto Collegate</div>
+          <div class="flex gap-2">
+            <button onclick="if(typeof aggiungiFotoEntita === 'function') aggiungiFotoEntita('verbale', '${v.id}', 'verbale-foto-${v.id}')"
+                    class="text-xs bg-slate-200 text-slate-700 hover:bg-slate-300 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1">
+              📷 Scatta Foto
+            </button>
+            <button onclick="if(typeof collegaDocumentoDaSelettore === 'function') collegaDocumentoDaSelettore('verbale', '${v.id}')"
+                    class="text-xs bg-slate-200 text-slate-700 hover:bg-slate-300 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1">
+              📄 Collega Doc
+            </button>
+          </div>
+        </div>
+        
+        <!-- Contenitore Foto -->
+        <div id="verbale-foto-${v.id}" class="flex flex-wrap gap-2 mb-3">
+          <!-- Popolato dinamicamente -->
+        </div>
+
+        <!-- Contenitore Documenti -->
+        <div id="verbale-allegati-${v.id}" class="space-y-2">
+          <!-- Popolato dinamicamente da renderDocumentiCollegati -->
+          <p class="text-xs text-slate-400 italic">Caricamento allegati...</p>
+        </div>
+      </div>
+
       <div class="flex flex-wrap gap-3 pt-2">
         <button onclick="window.location.href='dashboard-cantiere.html'"
                 class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold
@@ -347,6 +374,19 @@ async function renderDettaglioVerbale(containerId) {
 
     </div>
   `;
+
+  // Renderizza i documenti collegati appena il DOM è aggiornato
+  setTimeout(() => {
+    if (typeof renderDocumentiCollegati === 'function') {
+      renderDocumentiCollegati(`verbale-allegati-${v.id}`, 'verbale', v.id);
+    } else {
+      document.getElementById(`verbale-allegati-${v.id}`).innerHTML = '<p class="text-xs text-red-400">Modulo collegamenti non disponibile.</p>';
+    }
+    
+    if (typeof renderFotoEntita === 'function') {
+      renderFotoEntita(`verbale-foto-${v.id}`, 'verbale', v.id);
+    }
+  }, 50);
 }
 
 // ─────────────────────────────────────────────

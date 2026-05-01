@@ -372,14 +372,75 @@ async function salvaFotoSuUSB(blob, nome = 'foto.jpg') {
 }
 
 // ─────────────────────────────────────────────
-// 8. Aggiungi foto a una NC (chiamata dalla UI)
+// 8. Aggiungi foto a Entità (NC, Verbali, ecc.)
 // ─────────────────────────────────────────────
 function aggiungiFotoANC(ncId, containerId) {
+  // Mantengo questa per retrocompatibilità NC
+  aggiungiFotoEntita('nc', ncId, containerId);
+}
+
+function aggiungiFotoEntita(tipo, rifId, containerId) {
   selezionaFoto(async (blob) => {
-    await salvaFotoNC(ncId, blob);
-    await renderFotoNC(containerId, ncId);
+    if (tipo === 'nc') {
+      await salvaFotoNC(rifId, blob);
+    } else {
+      // Usa salvaFotoGenerica (salva su IndexedDB senza logic OneDrive cablata per NC)
+      const fotoId = 'foto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      const data   = new Date().toISOString();
+      const foto = { id: fotoId, [tipo + 'Id']: rifId, rifId: rifId, tipo, data, blob };
+      await saveItem('foto', foto);
+    }
+    
+    // Aggiorna l'interfaccia
+    if (tipo === 'nc') {
+      await renderFotoNC(containerId, rifId);
+    } else {
+      await renderFotoEntita(containerId, tipo, rifId);
+    }
+    
     showToast('Foto allegata correttamente ✓', 'success');
   });
+}
+
+// Rendering foto generiche collegate a una entità
+async function renderFotoEntita(containerId, tipo, rifId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  let foto = [];
+  try {
+    const tutte = await getAll('foto');
+    // Filtro per tipo e rifId (o fallback per property dinamica come verbaleId)
+    foto = tutte.filter(f => f.rifId === rifId || f[tipo + 'Id'] === rifId);
+  } catch (_) {
+    container.innerHTML = '<p class="text-xs text-slate-400">Impossibile caricare le foto.</p>';
+    return;
+  }
+
+  if (foto.length === 0) {
+    container.innerHTML = '<p class="text-xs text-slate-400 italic">Nessuna foto allegata.</p>';
+    return;
+  }
+
+  if (container._blobUrls && Array.isArray(container._blobUrls)) {
+    container._blobUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch(_){} });
+  }
+  container._blobUrls = [];
+
+  container.innerHTML = foto.map(f => {
+    const url = URL.createObjectURL(f.blob);
+    container._blobUrls.push(url);
+    return `
+      <div class="inline-block relative group">
+        <img src="${url}"
+             class="w-28 h-28 object-cover rounded-lg shadow border border-slate-200 cursor-pointer
+                    hover:opacity-90 transition"
+             alt="Foto ${tipo} del ${new Date(f.data).toLocaleDateString('it-IT')}"
+             loading="lazy"
+             onclick="apriLightbox('${url}')" />
+      </div>
+    `;
+  }).join('');
 }
 
 // ─────────────────────────────────────────────

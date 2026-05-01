@@ -452,53 +452,64 @@ async function leggiAudit(ultimi = 20, filtroLotto = null) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const OD_STRUTTURA_LOTTO = [
-  '01_Documenti_Fondamentali/PSC',
-  '01_Documenti_Fondamentali/POS',
-  '01_Documenti_Fondamentali/DURC',
-  '01_Documenti_Fondamentali/Nomina_CSE',
-  '01_Documenti_Fondamentali/Notifica_Preliminare',
-  '01_Documenti_Fondamentali/Contratto_Affidamento',
-  '01_Documenti_Fondamentali/Iscrizione_CCIAA',
-  '01_Documenti_Fondamentali/Elenco_Lavoratori',
-  '01_Documenti_Fondamentali/DUVRI',
-  '01_Documenti_Fondamentali/Autorizzazioni_ANAS',
-  '02_Verbali/Sopralluogo',
-  '02_Verbali/Riunioni_Coordinamento',
-  '02_Verbali/Verifica_POS',
-  '03_Non_Conformita/Aperte',
-  '03_Non_Conformita/Chiuse',
-  '03_Non_Conformita/Foto',
-  '04_ODS/Ricevuti',
-  '04_ODS/Inviati',
-  '05_Lettere_Sospensione',
-  '06_Diario_Giornaliero',
-  '99_Altri_Documenti'
+  '01_Nomine_e_Documenti_Fase_Progettuale/01_Notifica_Preliminare_e_Aggiornamenti',
+  '01_Nomine_e_Documenti_Fase_Progettuale/02_Nomine_e_Incarichi',
+  '01_Nomine_e_Documenti_Fase_Progettuale/03_PSC_e_Allegati_Grafici',
+  '01_Nomine_e_Documenti_Fase_Progettuale/04_Fascicolo_Opera',
+  '01_Nomine_e_Documenti_Fase_Progettuale/05_Contratti_di_Affidamento_ANAS',
+  '01_Nomine_e_Documenti_Fase_Progettuale/06_Autorizzazioni_e_Permessi',
+
+  '02_Idoneita_Tecnico_Professionale_Imprese/01_POS_e_Verifiche_CSE',
+  '02_Idoneita_Tecnico_Professionale_Imprese/02_DURC_Imprese',
+  '02_Idoneita_Tecnico_Professionale_Imprese/03_Visure_CCIAA',
+  '02_Idoneita_Tecnico_Professionale_Imprese/04_Elenco_Lavoratori_e_Formazione',
+  '02_Idoneita_Tecnico_Professionale_Imprese/05_DUVRI',
+
+  '03_Verbali_e_Coordinamento/01_Sopralluoghi_di_Cantiere',
+  '03_Verbali_e_Coordinamento/02_Riunioni_di_Coordinamento',
+  '03_Verbali_e_Coordinamento/03_Diario_di_Cantiere_CSE',
+
+  '04_Criticita_e_Provvedimenti/01_Non_Conformita_Aperte',
+  '04_Criticita_e_Provvedimenti/02_Non_Conformita_Chiuse',
+  '04_Criticita_e_Provvedimenti/03_Report_Fotografici_Criticita',
+  '04_Criticita_e_Provvedimenti/04_Lettere_di_Sospensione_Lavori',
+  '04_Criticita_e_Provvedimenti/05_Segnalazioni_al_RUP_e_Enti_Vigilanza',
+
+  '05_Comunicazioni_e_Ordini_di_Servizio/01_ODS_Inviati_dal_CSE',
+  '05_Comunicazioni_e_Ordini_di_Servizio/02_ODS_Ricevuti_da_ANAS_e_DL',
+
+  '99_Archivio_e_Altri_Documenti/Allegati_Vari'
 ];
 
 /** Mappatura tipo documento → sottocartella fisica */
 const OD_MAPPA_SOTTOCARTELLE = {
-  'verbale-sopralluogo':               '02_Verbali/Sopralluogo',
-  'riunione':                          '02_Verbali/Riunioni_Coordinamento',
-  'pos':                               '02_Verbali/Verifica_POS',
-  'nc':                                '03_Non_Conformita/Aperte',
-  'nc-chiusa':                         '03_Non_Conformita/Chiuse',
-  'foto-nc':                           '03_Non_Conformita/Foto',
-  'ods-ricevuto':                      '04_ODS/Ricevuti',
-  'ods-inviato':                       '04_ODS/Inviati',
-  'sospensione':                       '05_Lettere_Sospensione',
-  'report-giornaliero':                '06_Diario_Giornaliero',
-  'fondamentale-psc':                  '01_Documenti_Fondamentali/PSC',
-  'fondamentale-pos':                  '01_Documenti_Fondamentali/POS',
-  'fondamentale-durc':                 '01_Documenti_Fondamentali/DURC',
-  'fondamentale-notifica-preliminare': '01_Documenti_Fondamentali/Notifica_Preliminare',
-  'fondamentale-nomina-cse':           '01_Documenti_Fondamentali/Nomina_CSE',
-  'fondamentale-contratto-affidamento':'01_Documenti_Fondamentali/Contratto_Affidamento',
-  'fondamentale-iscrizione-cciaa':     '01_Documenti_Fondamentali/Iscrizione_CCIAA',
-  'fondamentale-elenco-lavoratori':    '01_Documenti_Fondamentali/Elenco_Lavoratori',
-  'fondamentale-duvri':                '01_Documenti_Fondamentali/DUVRI',
-  'fondamentale-autorizzazioni':       '01_Documenti_Fondamentali/Autorizzazioni_ANAS',
-  'documento':                         '99_Altri_Documenti',
-  'generico':                          '99_Altri_Documenti'
+  'fondamentale-psc':                  '01_Nomine_e_Documenti_Fase_Progettuale/03_PSC_e_Allegati_Grafici',
+  'fondamentale-pos':                  '02_Idoneita_Tecnico_Professionale_Imprese/01_POS_e_Verifiche_CSE',
+  'fondamentale-durc':                 '02_Idoneita_Tecnico_Professionale_Imprese/02_DURC_Imprese',
+  'fondamentale-notifica-preliminare': '01_Nomine_e_Documenti_Fase_Progettuale/01_Notifica_Preliminare_e_Aggiornamenti',
+  'fondamentale-nomina-cse':           '01_Nomine_e_Documenti_Fase_Progettuale/02_Nomine_e_Incarichi',
+  'fondamentale-contratto-affidamento':'01_Nomine_e_Documenti_Fase_Progettuale/05_Contratti_di_Affidamento_ANAS',
+  'fondamentale-iscrizione-cciaa':     '02_Idoneita_Tecnico_Professionale_Imprese/03_Visure_CCIAA',
+  'fondamentale-elenco-lavoratori':    '02_Idoneita_Tecnico_Professionale_Imprese/04_Elenco_Lavoratori_e_Formazione',
+  'fondamentale-duvri':                '02_Idoneita_Tecnico_Professionale_Imprese/05_DUVRI',
+  'fondamentale-autorizzazioni':       '01_Nomine_e_Documenti_Fase_Progettuale/06_Autorizzazioni_e_Permessi',
+
+  'verbale-sopralluogo':               '03_Verbali_e_Coordinamento/01_Sopralluoghi_di_Cantiere',
+  'riunione':                          '03_Verbali_e_Coordinamento/02_Riunioni_di_Coordinamento',
+  'pos':                               '02_Idoneita_Tecnico_Professionale_Imprese/01_POS_e_Verifiche_CSE',
+  'report-giornaliero':                '03_Verbali_e_Coordinamento/03_Diario_di_Cantiere_CSE',
+
+  'nc':                                '04_Criticita_e_Provvedimenti/01_Non_Conformita_Aperte',
+  'nc-chiusa':                         '04_Criticita_e_Provvedimenti/02_Non_Conformita_Chiuse',
+  'foto-nc':                           '04_Criticita_e_Provvedimenti/03_Report_Fotografici_Criticita',
+  'sospensione':                       '04_Criticita_e_Provvedimenti/04_Lettere_di_Sospensione_Lavori',
+  'segnalazione-rup':                  '04_Criticita_e_Provvedimenti/05_Segnalazioni_al_RUP_e_Enti_Vigilanza',
+
+  'ods-ricevuto':                      '05_Comunicazioni_e_Ordini_di_Servizio/02_ODS_Ricevuti_da_ANAS_e_DL',
+  'ods-inviato':                       '05_Comunicazioni_e_Ordini_di_Servizio/01_ODS_Inviati_dal_CSE',
+
+  'documento':                         '99_Archivio_e_Altri_Documenti/Allegati_Vari',
+  'generico':                          '99_Archivio_e_Altri_Documenti/Allegati_Vari'
 };
 
 /**
