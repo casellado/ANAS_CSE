@@ -2,72 +2,15 @@
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Geom. Dogano Casella — ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v2.2.7';
+const CACHE_NAME = 'anas-safehub-v2.2.8';
 
 const CACHE_STATIC = [
   './',
   './index.html',
   './ANAS_CSE_html.html',
-  './dashboard-cantiere.html',
-  './impresa-dettaglio.html',
-  './lavoratore-dettaglio.html',
-  './verbale-dettaglio.html',
-  // JS core
-  './db.js',
-  './storage.js',
-  './ui.js',
-  './app.js',
-  './navigation.js',
-  './foto.js',
-  './firma.js',
-  './impostazioni.js',
-  './salvataggio.js',
-  './email.js',
-  './verbali-riunione.js',
-  './verbali-pos.js',
-  './smart-memory.js',
-  './ricerca-normativa.js',
-  './salva-file.js',
-  './scorciatoie.js',
-  './report-giornaliero.js',
-  './lettera-sospensione.js',
-  './lettera-segnalazione-rup.js',
-  // JS moduli
-  './nc.js',
-  './nc-foto-dashboard.js',
-  './verbali.js',
-  './verbali-list.js',
-  './imprese-list.js',
-  './imprese-assegnazione.js',
-  './lavoratori.js',
-  './dashboard-cantiere.js',
-  './dashboard-docs.js',
-  './ui-dashboard.js',
-  './documenti-indexeddb.js',
-  './documenti.js',
-  './documenti-preview.js',
-  './documenti-collegamento.js',
-  './documenti-popup.js',
-  './documenti-imprese-lavoratori.js',
-  './documenti-fondamentali.js',
-  './scadenze-documenti.js',
-  './export.js',
-  './ods-inviati.js',
-  './ods-ricevuti.js',
-  './ai-assistente.js',
-  './emergenza.js',
-  // OneDrive Livello 2 (v2.0 → v2.2)
-  './storage-onedrive.js',
-  './onedrive-ui.js',
-  './migrazione-onedrive.js',
-  // CSS
-  './animazioni.css',
-  './mobile.css',
-  // Icone PWA
+  './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  // Manifest
-  './manifest.json'
+  './icon-512.png'
 ];
 
 // ── INSTALL: precache file statici (resiliente — singoli file) ──
