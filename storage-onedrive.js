@@ -25,6 +25,19 @@ let _odSafehubDir   = null;   // handle di _safehub/
 
 // Cache in-memory (timestamp → evita rilettura se file non cambiato)
 const _odCache = new Map();   // key: 'Lotto_XXX' | 'registro' | 'imprese' → { data, mtime }
+const OD_CACHE_MAX = 20;      // max lotti in cache (eviction LRU)
+
+/** Inserisce un valore in cache con eviction LRU */
+function _odCacheSet(key, value) {
+  // Se la chiave esiste già, cancellala per ri-inserirla in coda (LRU)
+  _odCache.delete(key);
+  // Se la cache è piena, rimuovi il primo elemento (il più vecchio)
+  if (_odCache.size >= OD_CACHE_MAX) {
+    var firstKey = _odCache.keys().next().value;
+    _odCache.delete(firstKey);
+  }
+  _odCache.set(key, value);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. RILEVAMENTO SUPPORTO BROWSER
@@ -202,12 +215,23 @@ async function _leggiFile(dirHandle, nomeFile) {
   return f.text();
 }
 
-/** Scrive testo in un file (sovrascrive) */
+/** Scrive testo in un file (sovrascrive) — scrittura atomica con gestione errori */
 async function _scriviFile(dirHandle, nomeFile, testo) {
-  const fh       = await dirHandle.getFileHandle(nomeFile, { create: true });
-  const writable = await fh.createWritable();
-  await writable.write(testo);
-  await writable.close();
+  var fh = await dirHandle.getFileHandle(nomeFile, { create: true });
+  var writable = null;
+  try {
+    writable = await fh.createWritable();
+    await writable.write(testo);
+    await writable.close();
+    writable = null; // segnala chiusura riuscita
+  } catch (err) {
+    // Se il writable è ancora aperto, prova ad abortire per non lasciare il file troncato
+    if (writable) {
+      try { await writable.abort(); } catch (_) { /* best effort */ }
+    }
+    console.error('[OneDrive] Errore scrittura file ' + nomeFile + ':', err);
+    throw new Error('Scrittura fallita su ' + nomeFile + ': ' + err.message);
+  }
 }
 
 /** Legge e fa il parse di un JSON da una dir handle */
@@ -292,7 +316,7 @@ async function leggiLotto(lottoId) {
 
     const testo = await file.text();
     const data  = JSON.parse(testo);
-    _odCache.set(lottoId, { data, mtime });
+    _odCacheSet(lottoId, { data, mtime });
     return data;
   } catch (e) {
     if (e.name === 'NotFoundError') {
@@ -369,7 +393,7 @@ async function leggiImprese() {
   const dir = await _getOrCreateSafehubDir();
   if (!dir) return [];
   const data = await _leggiJSON(dir, OD_IMPRESE);
-  return data?.imprese || [];
+  return (data && data.imprese) ? data.imprese : [];
 }
 
 async function salvaImprese(elenco) {

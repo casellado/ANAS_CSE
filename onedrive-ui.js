@@ -51,7 +51,7 @@ async function aggiornaStatoOneDriveUI() {
   } else {
     // Controlla se c'è un handle salvato ma senza permesso
     const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
-    const handle = imp?.onedrive_folder_handle;
+    const handle = imp && imp.onedrive_folder_handle;
 
     if (handle && typeof handle.queryPermission === 'function') {
       // Handle presente ma permesso non concesso (cartella spostata o prompt)
@@ -105,7 +105,7 @@ async function _verificaBannerNomeTecnico() {
   if (!attivo) { _rimuoviBannerNome(); return; }
 
   const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
-  const nome = (imp?.firmaNome || '').trim();
+  const nome = ((imp && imp.firmaNome) || '').trim();
 
   if (!nome) {
     _mostraBannerNome();
@@ -130,7 +130,7 @@ function _mostraBannerNome() {
       </button>
       per identificare le tue modifiche nel registro condiviso.
     </span>
-    <button onclick="document.getElementById('banner-nome-tecnico')?.remove()"
+    <button onclick="var el = document.getElementById('banner-nome-tecnico'); if(el) el.remove();"
             class="ml-4 text-amber-600 hover:text-amber-800 font-bold focus:outline-none"
             aria-label="Chiudi avviso">✕</button>
   `;
@@ -141,7 +141,8 @@ function _mostraBannerNome() {
 }
 
 function _rimuoviBannerNome() {
-  document.getElementById('banner-nome-tecnico')?.remove();
+  var bannerEl = document.getElementById('banner-nome-tecnico');
+  if (bannerEl) bannerEl.remove();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,7 +155,7 @@ async function apriPannelloOneDrive() {
 
   const attivo = await isArchivioOneDriveAttivo();
   const imp    = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
-  const handle = imp?.onedrive_folder_handle;
+  const handle = imp && imp.onedrive_folder_handle;
 
   // Determina stato
   let statoLabel = '';
@@ -163,11 +164,11 @@ async function apriPannelloOneDrive() {
   let permPending  = false;
 
   if (attivo) {
-    nomeCartella = handle?.name || '(cartella configurata)';
+    nomeCartella = (handle && handle.name) || '(cartella configurata)';
     statoLabel   = '☁️ Connesso';
     statoClass   = 'text-sky-700 bg-sky-50 border border-sky-200';
   } else if (handle) {
-    nomeCartella = handle?.name || '(cartella non accessibile)';
+    nomeCartella = (handle && handle.name) || '(cartella non accessibile)';
     statoLabel   = '⚠️ Richiede accesso';
     statoClass   = 'text-amber-700 bg-amber-50 border border-amber-200';
     permPending  = true;
@@ -256,7 +257,8 @@ async function apriPannelloOneDrive() {
 
   // Event listeners
   if (permPending) {
-    modal.querySelector('#btn-od-concedi-accesso')?.addEventListener('click', async () => {
+    var btnConcedi = modal.querySelector('#btn-od-concedi-accesso');
+    if (btnConcedi) btnConcedi.addEventListener('click', async () => {
       modal.remove();
       const ok = await richiediPermessoOneDrive();
       if (ok) {
@@ -270,7 +272,8 @@ async function apriPannelloOneDrive() {
     });
   }
 
-  modal.querySelector('#btn-od-configura')?.addEventListener('click', async () => {
+  var btnConfigura = modal.querySelector('#btn-od-configura');
+  if (btnConfigura) btnConfigura.addEventListener('click', async () => {
     modal.remove();
     const ok = await configuraArchivioOneDrive();
     if (ok) {
@@ -280,7 +283,8 @@ async function apriPannelloOneDrive() {
     await aggiornaStatoOneDriveUI();
   });
 
-  modal.querySelector('#btn-od-disconnetti')?.addEventListener('click', async () => {
+  var btnDisconnetti = modal.querySelector('#btn-od-disconnetti');
+  if (btnDisconnetti) btnDisconnetti.addEventListener('click', async () => {
     if (confirm('Disconnettere OneDrive?\n\nI dati rimangono nella cache locale e nella cartella OneDrive. Puoi riconnetterti quando vuoi.')) {
       modal.remove();
       await disconnettiArchivioOneDrive();
@@ -311,10 +315,10 @@ function mostraModalConflittoSync(lottoId, datiLocali, datiRemoti, onSovrascrivi
   const existing = document.getElementById('modal-conflitto-sync');
   if (existing) existing.remove();
 
-  const remotoTime = datiRemoti?.updatedAt
+  const remotoTime = (datiRemoti && datiRemoti.updatedAt)
     ? new Date(datiRemoti.updatedAt).toLocaleString('it-IT')
     : 'data sconosciuta';
-  const remotoBy   = datiRemoti?.updatedBy || 'altro tecnico';
+  const remotoBy   = (datiRemoti && datiRemoti.updatedBy) || 'altro tecnico';
 
   const modal = document.createElement('div');
   modal.id        = 'modal-conflitto-sync';
@@ -376,7 +380,7 @@ function mostraModalConflittoSync(lottoId, datiLocali, datiRemoti, onSovrascrivi
   });
 
   // Focus sul bottone "Annulla" per default (scelta più sicura)
-  setTimeout(() => modal.querySelector('#btn-conflitto-annulla')?.focus(), 50);
+  setTimeout(function() { var b = modal.querySelector('#btn-conflitto-annulla'); if (b) b.focus(); }, 50);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -448,7 +452,7 @@ let _toastModificheEsterne = null;
  */
 function mostraToastModificheEsterne(onRicarica) {
   // Rimuovi eventuale toast precedente dello stesso tipo
-  _toastModificheEsterne?.remove();
+  if (_toastModificheEsterne) _toastModificheEsterne.remove();
 
   const toast = document.createElement('div');
   toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 z-[9980] ' +

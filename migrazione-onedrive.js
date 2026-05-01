@@ -43,11 +43,11 @@ async function _contaItemLocali() {
 
   for (const s of stores) {
     try {
-      // Usa _dbGetAll (funzione IndexedDB pura, bypassa il router OneDrive)
-      const fn    = typeof _dbGetAll === 'function' ? _dbGetAll : (typeof getAll === 'function' ? getAll : null);
+      // Usa window.__origGetAll (funzione IndexedDB pura, bypassa il router OneDrive)
+      var fn = window.__origGetAll || (typeof getAll === 'function' ? getAll : null);
       const items = fn ? await fn(s) : [];
       // Conta solo item senza _source: 'onedrive' (item realmente locali)
-      conteggi[s] = items.filter(x => x._source !== 'onedrive').length;
+      conteggi[s] = items.filter(function(x) { return x._source !== 'onedrive'; }).length;
     } catch (_) {
       conteggi[s] = 0;
     }
@@ -147,7 +147,7 @@ function _mostraModalMigrazione(conteggi, totale) {
   });
 
   // Focus primo bottone
-  setTimeout(() => modal.querySelector('#btn-migr-tutti')?.focus(), 50);
+  setTimeout(function() { var b = modal.querySelector('#btn-migr-tutti'); if (b) b.focus(); }, 50);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,8 +159,8 @@ async function _migrazioneCompleta() {
 
   try {
     // Legge tutti i dati locali (bypassa il router)
-    const fn       = typeof _dbGetAll === 'function' ? _dbGetAll : getAll;
-    const projects = (await fn('projects')).filter(x => x._source !== 'onedrive');
+    var fn = window.__origGetAll || getAll;
+    const projects = (await fn('projects')).filter(function(x) { return x._source !== 'onedrive'; });
 
     let migrati = 0;
     let errori  = 0;
@@ -207,7 +207,7 @@ async function _migrazioneCompleta() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _migraLotto(project, fn) {
-  if (!project?.id) return;
+  if (!project || !project.id) return;
 
   // Salva il cantiere nel registro OneDrive
   await aggiornaRegistroLotti({
@@ -310,8 +310,8 @@ async function _migraImprese(fn) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _mostraModalSelezioneLotti() {
-  const fn       = typeof _dbGetAll === 'function' ? _dbGetAll : getAll;
-  const projects = (await fn('projects')).filter(x => x._source !== 'onedrive');
+  var fn = window.__origGetAll || getAll;
+  const projects = (await fn('projects')).filter(function(x) { return x._source !== 'onedrive'; });
 
   if (projects.length === 0) {
     showToast('Nessun cantiere locale da migrare.', 'info');
@@ -426,5 +426,6 @@ function _aggiornaProgressoMigrazione(id, messaggio) {
 }
 
 function _rimuoviProgressoMigrazione(id) {
-  document.getElementById(id)?.remove();
+  var el = document.getElementById(id);
+  if (el) el.remove();
 }

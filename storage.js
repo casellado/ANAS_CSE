@@ -74,10 +74,10 @@ async function _getNomeTecnicoRouter() {
   try {
     if (typeof caricaImpostazioni === 'function') {
       const imp = await caricaImpostazioni();
-      return imp?.firmaNome     // primario
-          || imp?.nomeTecnico   // futuro
-          || imp?.nome          // generico
-          || imp?.studioNome    // fallback studio
+      return (imp && imp.firmaNome)     // primario
+          || (imp && imp.nomeTecnico)   // futuro
+          || (imp && imp.nome)          // generico
+          || (imp && imp.studioNome)    // fallback studio
           || 'Sconosciuto';
     }
   } catch (_) {}
@@ -88,14 +88,17 @@ async function _getNomeTecnicoRouter() {
 // MOD-24: SYNC MANAGER (OFFLINE-FIRST)
 // ─────────────────────────────────────────────────────────────────────────────
 
+const SYNC_MAX_RETRIES = 3;
+
 /** Aggiunge un'operazione fallita alla coda di sincronizzazione */
 async function addToSyncQueue(action, storeName, item) {
   const syncItem = {
-    id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    id: 'sync_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     action,    // 'save' | 'delete'
     storeName,
     data: item,
     status: 'pending',
+    retries: 0,
     createdAt: new Date().toISOString()
   };
   
@@ -114,38 +117,62 @@ async function processSyncQueue() {
   
   try {
     const queue = await _getAllLocal('sync_queue');
-    const pending = queue.filter(q => q.status === 'pending');
+    const pending = queue.filter(function(q) { return q.status === 'pending'; });
     
     if (pending.length === 0) return;
     
-    console.info(`[SyncManager] Avvio sincronizzazione di ${pending.length} operazioni...`);
-    showToast(`☁️ Sincronizzazione di ${pending.length} modifiche in corso...`, 'info');
+    console.info('[SyncManager] Avvio sincronizzazione di ' + pending.length + ' operazioni...');
+    if (typeof showToast === 'function') showToast('☁️ Sincronizzazione di ' + pending.length + ' modifiche in corso...', 'info');
 
-    for (const task of pending) {
+    var successi = 0;
+    var falliti  = 0;
+
+    for (var i = 0; i < pending.length; i++) {
+      var task = pending[i];
       try {
-        // Tenta l'operazione originale via router (che ora bypasserà il check online se richiamato correttamente)
-        // Per evitare loop, chiamiamo direttamente le funzioni interne di OneDrive
         if (task.action === 'save') {
-          const storeName = task.storeName;
-          const item = task.data;
+          var storeName = task.storeName;
+          var item = task.data;
           
           if (storeName === 'projects') await _saveProjectOnDrive(item);
-          else if (['verbali', 'nc', 'imprese_cantieri', 'documenti'].includes(storeName)) await _saveInLotto(storeName, item);
-          else if (['imprese', 'lavoratori'].includes(storeName)) await _saveImpresaOrLavoratore(storeName, item);
+          else if (['verbali', 'nc', 'imprese_cantieri', 'documenti'].indexOf(storeName) >= 0) await _saveInLotto(storeName, item);
+          else if (['imprese', 'lavoratori'].indexOf(storeName) >= 0) await _saveImpresaOrLavoratore(storeName, item);
         } 
         else if (task.action === 'delete') {
           await _deleteFromOneDrive(task.storeName, task.data.id || task.data);
         }
 
-        // Se successo, rimuovi dalla coda
+        // Successo: rimuovi dalla coda
         await _deleteItemLocal('sync_queue', task.id);
+        successi++;
       } catch (err) {
-        console.warn(`[SyncManager] Task ${task.id} fallito ancora:`, err.message);
-        // Lascialo in coda per il prossimo tentativo
+        // Incrementa retry counter
+        var retries = (task.retries || 0) + 1;
+        if (retries >= SYNC_MAX_RETRIES) {
+          // Troppi tentativi: marca come fallito definitivamente
+          console.warn('[SyncManager] Task ' + task.id + ' fallito definitivamente dopo ' + retries + ' tentativi.');
+          task.status = 'failed';
+          task.retries = retries;
+          task.failedAt = new Date().toISOString();
+          task.lastError = err.message;
+          await _saveItemLocal('sync_queue', task);
+          falliti++;
+        } else {
+          // Aggiorna il contatore e lascia in coda
+          task.retries = retries;
+          task.lastError = err.message;
+          await _saveItemLocal('sync_queue', task);
+          console.warn('[SyncManager] Task ' + task.id + ' tentativo ' + retries + '/' + SYNC_MAX_RETRIES + ': ' + err.message);
+        }
       }
     }
     
-    showToast('☁️ Cloud sincronizzato correttamente ✓', 'success');
+    if (successi > 0) {
+      if (typeof showToast === 'function') showToast('☁️ Cloud sincronizzato: ' + successi + ' operazioni completate ✓', 'success');
+    }
+    if (falliti > 0) {
+      if (typeof showToast === 'function') showToast('⚠️ ' + falliti + ' operazioni di sync fallite definitivamente.', 'warning');
+    }
     // Se siamo in una vista che mostra dati, rinfrescala
     if (typeof refreshProjectsGrid === 'function') refreshProjectsGrid();
     
@@ -155,14 +182,47 @@ async function processSyncQueue() {
 }
 
 // Listener automatico ritorno rete
-window.addEventListener('online', () => {
+window.addEventListener('online', function() {
   console.info('[SyncManager] Rete ripristinata. Avvio sync...');
   setTimeout(processSyncQueue, 2000); // Piccolo delay per stabilizzare connessione
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPER: TOAST OFFLINE (deprecato in favore di SyncManager)
+// HELPER: TOAST OFFLINE
 // ─────────────────────────────────────────────────────────────────────────────
+var _lastToastOfflineTime = 0;
+function _toastOffline() {
+  // Throttle: max 1 toast ogni 10 secondi
+  var now = Date.now();
+  if (now - _lastToastOfflineTime < 10000) return;
+  _lastToastOfflineTime = now;
+  if (typeof showToast === 'function') {
+    showToast('☁️ OneDrive non raggiungibile. Dati letti dalla cache locale.', 'info');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CACHE STATO ONEDRIVE (evita queryPermission ripetute — BUG 9 fix)
+// ─────────────────────────────────────────────────────────────────────────────
+var _odStatoCache = { valore: null, scadenza: 0 };
+var OD_STATO_TTL = 5000; // 5 secondi
+
+async function _isOneDriveAttivoConCache() {
+  var now = Date.now();
+  if (_odStatoCache.valore !== null && now < _odStatoCache.scadenza) {
+    return _odStatoCache.valore;
+  }
+  var attivo = (typeof isArchivioOneDriveAttivo === 'function')
+    ? await isArchivioOneDriveAttivo()
+    : false;
+  _odStatoCache = { valore: attivo, scadenza: now + OD_STATO_TTL };
+  return attivo;
+}
+
+/** Invalida la cache stato (chiamare dopo configura/disconnetti) */
+function _invalidaStatoOneDriveCache() {
+  _odStatoCache = { valore: null, scadenza: 0 };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOD-1: ROUTER — saveItem
@@ -176,10 +236,8 @@ const _routerSaveItem = async function(storeName, item) {
     return _saveItemLocal(storeName, item);
   }
 
-  // Verifica OneDrive
-  const usaOneDrive = (typeof isArchivioOneDriveAttivo === 'function')
-    ? await isArchivioOneDriveAttivo()
-    : false;
+  // Verifica OneDrive (con cache per evitare queryPermission ripetute)
+  const usaOneDrive = await _isOneDriveAttivoConCache();
 
   if (!usaOneDrive || !STORES_ONEDRIVE.has(storeName)) {
     return _saveItemLocal(storeName, item);
@@ -232,9 +290,7 @@ const _routerGetItem = async function(storeName, id) {
     return _getItemLocal(storeName, id);
   }
 
-  const usaOneDrive = (typeof isArchivioOneDriveAttivo === 'function')
-    ? await isArchivioOneDriveAttivo()
-    : false;
+  const usaOneDrive = await _isOneDriveAttivoConCache();
 
   if (!usaOneDrive || !STORES_ONEDRIVE.has(storeName)) {
     return _getItemLocal(storeName, id);
@@ -265,9 +321,7 @@ const _routerGetAll = async function(storeName) {
     return _getAllLocal(storeName);
   }
 
-  const usaOneDrive = (typeof isArchivioOneDriveAttivo === 'function')
-    ? await isArchivioOneDriveAttivo()
-    : false;
+  const usaOneDrive = await _isOneDriveAttivoConCache();
 
   if (!usaOneDrive || !STORES_ONEDRIVE.has(storeName)) {
     return _getAllLocal(storeName);
@@ -292,9 +346,7 @@ const _routerDeleteItem = async function(storeName, id) {
     return _deleteItemLocal(storeName, id);
   }
 
-  const usaOneDrive = (typeof isArchivioOneDriveAttivo === 'function')
-    ? await isArchivioOneDriveAttivo()
-    : false;
+  const usaOneDrive = await _isOneDriveAttivoConCache();
 
   if (!usaOneDrive || !STORES_ONEDRIVE.has(storeName)) {
     return _deleteItemLocal(storeName, id);
@@ -524,7 +576,7 @@ async function _getAllFromOneDriveConCache(storeName) {
 
   // Per verbali, nc, imprese_cantieri, documenti:
   // legge il lotto corrente (currentProjectId da sessionStorage/appState)
-  const projectId = window.appState?.currentProject
+  const projectId = (window.appState && window.appState.currentProject)
     || sessionStorage.getItem('currentProjectId');
 
   if (!projectId) {
@@ -542,26 +594,34 @@ async function _getAllFromOneDriveConCache(storeName) {
 async function _deleteFromOneDrive(storeName, id) {
   if (storeName === 'projects') {
     // Rimuovi dal registro — non cancella il file JSON del lotto (sicurezza dati)
-    const registro = await leggiRegistroLotti();
-    registro.lotti = registro.lotti.filter(l => l.id !== id);
-    // Salva direttamente il registro modificato
-    const dir = await (typeof _getOrCreateSafehubDir === 'function' ? _getOrCreateSafehubDir() : null);
-    if (dir) {
-      const { _scriviJSON: sj } = { _scriviJSON: undefined }; // non esposto pubblicamente
-      // Usiamo aggiornaRegistroLotti con un item fantasma per rimuoverlo
-      // Strategia alternativa: sovrascrittura diretta tramite salvaLotto
-      const impRepo = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
-      const root    = impRepo?.onedrive_folder_handle;
-      if (root) {
-        const safehubDir = await root.getDirectoryHandle('_safehub', { create: false }).catch(() => null);
+    // Leggiamo il registro, filtriamo il lotto e riscriviamo il registro completo
+    try {
+      var registro = await leggiRegistroLotti();
+      registro.lotti = registro.lotti.filter(function(l) { return l.id !== id; });
+      registro.aggiornatoAt = new Date().toISOString();
+
+      // Usa _getOrCreateSafehubDir e _scriviJSON che sono nel closure di storage-onedrive.js
+      // Approccio: sovrascriviamo il registro tramite il file system handle diretto
+      if (typeof _getOrCreateSafehubDir === 'function') {
+        var safehubDir = await _getOrCreateSafehubDir();
         if (safehubDir) {
-          const testo = JSON.stringify({ ...registro, aggiornatoAt: new Date().toISOString() }, null, 2);
-          const fh    = await safehubDir.getFileHandle('registro.json', { create: true });
-          const wr    = await fh.createWritable();
-          await wr.write(testo);
-          await wr.close();
+          var testo = JSON.stringify(registro, null, 2);
+          var fh = await safehubDir.getFileHandle('registro.json', { create: true });
+          var writable = null;
+          try {
+            writable = await fh.createWritable();
+            await writable.write(testo);
+            await writable.close();
+            writable = null;
+          } catch (writeErr) {
+            if (writable) { try { await writable.abort(); } catch (_) {} }
+            throw writeErr;
+          }
         }
       }
+    } catch (err) {
+      console.error('[Storage Router] Errore cancellazione progetto da OneDrive:', err);
+      throw err;
     }
 
     if (typeof aggiungiAudit === 'function') {
@@ -571,7 +631,7 @@ async function _deleteFromOneDrive(storeName, id) {
   }
 
   // Per verbali / nc / imprese_cantieri / documenti
-  const projectId = window.appState?.currentProject
+  var projectId = (window.appState && window.appState.currentProject)
     || sessionStorage.getItem('currentProjectId');
 
   if (!projectId) throw new Error('deleteItem OneDrive: projectId non disponibile');
