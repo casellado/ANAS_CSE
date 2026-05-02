@@ -310,11 +310,11 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     : '–';
 
   const logoSxHtml = imp.logoSinistro
-    ? `<img src="${imp.logoSinistro}" style="max-height:50pt; max-width:150pt;">`
+    ? `<img src="${imp.logoSinistro}" style="max-height:100pt; max-width:300pt;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.studioNome || ''}</div>`;
 
   const logoDxHtml = imp.logoDestro
-    ? `<img src="${imp.logoDestro}" style="max-height:50pt; max-width:150pt;">`
+    ? `<img src="${imp.logoDestro}" style="max-height:100pt; max-width:300pt;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.committenteNome || 'ANAS SpA'}</div>`;
 
   const firmaImg = v.firma
