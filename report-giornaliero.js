@@ -321,7 +321,10 @@ async function _buildReportHtml(dataYMD) {
   <table style="width:100%; border-bottom: 2pt solid #000; padding-bottom: 8pt;">
     <tr>
       <td style="width:60%; vertical-align: top;">
-        <strong>${escapeHtml(imp.studioNome || 'Studio Tecnico CSE')}</strong><br/>
+        ${imp.logoDestro
+          ? `<img src="${imp.logoDestro}" style="max-height:50pt; max-width:150pt; object-fit:contain;">`
+          : `<strong style="font-size:14pt; color:#0369a1;">ANAS SpA</strong>`
+        }<br/>
         ${escapeHtml(imp.studioIndirizzo || '')}<br/>
         ${imp.studioPEC ? 'PEC: ' + escapeHtml(imp.studioPEC) : ''}
       </td>
