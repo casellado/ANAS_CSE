@@ -1288,32 +1288,116 @@ function mostraManualeUso() {
       </div>
 
       <div class="p-6 space-y-6 overflow-y-auto flex-1 text-slate-800 text-sm leading-relaxed" style="font-family:sans-serif;">
+        <p>Benvenuto nel Manuale d'Uso ufficiale di <strong>ANAS SafeHub</strong>, la piattaforma professionale dedicata ai Coordinatori della Sicurezza in Fase di Esecuzione (CSE) per i cantieri di ANAS SpA.</p>
+        <p>L'applicazione è progettata con un'architettura <strong>offline-first</strong>, garantendo la piena operatività anche in assenza di connessione Internet (utilizzando il database locale del browser IndexedDB) ed è predisposta per l'uso come <strong>Progressive Web App (PWA)</strong> sia su dispositivi mobili che su desktop.</p>
+
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">1. Introduzione e Installazione (PWA)</h3>
-        <p><strong>Cos'è ANAS SafeHub?</strong> È una suite integrata pensata per digitalizzare le operazioni del CSE, rispettando i requisiti del D.Lgs 81/08 e delle direttive ANAS.</p>
-        <p><strong>Installazione come PWA:</strong> Può essere installata sulla home del dispositivo su Chrome, Edge e Safari mobile.</p>
+        <p><strong>Cos'è ANAS SafeHub?</strong><br>È una suite integrata pensata per digitalizzare le operazioni del CSE, rispettando i requisiti del D.Lgs 81/08 e delle direttive ANAS. Tutte le informazioni vengono salvate sul dispositivo e possono essere sincronizzate con un archivio Cloud (OneDrive) o esportate in formato locale.</p>
+        <p><strong>Installazione come PWA:</strong><br>Grazie al supporto PWA, l'applicazione può essere installata come un'app nativa sul tuo dispositivo:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>🖥️ Desktop (Chrome / Edge):</strong> Clicca sull'icona di installazione (disponibile a destra della barra degli indirizzi) e seleziona "Installa".</li>
+          <li><strong>📱 iOS (Safari):</strong> Premi il tasto "Condividi" e seleziona "Aggiungi alla schermata Home".</li>
+          <li><strong>🤖 Android (Chrome):</strong> Premi sui tre puntini in alto a destra e seleziona "Installa applicazione".</li>
+        </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">2. Gestione Cantieri</h3>
-        <p>Nell'<strong>Hub Cantieri</strong> puoi creare nuovi cantieri o selezionare quelli esistenti per accedere alla Dashboard di controllo del cantiere.</p>
+        <p><strong>📂 Hub Cantieri:</strong><br>All'accesso nell'Hub Cantieri, la schermata mostra una griglia dei cantieri attivi sul dispositivo.</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Creazione:</strong> Clicca su <code>+ Nuovo Cantiere</code>. Inserisci i dati identificativi (ID Cantiere/Codice, Nome Cantiere, Localizzazione).</li>
+          <li><strong>Selezione:</strong> Clicca sulla scheda del cantiere desiderato per entrare nella sua specifica <strong>Dashboard</strong>.</li>
+        </ul>
+        <p><strong>📊 Dashboard di Cantiere:</strong><br>Una volta selezionato un cantiere, la Dashboard fornisce un riepilogo delle attività in corso:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li>Statistiche generali sulle imprese e sui lavoratori attivi.</li>
+          <li>Numero di Non Conformità aperte e in scadenza.</li>
+          <li>Visualizzazione dei verbali già emessi.</li>
+          <li>Collegamenti rapidi per creare nuovi elementi.</li>
+        </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">3. Anagrafiche (Imprese e Lavoratori)</h3>
-        <p>Consente di censire imprese e lavoratori e monitorare le scadenze dei documenti (es. DURC) con avvisi colorati.</p>
+        <p>Il modulo anagrafiche consente di censire tutte le figure professionali e le imprese operanti nel cantiere corrente.</p>
+        <p><strong>👥 Gestione Imprese:</strong><br>Accedi alla voce Anagrafiche:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Inserimento:</strong> Clicca su <code>+ Nuova Impresa</code>. Specifica la Ragione Sociale, Partita IVA, Referente in cantiere e il ruolo (Affidataria, Subappaltatrice).</li>
+          <li><strong>Controllo Documenti:</strong> È possibile monitorare i documenti obbligatori dell'impresa (es. DURC, Certificati) inserendo la data di scadenza. Il sistema segnalerà automaticamente eventuali scadenze tramite avvisi cromatici.</li>
+        </ul>
+        <p><strong>👷 Gestione Lavoratori:</strong><br>All'interno dell'impresa selezionata o nella sezione generale dei lavoratori:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Inserimento:</strong> Aggiungi nome, cognome, codice fiscale, mansione e i relativi attestati di formazione/visite mediche.</li>
+          <li><strong>Scadenze:</strong> L'applicazione avvisa il CSE in caso di abilitazioni scadute o prossime alla scadenza.</li>
+        </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">4. Modulo Verbali</h3>
-        <p><strong>Verbale di Sopralluogo:</strong> Registra i dati del sopralluogo, stato dei luoghi e prescrizioni. Esporta in Word o PDF.</p>
-        <p><strong>Riunione di Coordinamento:</strong> Gestisce la firma multipla dei presenti e argomenti discussi.</p>
-        <p><strong>Verifica POS:</strong> Checklist matematica a 6 colonne fisse conformi al Modello RE. 01-5 di ANAS.</p>
+        <p>La sezione principale per l'emissione dei documenti legali e di controllo.</p>
+        <p><strong>4.1 📝 Verbale di Sopralluogo:</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Compilazione:</strong> Clicca su <code>Nuovo Verbale</code>. Inserisci data, chilometrica, oggetto del sopralluogo, condizioni meteo, imprese e referenti presenti.</li>
+          <li><strong>Prescrizioni del CSE:</strong> Descrivi accuratamente lo stato dei luoghi e le prescrizioni imposte.</li>
+          <li><strong>Firma e Anteprima:</strong> È possibile apporre la firma digitale e cliccare su <code>🖨️ Anteprima</code> per visualizzare il layout di stampa PDF o <code>📄 Word</code> per scaricare il documento Word conforme.</li>
+        </ul>
+        <p><strong>4.2 📋 Riunione di Coordinamento:</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Compilazione:</strong> Clicca su <code>Riunione Coord.</code>. Scegli il tipo di riunione (es. Preliminare, In corso d'opera, Ingresso nuove imprese, Coordinamento RLS).</li>
+          <li><strong>Argomenti trattati:</strong> Inserisci gli argomenti di discussione e le decisioni operative assunte.</li>
+          <li><strong>Firma multipla:</strong> Gestisce le firmas dei vari presenti (ANAS, Imprese).</li>
+        </ul>
+        <p><strong>4.3 ✅ Verifica POS (Mod. RE. 01-5):</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Checklist:</strong> Compila la checklist deterministica composta da tutte le voci di verifica obbligatorie per il Piano Operativo di Sicurezza dell'impresa.</li>
+          <li><strong>Esito finale:</strong> Seleziona l'idoneità del POS (Idoneo / Idoneo con prescrizioni / Non idoneo).</li>
+          <li><strong>Generazione:</strong> Stampa o esporta il documento nel layout industriale ufficiale ANAS a 6 colonne fisse.</li>
+        </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">5. Modulo Sicurezza (NC e ODS)</h3>
-        <p>Permette di aprire Non Conformità (NC) differenziandole per gravità (Lieve - 7gg, Grave - 72h, Gravissima - 24h), allegare foto ed emettere Ordini di Servizio (ODS).</p>
+        <p><strong>⚠️ Non Conformità (NC) e Ordini di Servizio (ODS Inviati):</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Apertura NC:</strong> Registra le criticità riscontrate in cantiere. Scegli la gravità (<strong>Lieve</strong> - 7gg, <strong>Grave</strong> - 72h, <strong>Gravissima</strong> - 24h).</li>
+          <li><strong>Emissione ODS:</strong> Associa alla NC una specifica disposizione d'ordine (ODS) all'impresa responsabile.</li>
+          <li><strong>Evidenze Fotografiche:</strong> È possibile scattare foto in tempo reale dal cantiere e allegarle alla NC.</li>
+        </ul>
+        <p><strong>📥 ODS Ricevuti:</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Tracciamento:</strong> Registra e archivia gli Ordini di Servizio ricevuti dalla stazione appaltante o dalla Direzione Lavori per avere una cronologia sempre disponibile e consultabile offline.</li>
+        </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">6. Modulo Documenti</h3>
-        <p>Raccoglie la documentazione fondamentale (PSC, fascicolo) e la libreria normativa.</p>
+        <p><strong>📋 Documenti Fondamentali:</strong><br>Consente al CSE di raccogliere i documenti cardine del cantiere:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li>PSC (Piano di Sicurezza e Coordinamento)</li>
+          <li>Fascicolo dell'opera</li>
+          <li>Nomina del CSE</li>
+        </ul>
+        <p><strong>📚 Normative & Documenti:</strong><br>Sezione dedicata alla consultazione rapida delle norme vigenti (es. D.Lgs 81/08, D.I. 22/01/2019) e all'archiviazione di documenti extra e allegati.</p>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">7. Impostazioni, Firme e OneDrive</h3>
-        <p>Configura i loghi aziendali e committente, disegna la firma predefinita e imposta la sincronizzazione Cloud con Microsoft OneDrive.</p>
+        <p><strong>⚙️ Setup Personale:</strong><br>All'interno della sezione Impostazioni:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Configurazione Loghi:</strong> È possibile caricare i loghi aziendali e del committente (es. ANAS SpA) che verranno inclusi nell'intestazione di tutti i verbali generati.</li>
+          <li><strong>Firma Predefinita:</strong> Disegna o carica la tua firma di CSE. Questa firma verrà precompilata nei nuovi verbali per accelerare il lavoro.</li>
+          <li><strong>Normative di Riferimento:</strong> Specifica le normative standard da riportare nel footer dei documenti generati.</li>
+        </ul>
+        <p><strong>🔗 Integrazione OneDrive:</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>Sincronizzazione:</strong> Collega il tuo account Microsoft OneDrive per salvare una copia sicura dei database di cantiere nel cloud.</li>
+          <li><strong>Collaborazione:</strong> Tramite il Cloud, i dati possono essere condivisi in tempo reale con altri CSE o membri autorizzati del team.</li>
+        </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">8. Assistente AI (Gemini Nano)</h3>
-        <p>Integrazione con il modello di intelligenza artificiale locale di Chrome (API <code>LanguageModel</code>) per la compilazione automatica di testi (descrizioni NC, prescrizioni, stato dei luoghi) in tempo reale e offline.</p>
+        <p>L'applicazione integra l'assistente AI <strong>Gemini Nano</strong> basato sull'API nativa del browser (Chrome LanguageModel API 138+). Tutte le elaborazioni AI avvengono localmente sul dispositivo dell'utente per garantire velocità, sicurezza e privacy assoluta.</p>
+        <p><strong>🤖 Stato dell'AI e Indicatore:</strong><br>In alto nella topbar, un badge di stato indica lo stato dell'assistente locale:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><code>🤖 AI Pronta</code>: Il modello locale è stato caricato e pronto all'uso.</li>
+          <li><code>⏳ AI Download…</code>: Il modello locale è in fase di download.</li>
+          <li><code>🔍 AI Verifica…</code>: Il browser sta verificando la disponibilità del modello.</li>
+          <li><code>— AI N/D</code>: Il modello locale non è supportato da questo browser.</li>
+        </ul>
+        <p><strong>📝 Casi d'uso dell'Assistente AI:</strong><br>Nei vari moduli (Verbali, NC) sono presenti i pulsanti <code>🤖 Suggerisci con AI</code> per compilare automaticamente i testi basandosi sul contesto normativo e di cantiere:</p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li><strong>1. Suggerisci Stato dei Luoghi:</strong> Genera la descrizione formale dello "Stato dei luoghi e lavorazioni in corso" per i verbali di sopralluogo.</li>
+          <li><strong>2. Suggerisci Prescrizioni CSE:</strong> Aiuta il CSE a redigere prescrizioni formali basandosi sul problema riscontrato e citando la normativa pertinente (es. D.Lgs 81/08).</li>
+          <li><strong>3. Suggerisci Descrizione Non Conformità:</strong> Compila una descrizione tecnica e prescrittiva per una nuova NC basandosi sulla gravità.</li>
+          <li><strong>4. Riassunto Verbale:</strong> Analizza e riassume in punti chiave i testi di un verbale esistente.</li>
+        </ul>
       </div>
 
       <div class="bg-slate-50 px-6 py-3 flex justify-end gap-2 border-t border-slate-200 shrink-0">
