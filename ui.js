@@ -1264,3 +1264,66 @@ function enterProject(id, nome) {
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof wireUI === 'function') wireUI();
 });
+
+function mostraManualeUso() {
+  const existing = document.getElementById('modal-manuale-uso');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-manuale-uso';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[9999] p-4 overflow-y-auto';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col h-[85vh]">
+      <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
+        <div>
+          <h2 class="font-bold text-base">📖 Manuale d'Uso: ANAS SafeHub</h2>
+          <div class="text-xs opacity-90">Guida completa offline ed integrazione AI</div>
+        </div>
+        <button onclick="document.getElementById('modal-manuale-uso').remove()"
+                class="text-slate-400 hover:text-white text-2xl leading-none"
+                aria-label="Chiudi">✕</button>
+      </div>
+
+      <div class="p-6 space-y-6 overflow-y-auto flex-1 text-slate-800 text-sm leading-relaxed" style="font-family:sans-serif;">
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">1. Introduzione e Installazione (PWA)</h3>
+        <p><strong>Cos'è ANAS SafeHub?</strong> È una suite integrata pensata per digitalizzare le operazioni del CSE, rispettando i requisiti del D.Lgs 81/08 e delle direttive ANAS.</p>
+        <p><strong>Installazione come PWA:</strong> Può essere installata sulla home del dispositivo su Chrome, Edge e Safari mobile.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">2. Gestione Cantieri</h3>
+        <p>Nell'<strong>Hub Cantieri</strong> puoi creare nuovi cantieri o selezionare quelli esistenti per accedere alla Dashboard di controllo del cantiere.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">3. Anagrafiche (Imprese e Lavoratori)</h3>
+        <p>Consente di censire imprese e lavoratori e monitorare le scadenze dei documenti (es. DURC) con avvisi colorati.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">4. Modulo Verbali</h3>
+        <p><strong>Verbale di Sopralluogo:</strong> Registra i dati del sopralluogo, stato dei luoghi e prescrizioni. Esporta in Word o PDF.</p>
+        <p><strong>Riunione di Coordinamento:</strong> Gestisce la firma multipla dei presenti e argomenti discussi.</p>
+        <p><strong>Verifica POS:</strong> Checklist matematica a 6 colonne fisse conformi al Modello RE. 01-5 di ANAS.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">5. Modulo Sicurezza (NC e ODS)</h3>
+        <p>Permette di aprire Non Conformità (NC) differenziandole per gravità (Lieve - 7gg, Grave - 72h, Gravissima - 24h), allegare foto ed emettere Ordini di Servizio (ODS).</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">6. Modulo Documenti</h3>
+        <p>Raccoglie la documentazione fondamentale (PSC, fascicolo) e la libreria normativa.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">7. Impostazioni, Firme e OneDrive</h3>
+        <p>Configura i loghi aziendali e committente, disegna la firma predefinita e imposta la sincronizzazione Cloud con Microsoft OneDrive.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">8. Assistente AI (Gemini Nano)</h3>
+        <p>Integrazione con il modello di intelligenza artificiale locale di Chrome (API <code>LanguageModel</code>) per la compilazione automatica di testi (descrizioni NC, prescrizioni, stato dei luoghi) in tempo reale e offline.</p>
+      </div>
+
+      <div class="bg-slate-50 px-6 py-3 flex justify-end gap-2 border-t border-slate-200 shrink-0">
+        <button onclick="document.getElementById('modal-manuale-uso').remove()"
+                class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-100">
+          Chiudi
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
