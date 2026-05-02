@@ -331,8 +331,8 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     <div class="intestazione">
       <table style="border:none; width:100%;">
         <tr>
-          <td style="border:none; width:50%; vertical-align:middle;">${logoSxHtml}</td>
-          <td style="border:none; width:50%; vertical-align:middle; text-align:right;">${logoDxHtml}</td>
+          <td style="border:none; width:50%; vertical-align:middle;">${logoDxHtml}</td>
+          <td style="border:none; width:50%; vertical-align:middle; text-align:right;">${logoSxHtml}</td>
         </tr>
         <tr>
           <td colspan="2" style="border:none; text-align:center; padding-top:8pt;">
