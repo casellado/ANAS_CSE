@@ -46,24 +46,24 @@
   </style>
 
   <!-- Core -->
-  <script defer src="./db.js?v=2.2.12"></script>
-  <script defer src="./storage.js?v=2.2.12"></script>
+  <script defer src="./db.js?v=2.2.13"></script>
+  <script defer src="./storage.js?v=2.2.13"></script>
   <!-- UI (showToast usato anche da storage) -->
-  <script defer src="./ui.js?v=2.2.12"></script>
+  <script defer src="./ui.js?v=2.2.13"></script>
   <!-- Bootstrap -->
-  <script defer src="./app.js?v=2.2.12"></script>
+  <script defer src="./app.js?v=2.2.13"></script>
   <!-- Navigation (sovrascrive enterProject di ui.js) -->
-  <script defer src="./navigation.js?v=2.2.12"></script>
+  <script defer src="./navigation.js?v=2.2.13"></script>
   <!-- Foto (senza apertura DB extra) -->
   <script defer src="./foto.js"></script>
   <!-- ── OneDrive e Moduli Comuni ── -->
-  <script defer src="./storage-onedrive.js?v=2.2.12"></script>
-  <script defer src="./onedrive-ui.js?v=2.2.12"></script>
-  <script defer src="./migrazione-onedrive.js?v=2.2.12"></script>
-  <script defer src="./salvataggio.js?v=2.2.12"></script>
-  <script defer src="./export.js?v=2.2.12"></script>
-  <script defer src="./settings-sync.js?v=2.2.12"></script>
-  <script defer src="./emergenza.js?v=2.2.12"></script>
+  <script defer src="./storage-onedrive.js?v=2.2.13"></script>
+  <script defer src="./onedrive-ui.js?v=2.2.13"></script>
+  <script defer src="./migrazione-onedrive.js?v=2.2.13"></script>
+  <script defer src="./salvataggio.js?v=2.2.13"></script>
+  <script defer src="./export.js?v=2.2.13"></script>
+  <script defer src="./settings-sync.js?v=2.2.13"></script>
+  <script defer src="./emergenza.js?v=2.2.13"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
@@ -486,12 +486,43 @@
         navigator.serviceWorker.register('./sw.js')
           .then(reg => {
             console.log('[PWA] SW registrato:', reg.scope);
+            
+            // Gestione aggiornamenti (MOD-25)
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Nuovo SW pronto, mostra notifica
+                  showUpdateBanner();
+                }
+              });
+            });
+
             if (typeof avviaSyncImpostazioni === 'function') {
               avviaSyncImpostazioni();
             }
           })
           .catch(err => console.warn('[PWA] SW fallito:', err));
       });
+      
+      // Funzione per forzare l'aggiornamento
+      function showUpdateBanner() {
+        const banner = document.createElement('div');
+        banner.className = 'fixed bottom-4 left-4 right-4 bg-blue-600 text-white p-4 rounded-2xl shadow-2xl z-[100] flex items-center justify-between animate-bounce';
+        banner.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-xl">🚀</span>
+            <div>
+              <div class="font-bold text-sm">Aggiornamento Disponibile (v2.2.13)</div>
+              <div class="text-[10px] opacity-90">Nuove funzionalità e correzioni pronte.</div>
+            </div>
+          </div>
+          <button onclick="window.location.reload()" class="bg-white text-blue-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-50 transition">
+            Aggiorna Ora
+          </button>
+        `;
+        document.body.appendChild(banner);
+      }
     }
 
     // Install prompt
