@@ -695,33 +695,107 @@ async function apriModalModificaCantiere(projectId) {
   modal.querySelector('#mod-nome').focus();
 }
 
-async function confermaModificaCantiere(projectId) {
-  const nome   = (document.getElementById('mod-nome')?.value   || '').trim();
-  const loc    = (document.getElementById('mod-loc')?.value    || '').trim();
-  const status = document.getElementById('mod-status')?.value || 'ok';
-
-  // P4: email destinatari
-  const emailRup     = (document.getElementById('mod-email-rup')?.value     || '').trim();
-  const emailDl      = (document.getElementById('mod-email-dl')?.value      || '').trim();
-  const emailImpresa = (document.getElementById('mod-email-impresa')?.value || '').trim();
-
+  const newId  = (document.getElementById('mod-id')?.value   || '').trim();
+  
   if (!nome) { showToast('Il nome è obbligatorio.', 'warning'); return; }
+  if (!newId) { showToast('Il codice cantiere è obbligatorio.', 'warning'); return; }
 
   const projects = await getAll('projects');
   const p        = projects.find(x => x.id === projectId);
   if (!p) { showToast('Cantiere non trovato.', 'error'); return; }
 
-  const updated = {
-    ...p,
-    nome, loc, status,
-    emailRup, emailDl, emailImpresa,
-    updatedAt: new Date().toISOString()
-  };
-  await saveItem('projects', updated);
+  // 1. Verifica se l'ID è cambiato
+  if (newId !== projectId) {
+    // Controllo collisione nuovo ID
+    if (projects.some(x => x.id === newId)) {
+      showToast('Errore: il nuovo codice cantiere è già in uso.', 'error');
+      return;
+    }
+
+    if (!confirm(`Stai cambiando il codice cantiere da ${projectId} a ${newId}.\n\nTutti i verbali e i documenti verranno migrati. Procedere?`)) {
+      return;
+    }
+
+    try {
+      showToast('Migrazione dati in corso...', 'info');
+
+      // A. Backup preventivo (logico)
+      console.log(`[CascadeUpdate] Inizio migrazione da ${projectId} a ${newId}`);
+
+      // B. Aggiornamento a cascata in IndexedDB
+      const verbali = await getByIndex('verbali', 'projectId', projectId).catch(() => []);
+      for (const v of verbali) {
+        v.projectId = newId;
+        await saveItem('verbali', v);
+      }
+
+      const ncs = await getByIndex('nc', 'projectId', projectId).catch(() => []);
+      for (const nc of ncs) {
+        nc.projectId = newId;
+        await saveItem('nc', nc);
+      }
+
+      const assegnazioni = await getByIndex('imprese_cantieri', 'projectId', projectId).catch(() => []);
+      for (const a of assegnazioni) {
+        a.projectId = newId;
+        await saveItem('imprese_cantieri', a);
+      }
+
+      // C. Migrazione su OneDrive se attivo
+      if (typeof isArchivioOneDriveAttivo === 'function' && await isArchivioOneDriveAttivo()) {
+        if (typeof migraLottoOneDrive === 'function') {
+          await migraLottoOneDrive(projectId, newId);
+        }
+        // Rimuovi vecchio dal registro OneDrive
+        if (typeof rimuoviLottoDaRegistroOneDrive === 'function') {
+          await rimuoviLottoDaRegistroOneDrive(projectId);
+        }
+      }
+
+      // D. Elimina vecchio record progetto e crea il nuovo
+      await deleteItem('projects', projectId);
+      const updated = {
+        ...p,
+        id: newId,
+        nome, loc, status,
+        emailRup, emailDl, emailImpresa,
+        updatedAt: new Date().toISOString()
+      };
+      await saveItem('projects', updated);
+
+      showToast('Migrazione completata con successo ✓', 'success');
+    } catch (err) {
+      console.error('[CascadeUpdate] Errore critico:', err);
+      showToast('Errore durante la migrazione: ' + err.message, 'error');
+      return;
+    }
+  } else {
+    // Semplice aggiornamento
+    const updated = {
+      ...p,
+      nome, loc, status,
+      emailRup, emailDl, emailImpresa,
+      updatedAt: new Date().toISOString()
+    };
+    await saveItem('projects', updated);
+    showToast(`Cantiere "${nome}" aggiornato ✓`, 'success');
+  }
 
   document.getElementById('modal-modifica-cantiere')?.remove();
   await refreshProjectsGrid();
-  showToast(`Cantiere "${nome}" aggiornato ✓`, 'success');
+}
+
+/** Sblocca il campo ID per la modifica (con avviso) */
+function sbloccaModificaId() {
+  const input = document.getElementById('mod-id');
+  const warn  = document.getElementById('warn-id-change');
+  if (input) {
+    input.removeAttribute('readonly');
+    input.classList.remove('bg-slate-50', 'text-slate-500');
+    input.classList.add('bg-white', 'text-slate-900', 'border-amber-400', 'ring-2', 'ring-amber-100');
+    input.focus();
+  }
+  if (warn) warn.classList.remove('hidden');
 }
 
 // ─────────────────────────────────────────────
@@ -788,6 +862,24 @@ async function confermaEliminaCantiere(projectId) {
 
     // 4. Infine elimina il cantiere stesso
     await deleteItem('projects', projectId);
+
+    // BUG 3+4 FIX: Propagazione eliminazione su OneDrive
+    try {
+      if (typeof isArchivioOneDriveAttivo === 'function') {
+        const odAttivo = await isArchivioOneDriveAttivo();
+        if (odAttivo) {
+          console.log('[Elimina] Propago eliminazione su OneDrive per:', projectId);
+          // 1. Rimuovi JSON da _safehub
+          if (typeof eliminaFileLotto === 'function') await eliminaFileLotto(projectId);
+          // 2. Rimuovi dal registro.json (per evitare che ricompaia al sync)
+          if (typeof rimuoviLottoDaRegistroOneDrive === 'function') await rimuoviLottoDaRegistroOneDrive(projectId);
+          // 3. Rimuovi cartelle documentali
+          if (typeof eliminaCartelleLotto === 'function') await eliminaCartelleLotto(projectId);
+        }
+      }
+    } catch (odErr) {
+      console.warn('[Elimina] Errore propagazione OneDrive:', odErr);
+    }
 
     document.getElementById('modal-elimina-cantiere')?.remove();
     await refreshProjectsGrid();

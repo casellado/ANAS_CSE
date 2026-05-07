@@ -292,6 +292,24 @@ async function aggiornaRegistroLotti(lotto) {
   _odCache.delete('registro');
 }
 
+/** BUG 3+4 FIX: Rimuove un lotto dal registro OneDrive */
+async function rimuoviLottoDaRegistroOneDrive(lottoId) {
+  const dir = await _getOrCreateSafehubDir();
+  if (!dir) return;
+
+  const registro = await leggiRegistroLotti();
+  const oldLen = registro.lotti.length;
+  registro.lotti = registro.lotti.filter(l => l.id !== lottoId);
+  
+  if (registro.lotti.length !== oldLen) {
+    registro.aggiornatoAt = new Date().toISOString();
+    await _scriviJSON(dir, OD_REGISTRO, registro);
+    _odCache.delete('registro');
+    console.info(`[OneDrive] Lotto ${lottoId} rimosso dal registro.`);
+  }
+}
+window.rimuoviLottoDaRegistroOneDrive = rimuoviLottoDaRegistroOneDrive;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 9. LOTTI (read / write con lock soft)
 // ─────────────────────────────────────────────────────────────────────────────
