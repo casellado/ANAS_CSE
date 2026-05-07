@@ -292,6 +292,15 @@ async function renderMezziCantiere(containerId, projectId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   
+  if (!projectId) {
+    container.innerHTML = `
+      <div class="text-center py-10 text-slate-500 bg-white rounded-2xl shadow-sm border border-slate-200">
+        <div class="text-4xl mb-2">🏢</div>
+        <p>Seleziona un cantiere dall'Hub per visualizzare i mezzi.</p>
+      </div>`;
+    return;
+  }
+  
   container.innerHTML = '<div class="text-center p-4"><div class="spinner border-t-blue-600 border-4 rounded-full w-8 h-8 mx-auto animate-spin"></div></div>';
   
   try {
@@ -427,6 +436,11 @@ async function renderMezziCantiere(containerId, projectId) {
     container.innerHTML = '<div class="text-red-500 p-4">Errore caricamento mezzi.</div>';
   }
 }
+
+// Esporta globalmente per switchView
+window.renderMezziCantiere = renderMezziCantiere;
+window.mostraModalNuovoMezzo = mostraModalNuovoMezzo;
+window.valutaConformitaDocumentale = valutaConformitaDocumentale;
 
 // Gestione filtri view
 document.addEventListener('DOMContentLoaded', () => {

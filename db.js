@@ -2,7 +2,7 @@
 // v7: store foto, imprese_cantieri, impostazioni
 
 const DB_NAME    = 'ANAS_SafeHub_DB';
-const DB_VERSION = 11;          // v11: Aggiunto store 'mezzi' (MOD-10)
+const DB_VERSION = 12;          // v12: Fix creazione store 'mezzi' (MOD-10)
 
 let db = null;
 
