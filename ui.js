@@ -790,7 +790,20 @@ async function refreshProjectsGrid() {
   const empty = document.getElementById('empty-state');
   if (!grid) return;
 
-  let projects = await getAll('projects');
+  let projects = [];
+  try {
+    projects = await getAll('projects');
+  } catch (err) {
+    console.error('[SafeHub] Errore critico getAll projects:', err);
+    if (grid) {
+      grid.innerHTML = `<div class="col-span-full p-4 text-red-600 bg-red-50 rounded-xl border border-red-200">
+        <strong>Errore Database:</strong> Impossibile caricare i cantieri. 
+        <br>Dettaglio: ${err.message || err}
+        <br><button onclick="location.reload()" class="mt-2 underline font-bold">Ricarica Pagina (Forza Aggiornamento)</button>
+      </div>`;
+    }
+    return;
+  }
 
   // ── MOD-3: Filtro lotti per permessi OneDrive ─────────────────────────────
   const odAttivo = (typeof isArchivioOneDriveAttivo === 'function')
