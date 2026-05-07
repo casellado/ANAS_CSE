@@ -87,6 +87,9 @@ async function configuraArchivioOneDrive() {
     // Trigger UI update
     if (typeof aggiornaStatoOneDriveUI === 'function') aggiornaStatoOneDriveUI();
 
+    // P8: Banner benvenuto primo accesso
+    if (typeof mostraBannerBenvenutoOneDrive === 'function') mostraBannerBenvenutoOneDrive();
+
     return true;
   } catch (err) {
     if (err.name === 'AbortError') return false; // utente ha annullato

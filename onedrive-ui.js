@@ -525,3 +525,127 @@ function mostraToastModificheEsterne(onRicarica) {
 async function initOneDriveUI() {
   await aggiornaStatoOneDriveUI();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. BANNER PRIMO ACCESSO — P8: Eredità impostazioni condivise
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Mostra banner di benvenuto al primo collegamento OneDrive.
+ * Appare una sola volta (flag 'onedrive_benvenuto_mostrato' in localStorage).
+ * Da chiamare dopo la configurazione iniziale con successo.
+ */
+async function mostraBannerBenvenutoOneDrive() {
+  const FLAG = 'onedrive_benvenuto_mostrato';
+  if (localStorage.getItem(FLAG)) return; // già mostrato
+
+  const attivo = (typeof isArchivioOneDriveAttivo === 'function')
+    ? await isArchivioOneDriveAttivo() : false;
+  if (!attivo) return;
+
+  localStorage.setItem(FLAG, '1');
+
+  const banner = document.createElement('div');
+  banner.id = 'banner-benvenuto-onedrive';
+  banner.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 z-[9985] ' +
+    'bg-emerald-50 border border-emerald-300 shadow-2xl rounded-2xl ' +
+    'flex items-start gap-3 px-5 py-4 text-sm text-emerald-900 ' +
+    'max-w-sm w-[calc(100%-2rem)]';
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-live', 'polite');
+
+  banner.innerHTML = `
+    <span class="text-2xl shrink-0">✅</span>
+    <div class="flex-1">
+      <p class="font-bold text-emerald-800">Connesso a OneDrive!</p>
+      <p class="text-xs mt-1 text-emerald-700">
+        Hai ereditato impostazioni, loghi, anagrafiche e documenti condivisi dal CSE titolare.
+        Imposta la tua <strong>firma personale</strong> nelle Impostazioni.
+      </p>
+    </div>
+    <button class="text-emerald-500 hover:text-emerald-700 focus:outline-none shrink-0 text-lg"
+            aria-label="Chiudi banner benvenuto">✕</button>
+  `;
+
+  banner.querySelector('button').addEventListener('click', () => banner.remove());
+  document.body.appendChild(banner);
+
+  // Auto-dismiss dopo 8 secondi
+  setTimeout(() => { if (document.body.contains(banner)) banner.remove(); }, 8000);
+}
+
+// Esponi su window per chiamata da configurazioneOneDrive
+window.mostraBannerBenvenutoOneDrive = mostraBannerBenvenutoOneDrive;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. CHECK ORFANI ONEDRIVE — P4 Scenario B
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Verifica che i documenti referenziati nel lotto esistano ancora fisicamente
+ * in OneDrive. Rimuove i metadati orfani e notifica l'utente.
+ * Da chiamare quando si apre un cantiere.
+ * @param {string} lottoId
+ */
+async function checkOrfaniOneDrive(lottoId) {
+  if (typeof isArchivioOneDriveAttivo !== 'function') return;
+  const attivo = await isArchivioOneDriveAttivo();
+  if (!attivo) return;
+  if (typeof leggiLotto !== 'function') return;
+
+  try {
+    const dati = await leggiLotto(lottoId);
+    if (!dati || !Array.isArray(dati.documenti) || dati.documenti.length === 0) return;
+
+    const documentiValidi  = [];
+    const documentiOrfani  = [];
+
+    for (const doc of dati.documenti) {
+      if (!doc.percorsoFisico) {
+        documentiValidi.push(doc); // metadato senza file fisico → ok
+        continue;
+      }
+
+      // Verifica esistenza: prova ad aprire il file
+      let esiste = false;
+      try {
+        if (typeof _verificaEsistenzaFile === 'function') {
+          esiste = await _verificaEsistenzaFile(doc.percorsoFisico);
+        } else {
+          esiste = true; // funzione non disponibile: assumi esiste
+        }
+      } catch (_) {
+        esiste = false;
+      }
+
+      if (esiste) documentiValidi.push(doc);
+      else documentiOrfani.push(doc);
+    }
+
+    if (documentiOrfani.length === 0) return;
+
+    // Aggiorna metadati lotto rimuovendo gli orfani
+    dati.documenti = documentiValidi;
+    if (typeof salvaLotto === 'function') {
+      await salvaLotto(lottoId, dati);
+    }
+
+    // Notifica utente
+    if (typeof showToast === 'function') {
+      showToast(
+        `${documentiOrfani.length} documento${documentiOrfani.length > 1 ? 'i' : ''} ` +
+        `rimoss${documentiOrfani.length > 1 ? 'i' : 'o'} manualmente da OneDrive: ` +
+        `metadati aggiornati.`,
+        'info'
+      );
+    }
+
+    console.info('[OneDrive P4-B] Orfani rimossi:', documentiOrfani.map(d => d.percorsoFisico));
+
+  } catch (err) {
+    console.warn('[OneDrive P4-B] Errore check orfani:', err.message);
+  }
+}
+
+window.checkOrfaniOneDrive = checkOrfaniOneDrive;
+

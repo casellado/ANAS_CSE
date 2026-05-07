@@ -59,7 +59,7 @@ async function _getSettingsMtime() {
  */
 async function salvaImpostazioniGlobali(nuoveImpostazioni) {
   // 1. Salva localmente in IndexedDB
-  await salvaItem('impostazioni', { id: IMPOSTAZIONI_KEY, data: nuoveImpostazioni });
+  await saveItem('impostazioni', { id: IMPOSTAZIONI_KEY, data: nuoveImpostazioni });
 
   // 2. Propaga su OneDrive se attivo
   if (typeof isArchivioOneDriveAttivo === 'function' && await isArchivioOneDriveAttivo()) {

@@ -35,6 +35,11 @@ window.enterProject = function (id, nome) {
   if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
   _avviaPollingModifiche(id);
 
+  // P4-B: check orfani OneDrive in background (non bloccante)
+  if (typeof checkOrfaniOneDrive === 'function') {
+    setTimeout(() => checkOrfaniOneDrive(id), 2000);
+  }
+
   apriDashboardCantiere(id, nome);
 };
 
