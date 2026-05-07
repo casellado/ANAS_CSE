@@ -2,7 +2,7 @@
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Dogano Casella · ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v2.2.11';
+const CACHE_NAME = 'anas-safehub-v2.2.12';
 
 const CACHE_STATIC = [
   './',
@@ -10,7 +10,10 @@ const CACHE_STATIC = [
   './ANAS_CSE_html.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './mezzi.js',
+  './verbali-mezzi.js',
+  './settings-sync.js'
 ];
 
 // ── INSTALL: precache file statici (resiliente — singoli file) ──
