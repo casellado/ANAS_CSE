@@ -60,7 +60,7 @@ async function aggiornaStatoOneDriveUI() {
     });
 
     // Controlla se c'è un handle salvato ma senza permesso
-    const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+    const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni(true) : {};
     const handle = imp && imp.onedrive_folder_handle;
 
     if (handle && typeof handle.queryPermission === 'function') {
@@ -114,7 +114,7 @@ async function _verificaBannerNomeTecnico() {
   const attivo = await isArchivioOneDriveAttivo();
   if (!attivo) { _rimuoviBannerNome(); return; }
 
-  const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+  const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni(true) : {};
   const nome = ((imp && imp.firmaNome) || '').trim();
 
   if (!nome) {
@@ -164,7 +164,7 @@ async function apriPannelloOneDrive() {
   if (existing) existing.remove();
 
   const attivo = await isArchivioOneDriveAttivo();
-  const imp    = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+  const imp    = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni(true) : {};
   const handle = imp && imp.onedrive_folder_handle;
 
   // Determina stato

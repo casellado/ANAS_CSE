@@ -60,7 +60,7 @@ const IMPOSTAZIONI_DEFAULT = {
 // ─────────────────────────────────────────────
 // 1. Carica impostazioni da IndexedDB
 // ─────────────────────────────────────────────
-async function caricaImpostazioni() {
+async function caricaImpostazioni(skipCondivise = false) {
   let locali = { ...IMPOSTAZIONI_DEFAULT };
   try {
     const item = await getItem('impostazioni', IMPOSTAZIONI_KEY);
@@ -68,6 +68,10 @@ async function caricaImpostazioni() {
       locali = { ...IMPOSTAZIONI_DEFAULT, ...item.data };
     }
   } catch (_) { }
+
+  // FIX LOOP INFINITO: evita di ricorsare in OneDrive se stiamo solo
+  // leggendo il file handle di base per verificare lo stato OneDrive
+  if (skipCondivise) return locali;
 
   // BUG-8 FIX: merge con impostazioni condivise da OneDrive
   // Le impostazioni condivise (loghi, committente) vengono ereditate

@@ -68,7 +68,7 @@ async function configuraArchivioOneDrive() {
     const handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
 
     // Salva il handle in IndexedDB tramite impostazioni
-    const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+    const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni(true) : {};
     imp[OD_HANDLE_KEY] = handle;
     if (typeof salvaImpostazioni === 'function') await salvaImpostazioni(imp);
 
@@ -114,7 +114,7 @@ async function isArchivioOneDriveAttivo() {
   // Tenta di ripristinare il handle dalla IndexedDB
   try {
     if (typeof caricaImpostazioni !== 'function') return false;
-    const imp = await caricaImpostazioni();
+    const imp = await caricaImpostazioni(true);
     const handle = imp[OD_HANDLE_KEY];
     if (!handle || typeof handle.queryPermission !== 'function') return false;
 
@@ -148,7 +148,7 @@ async function richiediPermessoOneDrive() {
   if (!_fsapiSupported()) return false;
   try {
     if (typeof caricaImpostazioni !== 'function') return false;
-    const imp = await caricaImpostazioni();
+    const imp = await caricaImpostazioni(true);
     const handle = imp[OD_HANDLE_KEY];
     if (!handle || typeof handle.requestPermission !== 'function') return false;
 
@@ -178,7 +178,7 @@ async function disconnettiArchivioOneDrive() {
 
   try {
     if (typeof caricaImpostazioni === 'function' && typeof salvaImpostazioni === 'function') {
-      const imp = await caricaImpostazioni();
+      const imp = await caricaImpostazioni(true);
       delete imp[OD_HANDLE_KEY];
       await salvaImpostazioni(imp);
     }
@@ -671,7 +671,7 @@ async function _getNomeTecnico() {
   if (_cachedNomeTecnico) return _cachedNomeTecnico;
   try {
     if (typeof caricaImpostazioni === 'function') {
-      const imp = await caricaImpostazioni();
+      const imp = await caricaImpostazioni(true);
       _cachedNomeTecnico = imp.firmaNome || imp.studioNome || 'Tecnico';
       return _cachedNomeTecnico;
     }
