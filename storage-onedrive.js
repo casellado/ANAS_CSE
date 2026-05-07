@@ -419,10 +419,21 @@ const CAMPI_CONDIVISI = [
   'logoSinistro', 'logoDestro', 'logoSinistroDimData', 'logoDestroDimData',
   'committenteNome', 'committenteIndirizzo', 'committentePEC',
   'posCodicePpm', 'posCommessa', 'posStruttura', 'posCUP', 'posCIG',
-  'rlNome', 'rlQualifica',
-  'rupNome', 'rupQualifica',
+  'rlNome', 'rlQualifica', 'rlPEC', 'rlEmail',
+  'rupNome', 'rupQualifica', 'rupPEC', 'rupEmail',
   'strutturaNome', 'strutturaQualifica'
 ];
+
+/** Recupera l'ultima data di modifica del file impostazioni_condivise.json */
+async function getLastModifiedSettings() {
+  const dir = await _getOrCreateSafehubDir();
+  if (!dir) return null;
+  try {
+    const handle = await dir.getFileHandle(OD_IMPOSTAZIONI_CONDIVISE);
+    const file = await handle.getFile();
+    return file.lastModified;
+  } catch (_) { return null; }
+}
 
 /**
  * Legge le impostazioni condivise da OneDrive.
@@ -545,6 +556,7 @@ const OD_STRUTTURA_LOTTO = [
 /** Mappatura tipo documento → sottocartella fisica */
 const OD_MAPPA_SOTTOCARTELLE = {
   'fondamentale-psc':                  '01_Nomine_e_Documenti_Fase_Progettuale/03_PSC_e_Allegati_Grafici',
+  'fondamentale-itp':                  '01_Nomine_e_Documenti_Fase_Progettuale/03_PSC_e_Allegati_Grafici',
   'fondamentale-pos':                  '02_Idoneita_Tecnico_Professionale_Imprese/01_POS_e_Verifiche_CSE',
   'fondamentale-durc':                 '02_Idoneita_Tecnico_Professionale_Imprese/02_DURC_Imprese',
   'fondamentale-notifica-preliminare': '01_Nomine_e_Documenti_Fase_Progettuale/01_Notifica_Preliminare_e_Aggiornamenti',
@@ -802,3 +814,44 @@ window.eliminaCartelleLotto = eliminaCartelleLotto;
 // BUG-8 FIX: esporta funzioni impostazioni condivise
 window.leggiImpostazioniCondivise = leggiImpostazioniCondivise;
 window.salvaImpostazioniCondivise = salvaImpostazioniCondivise;
+window.getLastModifiedSettings = getLastModifiedSettings;
+
+/**
+ * BUG-7 FIX: Migrazione remota su cambio ID (Rinomina file e cartelle)
+ */
+async function migraLottoOneDrive(oldId, newId) {
+  const radice = await _getHandleRadice();
+  const dirSafe = await _getOrCreateSafehubDir();
+  if (!radice || !dirSafe) return;
+
+  const oldSafe = _sanitizeNomeCartella(oldId);
+  const newSafe = _sanitizeNomeCartella(newId);
+  
+  // 1. Rinomina JSON in _safehub/
+  try {
+    const oldFile = await dirSafe.getFileHandle(`Lotto_${oldSafe}.json`);
+    // Prova move() (Chrome 100+)
+    if (typeof oldFile.move === 'function') {
+      await oldFile.move(`Lotto_${newSafe}.json`);
+    } else {
+      // Fallback: Copy + Delete
+      const file = await oldFile.getFile();
+      const newFile = await dirSafe.getFileHandle(`Lotto_${newSafe}.json`, { create: true });
+      const writable = await newFile.createWritable();
+      await writable.write(file);
+      await writable.close();
+      await dirSafe.removeEntry(`Lotto_${oldSafe}.json`);
+    }
+  } catch (e) { console.warn("[OneDrive] Fallita rinomina JSON:", e.message); }
+
+  // 2. Rinomina Cartella Documentale Lotto_XXX/
+  try {
+    const oldDir = await radice.getDirectoryHandle(`Lotto_${oldSafe}`);
+    if (typeof oldDir.move === 'function') {
+      await oldDir.move(`Lotto_${newSafe}`);
+    } else {
+      console.warn("[OneDrive] Rinomina cartella non supportata automaticamente. L'utente dovrà rinominarla a mano.");
+    }
+  } catch (e) { console.warn("[OneDrive] Fallita rinomina cartella:", e.message); }
+}
+window.migraLottoOneDrive = migraLottoOneDrive;

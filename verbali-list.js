@@ -45,11 +45,15 @@ async function renderVerbaliList(containerId) {
         'verifica-pos':           { icon: '✅', label: 'Verifica Idoneità POS',       color: 'bg-green-50 border-green-200' },
       };
       const info = meta[tipo] || meta['sopralluogo'];
+      const protocollo = escapeHtml(v.protocollo || 'N/A');
 
       // Dettaglio specifico per tipo
       let dettaglio = '';
       if (tipo === 'sopralluogo') {
         dettaglio = `
+          <div class="text-[11px] font-mono font-bold text-blue-600 bg-blue-100/50 px-1.5 py-0.5 rounded inline-block mb-1">
+            ${protocollo}
+          </div>
           <div class="text-xs text-slate-500 mt-1">
             ${v.km ? `KM: ${escapeHtml(v.km)}` : ''}
             ${v.meteo ? ` · Meteo: ${escapeHtml(v.meteo)}` : ''}
@@ -71,6 +75,9 @@ async function renderVerbaliList(containerId) {
           'non-idoneo': '❌ Non Idoneo'
         };
         dettaglio = `
+          <div class="text-[11px] font-mono font-bold text-green-700 bg-green-100/50 px-1.5 py-0.5 rounded inline-block mb-1">
+            ${protocollo}
+          </div>
           <div class="text-xs text-slate-500 mt-1">
             ${v.nomeImpresa ? 'Impresa: ' + escapeHtml(v.nomeImpresa) : ''}
           </div>

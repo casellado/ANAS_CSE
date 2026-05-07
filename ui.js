@@ -580,10 +580,30 @@ async function apriModalModificaCantiere(projectId) {
       <h2 id="modal-mod-title" class="text-lg font-bold text-slate-800">
         ✏️ Modifica Cantiere
       </h2>
-      <div class="text-xs text-slate-400 font-mono">Codice: ${escapeHtml(p.id)}</div>
+      <div class="space-y-3">
+        <div>
+          <label for="mod-id" class="text-xs font-semibold text-slate-600 block mb-1">
+            Codice Cantiere (ID Univoco)
+          </label>
+          <div class="flex gap-2">
+            <input id="mod-id" type="text"
+                   value="${escapeHtml(p.id)}"
+                   readonly
+                   class="flex-1 border border-slate-200 bg-slate-50 rounded-lg p-2.5 text-sm
+                          font-mono text-slate-500 focus:outline-none" />
+            <button type="button" 
+                    onclick="sbloccaModificaId()"
+                    class="text-[10px] bg-slate-200 text-slate-700 px-2 rounded-lg hover:bg-slate-300 transition font-bold uppercase">
+              Cambia
+            </button>
+          </div>
+          <div id="warn-id-change" class="hidden mt-1 p-2 bg-amber-50 border border-amber-200 rounded text-[10px] text-amber-700 leading-tight">
+            ⚠️ <strong>ATTENZIONE:</strong> Cambiando l'ID, tutti i documenti e i dati associati verranno migrati al nuovo codice. Se OneDrive è attivo, verranno rinominati anche i file remoti.
+          </div>
+        </div>
 
-      <div>
-        <label for="mod-nome" class="text-xs font-semibold text-slate-600 block mb-1">
+        <div>
+          <label for="mod-nome" class="text-xs font-semibold text-slate-600 block mb-1">
           Nome Opera / Intervento <span class="text-red-500">*</span>
         </label>
         <input id="mod-nome" type="text"

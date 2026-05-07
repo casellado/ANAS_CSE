@@ -644,19 +644,31 @@ async function _deleteFromOneDrive(storeName, id) {
     try {
       if (typeof invalidaCacheLotto === 'function') invalidaCacheLotto(id);
       if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
+      
       // Pulizia cascata dei dati correlati al progetto dalla cache IndexedDB
-      var storesCorrelati = ['verbali', 'nc', 'imprese_cantieri', 'documenti'];
+      var storesCorrelati = ['verbali', 'nc', 'imprese_cantieri', 'documenti', 'mezzi'];
       for (var i = 0; i < storesCorrelati.length; i++) {
         try {
           var items = await _getAllLocal(storesCorrelati[i]);
+          var eliminati = 0;
           for (var j = 0; j < items.length; j++) {
             if (items[j].projectId === id) {
               await _deleteItemLocal(storesCorrelati[i], items[j].id);
+              eliminati++;
             }
           }
-        } catch (_) { /* best effort */ }
+          if (eliminati > 0) console.info(`[Storage Router] Puliti ${eliminati} record da ${storesCorrelati[i]}`);
+        } catch (e) { 
+          console.warn(`[Storage Router] Errore pulizia store ${storesCorrelati[i]}:`, e.message);
+        }
       }
-    } catch (_) { /* best effort */ }
+      // Rimuovi anche il progetto stesso dalla IndexedDB locale
+      await _deleteItemLocal('projects', id);
+    } catch (err) { 
+      console.error('[Storage Router] Errore durante la pulizia cache locale:', err);
+    }
+
+    if (typeof refreshProjectsGrid === 'function') await refreshProjectsGrid();
 
     if (typeof aggiungiAudit === 'function') {
       await aggiungiAudit({ azione: 'projects.delete', itemId: id });

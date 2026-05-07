@@ -9,6 +9,7 @@ function generaTagsAutomatici(nome) {
 
   // ── Documenti cantiere ──
   if (lower.includes('psc'))                                     tags.push('PSC');
+  if (lower.includes('itp') || lower.includes('istituzione tec')) tags.push('ITP');
   if (lower.includes('pos'))                                     tags.push('POS');
   if (lower.includes('dvr'))                                     tags.push('DVR');
   if (lower.includes('duvri'))                                   tags.push('DUVRI');
@@ -110,7 +111,7 @@ let _docTabAttivo = 'tutti';
 
 // Mappa tag → categoria (per filtro tab)
 const _CATEGORIA_TAG = {
-  cantiere:  ['PSC','POS','DVR','DUVRI','PiMUS','Segnaletica','Verbale','NC',
+  cantiere:  ['PSC','ITP','POS','DVR','DUVRI','PiMUS','Segnaletica','Verbale','NC',
                'Patente','DURC','Polizza','Iscrizione CCIAA','Idoneità','DPI','Collaudo'],
   normative: ['D.Lgs 81/08','D.I. 22/01/2019','Circolare ANAS','Istruzione Tecnica',
                'Capitolato','Decreto','Norma UNI/EN/ISO','Codice Appalti','Formazione'],
@@ -201,35 +202,55 @@ function _wireDropArea(dropAreaId, fileInputId, categoria) {
 async function handleFilesConCategoria(files, categoriaForzata) {
   if (!files || files.length === 0) return;
   const MAX_MB = 10;
-  const ok = [], skip = [];
+  const ok = [], skip = [], sovrascritti = [];
+  const currentProject = window.appState?.currentProject || null;
+
+  // Carica i documenti esistenti del progetto per confronto veloce
+  const docsEsistenti = currentProject ? await getDocumenti() : [];
 
   for (const file of files) {
     if (file.size > MAX_MB * 1024 * 1024) { skip.push(file.name); continue; }
 
-    let tags = generaTagsAutomatici(file.name);
+    // MOD-7: Controllo sovrascrittura (matching per nome file nello stesso progetto)
+    const docEsistente = docsEsistenti.find(d => d.nome === file.name);
 
-    // Se la categoria è forzata e non c'è già un tag della categoria, aggiunge il tag principale
+    let tags = generaTagsAutomatici(file.name);
     if (categoriaForzata === 'ods'       && !tags.includes('ODS'))             tags.push('ODS');
     if (categoriaForzata === 'normative' && !tags.some(t => _CATEGORIA_TAG.normative.includes(t)))
       tags.push('Normativa ANAS');
 
-    const doc = {
-      id:        'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
-      nome:      file.name,
-      tipo:      file.type || 'application/octet-stream',
-      size:      file.size,
-      tags,
-      data:      new Date().toISOString(),
-      blob:      file,
-      projectId: window.appState?.currentProject || null
-    };
-
-    await saveItem('documenti', doc);
-    ok.push(file.name);
+    if (docEsistente) {
+      // Aggiorna record esistente
+      const updated = {
+        ...docEsistente,
+        tipo:      file.type || 'application/octet-stream',
+        size:      file.size,
+        blob:      file,
+        data:      new Date().toISOString(), // aggiorna data caricamento
+        tags:      Array.from(new Set([...(docEsistente.tags || []), ...tags])) // unisci tag
+      };
+      await saveItem('documenti', updated);
+      sovrascritti.push(file.name);
+    } else {
+      // Crea nuovo record
+      const doc = {
+        id:        'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
+        nome:      file.name,
+        tipo:      file.type || 'application/octet-stream',
+        size:      file.size,
+        tags,
+        data:      new Date().toISOString(),
+        blob:      file,
+        projectId: currentProject
+      };
+      await saveItem('documenti', doc);
+      ok.push(file.name);
+    }
   }
 
   if (skip.length) showToast(`${skip.length} file troppo grandi (>10MB) saltati.`, 'warning');
-  if (ok.length)   showToast(`${ok.length} document${ok.length>1?'i':''} caricati ✓`, 'success');
+  if (sovrascritti.length) showToast(`${sovrascritti.length} document${sovrascritti.length>1?'i':''} aggiornat${sovrascritti.length>1?'i':'o'} ✓`, 'info');
+  if (ok.length)   showToast(`${ok.length} document${ok.length>1?'i':''} caricat${ok.length>1?'i':'o'} ✓`, 'success');
 
   await renderDocumenti(_docTabAttivo === 'tutti' ? null : _docTabAttivo);
   await aggiornaBadgeODS();

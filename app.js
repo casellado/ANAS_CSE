@@ -43,6 +43,12 @@ window.appState = {
 
     wireUI();
     await refreshProjectsGrid();
+    if (typeof aggiornaStatoOneDriveUI === 'function') {
+      await aggiornaStatoOneDriveUI();
+    }
+    if (typeof avviaSyncImpostazioni === 'function') {
+      await avviaSyncImpostazioni();
+    }
 
   } catch (err) {
     console.error('Errore durante l\'inizializzazione:', err);

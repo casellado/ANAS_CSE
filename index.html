@@ -45,23 +45,24 @@
   </style>
 
   <!-- Core -->
-  <script defer src="./db.js?v=2.2.4"></script>
-  <script defer src="./storage.js?v=2.2.4"></script>
+  <script defer src="./db.js?v=2.2.11"></script>
+  <script defer src="./storage.js?v=2.2.11"></script>
   <!-- UI (showToast usato anche da storage) -->
-  <script defer src="./ui.js?v=2.2.4"></script>
+  <script defer src="./ui.js?v=2.2.11"></script>
   <!-- Bootstrap -->
-  <script defer src="./app.js?v=2.2.4"></script>
+  <script defer src="./app.js?v=2.2.11"></script>
   <!-- Navigation (sovrascrive enterProject di ui.js) -->
-  <script defer src="./navigation.js?v=2.2.4"></script>
+  <script defer src="./navigation.js?v=2.2.11"></script>
   <!-- Foto (senza apertura DB extra) -->
   <script defer src="./foto.js"></script>
   <!-- ── OneDrive e Moduli Comuni ── -->
-  <script defer src="./storage-onedrive.js?v=2.2.5"></script>
-  <script defer src="./onedrive-ui.js?v=2.2.5"></script>
-  <script defer src="./migrazione-onedrive.js?v=2.2.5"></script>
-  <script defer src="./salvataggio.js?v=2.2.4"></script>
-  <script defer src="./export.js?v=2.2.4"></script>
-  <script defer src="./emergenza.js?v=2.2.5"></script>
+  <script defer src="./storage-onedrive.js?v=2.2.11"></script>
+  <script defer src="./onedrive-ui.js?v=2.2.11"></script>
+  <script defer src="./migrazione-onedrive.js?v=2.2.11"></script>
+  <script defer src="./salvataggio.js?v=2.2.11"></script>
+  <script defer src="./export.js?v=2.2.11"></script>
+  <script defer src="./settings-sync.js?v=2.2.11"></script>
+  <script defer src="./emergenza.js?v=2.2.11"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
@@ -252,6 +253,14 @@
               Non hai ancora configurato alcun cantiere in questo hub. Crea il tuo primo cantiere per iniziare.
             </p>
             <div class="flex justify-center gap-3 mt-4">
+              <!-- Pulsante USB rimosso (Solo OneDrive) -->
+              <!-- 
+              <button id="btn-import-usb" onclick="document.getElementById('file-import').click()"
+                      class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition border border-slate-200 text-sm font-semibold">
+                <span>📂</span>
+                <span class="hidden sm:inline">Carica da USB</span>
+              </button>
+              -->
               <button onclick="document.getElementById('btn-new-project').click()"
                 class="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none transition">
                 + Crea Primo Cantiere
@@ -279,10 +288,12 @@
               <select id="tipo_soggetto" name="tipo_soggetto" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
                              focus:ring-2 focus:ring-blue-400 focus:outline-none">
                 <option value="affidataria">Impresa Affidataria</option>
-                <option value="esecutrice">Impresa Esecutrice / Subappalto</option>
-                <option value="dl">Direzione Lavori (D.L.)</option>
-                <option value="committente">Committente (ANAS SpA)</option>
+                <option value="esecutrice">Impresa Esecutrice / Subappalto / Fornitore</option>
+                <option value="rl">Responsabile Lavori (R.L.)</option>
                 <option value="rup">R.U.P.</option>
+                <option value="dl">Direzione Lavori (D.L.) / D.O.</option>
+                <option value="cse">C.S.E. / C.S.P.</option>
+                <option value="committente">Committente (ANAS SpA)</option>
               </select>
             </div>
 
@@ -373,6 +384,14 @@
             </div>
 
             <div class="space-y-3">
+              <!-- Pulsante USB rimosso (Solo OneDrive) -->
+              <!-- 
+              <button id="btn-export-usb" onclick="exportDatabaseToFile()"
+                      class="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition shadow-sm text-sm font-semibold">
+                <span>💾</span>
+                <span class="hidden sm:inline">Salva su USB</span>
+              </button>
+              -->
               <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <span class="text-2xl" aria-hidden="true">📂</span>
                 <div>
@@ -464,7 +483,12 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('[PWA] SW registrato:', reg.scope))
+          .then(reg => {
+            console.log('[PWA] SW registrato:', reg.scope);
+            if (typeof avviaSyncImpostazioni === 'function') {
+              avviaSyncImpostazioni();
+            }
+          })
           .catch(err => console.warn('[PWA] SW fallito:', err));
       });
     }

@@ -38,11 +38,24 @@ async function salvaVerbale(event) {
     ? Array.from(impreseSelect.selectedOptions).map(o => o.value)
     : [];
 
+  // MOD-7: Numerazione progressiva (AAAA/VS-XX)
+  const verbaliEsistenti = await getAll('verbali').catch(() => []);
+  const annoCorrente = new Date().getFullYear();
+  const countVS = verbaliEsistenti.filter(v => 
+    v.tipo === 'sopralluogo' && 
+    v.data && v.data.startsWith(annoCorrente.toString())
+  ).length + 1;
+  const progressivoVS = `${annoCorrente}/VS-${String(countVS).padStart(2, '0')}`;
+
   // Recupera firma (se presente)
   const firmaData = window._firmaCorrente || null;
+  
+  // MOD-7: Gestione firme multiple presenti (se implementate)
+  const firmeExtra = window._firmePresenti || [];
 
   const verbale = {
     id:              generateId('verb'),
+    protocollo:      progressivoVS,
     tipo:            'sopralluogo',
     projectId:       window.appState.currentProject,
     data:            document.getElementById('verbale-data')?.value        || new Date().toISOString().slice(0, 10),
@@ -55,6 +68,7 @@ async function salvaVerbale(event) {
     oggetto:         document.getElementById('verbale-oggetto')?.value     || '',
     allegaMezzi:     document.getElementById('verbale-allega-mezzi')?.checked || false,
     firma:           firmaData ? firmaData.png       : null,
+    firmeExtra,      // MOD-7
     firmaTimestamp:  firmaData ? firmaData.timestamp : null,
     firmante:        firmaData ? firmaData.firmante  : 'Geom. Dogano Casella — CSE',
     createdAt:       new Date().toISOString()
@@ -66,13 +80,14 @@ async function salvaVerbale(event) {
   try {
     if (typeof generaVerbalePDFBlob === 'function' && typeof salvaDocumento === 'function') {
       const pdfBlob = await generaVerbalePDFBlob(verbale);
-      const filename = `Verbale_${verbale.data.replace(/\//g, '-')}_${verbale.id.slice(-4)}.pdf`;
+      const protSafe = (verbale.protocollo || '').replace(/\//g, '_');
+      const filename = `VS_${protSafe}_${verbale.data}.pdf`;
       await salvaDocumento({
         filename,
         blob: pdfBlob,
         cantiereId: verbale.projectId,
         tipoDoc: 'verbale-sopralluogo',
-        titoloCondivisione: `Verbale di Sopralluogo cantiere ${verbale.projectId} del ${verbale.data}`
+        titoloCondivisione: `Verbale di Sopralluogo ${verbale.protocollo} del ${verbale.data}`
       });
     }
   } catch (err) {

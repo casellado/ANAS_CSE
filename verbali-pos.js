@@ -8,40 +8,54 @@
 async function salvaVerificaPOS(event) {
   if (event) event.preventDefault();
 
-  if (!window.appState?.currentProject) {
-    showToast('Errore: nessun cantiere selezionato.', 'error');
-    return;
-  }
-
-  const esito = document.querySelector('input[name="pos-esito"]:checked')?.value || '';
-  if (!esito) {
-    showToast('Seleziona il giudizio di idoneità prima di salvare.', 'warning');
-    return;
-  }
-
-  const nomeImpresaCheck = (document.getElementById('pos-impresa')?.value || '').trim();
-  if (!nomeImpresaCheck) {
-    showToast("Il nome dell'impresa è obbligatorio.", 'warning');
-    document.getElementById('pos-impresa')?.focus();
-    return;
-  }
+  // BUG-2 FIX: Note obbligatorie e numerazione progressiva
+  const noteCSE = (document.getElementById('pos-note')?.value || '').trim();
+  
+  // Calcolo progressivo annuale (AAAA/VAP-XX)
+  const verbaliEsistenti = await getAll('verbali').catch(() => []);
+  const annoCorrente = new Date().getFullYear();
+  const countVAP = verbaliEsistenti.filter(v => 
+    v.tipo === 'verifica-pos' && 
+    v.data && v.data.startsWith(annoCorrente.toString())
+  ).length + 1;
+  const progressivoVAP = `${annoCorrente}/VAP-${String(countVAP).padStart(2, '0')}`;
 
   const verificaPOS = {
     id:           'pos_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
     tipo:         'verifica-pos',
+    protocollo:   progressivoVAP,
     projectId:    window.appState.currentProject,
     data:         document.getElementById('pos-data')?.value || new Date().toISOString().slice(0,10),
     nomeImpresa:  (document.getElementById('pos-impresa')?.value || '').trim(),
     pecImpresa:   (document.getElementById('pos-pec')?.value    || '').trim(),
     esito,        // 'idoneo' | 'idoneo-con-integrazioni' | 'non-idoneo'
     integrazioni: (document.getElementById('pos-integrazioni')?.value || '').trim(),
+    noteCSE,      // MOD-2: Motivazione decisione CSE
     cse:          (document.getElementById('pos-cse')?.value || '').trim() || 'Geom. Dogano Casella',
     createdAt:    new Date().toISOString()
   };
 
   await saveItem('verbali', verificaPOS);
 
-  showToast('Verifica POS salvata ✓', 'success');
+  // MOD-7: Archiviazione automatica PDF
+  try {
+    if (typeof generaVerificaPOSPDFBlob === 'function' && typeof salvaDocumento === 'function') {
+      const pdfBlob = await generaVerificaPOSPDFBlob(verificaPOS);
+      const protSafe = (verificaPOS.protocollo || '').replace(/\//g, '_');
+      const filename = `VAP_${protSafe}_${verificaPOS.nomeImpresa.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+      await salvaDocumento({
+        filename,
+        blob: pdfBlob,
+        cantiereId: verificaPOS.projectId,
+        tipoDoc: 'verifica-pos',
+        titoloCondivisione: `Verifica POS ${verificaPOS.protocollo} - ${verificaPOS.nomeImpresa}`
+      });
+    }
+  } catch (err) {
+    console.warn('[Verifica POS] Errore archiviazione PDF:', err);
+  }
+
+  showToast(`Verifica POS ${progressivoVAP} salvata ✓`, 'success');
   if (typeof showCheckmark === 'function') showCheckmark();
   document.getElementById('form-pos')?.reset();
   if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();

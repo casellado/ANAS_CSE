@@ -49,11 +49,23 @@ async function nuovaNC(tipoEmissione = 'nc') {
   if (!['nc', 'ods'].includes(tipoEmissione)) tipoEmissione = 'nc';
 
   const projectId = window.appState.currentProject;
+  
+  // MOD-7: Numerazione progressiva (AAAA/ODS-XX o AAAA/NC-XX)
+  const allNC = await getAll('nc').catch(() => []);
+  const annoCorrente = new Date().getFullYear();
+  const countTipo = allNC.filter(n => 
+    n.tipoEmissione === tipoEmissione && 
+    n.createdAt && n.createdAt.startsWith(annoCorrente.toString())
+  ).length + 1;
+  const tag = tipoEmissione === 'ods' ? 'ODS' : 'NC';
+  const progressivo = `${annoCorrente}/${tag}-${String(countTipo).padStart(2, '0')}`;
+
   currentNcId     = (tipoEmissione === 'ods' ? 'ods_' : 'nc_') + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const now       = new Date().toISOString();
 
   const nc = {
     id:            currentNcId,
+    protocollo:    progressivo,           // MOD-7
     projectId,
     tipoEmissione,                        // 'nc' o 'ods'
     titolo:        '',
@@ -66,6 +78,10 @@ async function nuovaNC(tipoEmissione = 'nc') {
   };
 
   await saveItem('nc', nc);
+
+  if (tipoEmissione === 'ods') {
+    showToast(`Ordine di Servizio ${progressivo} creato ✓`, 'success');
+  }
 
   // Reset campi UI
   const titolEl = document.getElementById('nc-titolo');
@@ -148,7 +164,28 @@ async function salvaNC() {
     updatedAt:    new Date().toISOString()
   };
   await saveItem('nc', updated);
-  showToast('NC salvata correttamente ✓', 'success');
+  
+  // MOD-7: Archiviazione automatica PDF se ODS
+  if (updated.tipoEmissione === 'ods') {
+    try {
+      if (typeof generaODSPDFBlob === 'function' && typeof salvaDocumento === 'function') {
+        const pdfBlob = await generaODSPDFBlob(updated);
+        const protSafe = (updated.protocollo || '').replace(/\//g, '_');
+        const filename = `ODS_${protSafe}_${updated.dataApertura.slice(0,10)}.pdf`;
+        await salvaDocumento({
+          filename,
+          blob: pdfBlob,
+          cantiereId: updated.projectId,
+          tipoDoc: 'ods',
+          titoloCondivisione: `Ordine di Servizio ${updated.protocollo} - ${updated.titolo}`
+        });
+      }
+    } catch (err) {
+      console.warn('[ODS] Errore archiviazione PDF:', err);
+    }
+  }
+
+  showToast((updated.tipoEmissione === 'ods' ? 'ODS' : 'NC') + ' salvata correttamente ✓', 'success');
   if (typeof showCheckmark === 'function') showCheckmark();
   return updated;
 }

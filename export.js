@@ -305,7 +305,7 @@ async function generaVerbalePDFBlob(v) {
 
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139); // slate-500
-  doc.text(`ANAS SafeHub · ID: ${v.id}`, margin, cursor);
+  doc.text(`Protocollo: ${v.protocollo || 'DA ASSEGNARE'} · SafeHub ID: ${v.id}`, margin, cursor);
   cursor += 15;
 
   // Campi
@@ -349,22 +349,108 @@ async function generaVerbalePDFBlob(v) {
   }
   const firmaFinale = firmaBase64 || firmaPersistente;
 
-  if (firmaFinale) {
+  if (firmaFinale && firmaFinale.startsWith('data:image')) {
     try {
       cursor += 10;
       if (cursor > 250) { doc.addPage(); cursor = 20; }
       doc.setFontSize(10);
-      doc.text("Firma CSE:", margin, cursor);
-      doc.addImage(firmaFinale, 'PNG', margin, cursor + 5, 50, 20);
-      cursor += 30;
+      doc.setTextColor(100, 116, 139);
+      doc.text("Firma Digitale CSE (SafeHub):", margin, cursor);
+      
+      // Calcola estensione e tenta inserimento
+      const ext = firmaFinale.includes('png') ? 'PNG' : 'JPEG';
+      doc.addImage(firmaFinale, ext, margin, cursor + 2, 60, 20, undefined, 'FAST');
+      
+      cursor += 25;
+      doc.setFontSize(9);
       doc.text(v.firmante || "Geom. Dogano Casella", margin, cursor);
+      if (v.firmaTimestamp) {
+        doc.setFontSize(7);
+        doc.text(`Acquisita il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}`, margin, cursor + 4);
+      }
     } catch (e) {
-      console.warn("Impossibile inserire firma nel PDF:", e);
-      // Fallback: stampa solo il nome
+      console.error("[Export PDF] Errore inserimento firma:", e);
+      cursor += 10;
       doc.setFontSize(10);
-      doc.text("Firma CSE: " + (v.firmante || "Geom. Dogano Casella"), margin, cursor + 10);
+      doc.text("Firma CSE: " + (v.firmante || "Geom. Dogano Casella"), margin, cursor);
     }
+  } else {
+    console.warn("[Export PDF] Nessuna firma trovata per il verbale", v.id);
+    cursor += 15;
+    doc.setFontSize(10);
+    doc.text("Firma CSE: __________________________", margin, cursor);
+    doc.text(v.firmante || "Geom. Dogano Casella", margin, cursor + 5);
   }
 
   return doc.output('blob');
 }
+
+/** Generatore PDF per Verifica POS (VAP) */
+async function generaVerificaPOSPDFBlob(v) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const margin = 20;
+  let cursor = 20;
+
+  doc.setFontSize(16);
+  doc.text("Verifica Idoneità POS (Mod. RE.01-5)", margin, cursor);
+  cursor += 10;
+  doc.setFontSize(10);
+  doc.text(`Protocollo: ${v.protocollo || 'N/A'} · Data: ${v.data}`, margin, cursor);
+  cursor += 15;
+
+  const campi = [
+    ["Cantiere:", v.projectId],
+    ["Impresa:", v.nomeImpresa],
+    ["Giudizio:", v.esito.toUpperCase()],
+    ["Note Motivazionali:", v.noteCSE || "–"],
+    ["Integrazioni Richieste:", v.integrazioni || "–"],
+    ["CSE / Ispettore:", v.cse]
+  ];
+
+  for (const [label, valore] of campi) {
+    doc.setFont("helvetica", "bold");
+    doc.text(label, margin, cursor);
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(valore || "–", 140);
+    doc.text(lines, margin + 45, cursor);
+    cursor += (lines.length * 5) + 5;
+    if (cursor > 270) { doc.addPage(); cursor = 20; }
+  }
+  
+  return doc.output('blob');
+}
+
+/** Generatore PDF per Ordine di Servizio (ODS) */
+async function generaODSPDFBlob(v) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const margin = 20;
+  let cursor = 20;
+
+  doc.setFontSize(16);
+  doc.text("Ordine di Servizio (ODS)", margin, cursor);
+  cursor += 10;
+  doc.setFontSize(10);
+  doc.text(`Protocollo: ${v.protocollo || 'N/A'} · Data: ${v.dataApertura.slice(0,10)}`, margin, cursor);
+  cursor += 15;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Titolo:", margin, cursor);
+  doc.setFont("helvetica", "normal");
+  doc.text(v.titolo || "ODS Senza Titolo", margin + 20, cursor);
+  cursor += 10;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Descrizione / Disposizioni:", margin, cursor);
+  cursor += 7;
+  doc.setFont("helvetica", "normal");
+  const lines = doc.splitTextToSize(v.descrizione || "–", 170);
+  doc.text(lines, margin, cursor);
+  
+  return doc.output('blob');
+}
+
+window.generaVerbalePDFBlob = generaVerbalePDFBlob;
+window.generaVerificaPOSPDFBlob = generaVerificaPOSPDFBlob;
+window.generaODSPDFBlob = generaODSPDFBlob;

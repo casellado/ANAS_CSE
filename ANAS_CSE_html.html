@@ -85,8 +85,9 @@
   <script defer src="./lettera-segnalazione-rup.js?v=2.2.10"></script>
   <script defer src="./report-giornaliero.js?v=2.2.10"></script>
   <script defer src="./scorciatoie.js?v=2.2.10"></script>
-  <script defer src="./mezzi.js?v=2.2.10"></script>
-  <script defer src="./verbali-mezzi.js?v=2.2.10"></script>
+  <script defer src="./mezzi.js?v=2.2.11"></script>
+  <script defer src="./verbali-mezzi.js?v=2.2.11"></script>
+  <script defer src="./settings-sync.js?v=2.2.11"></script>
   <!-- ── OneDrive Livello 2 (v2.0) ── -->
   <script defer src="./storage-onedrive.js?v=2.2.10"></script>
   <script defer src="./onedrive-ui.js?v=2.2.10"></script>
@@ -373,27 +374,11 @@
           <span aria-hidden="true">📖</span>
           <span class="hide-on-mobile">Manuale</span>
         </button>
-        <button id="btn-topbar-salvadati" class="topbar-btn topbar-btn-dark" aria-label="Salva database su USB">
-          <span aria-hidden="true">💾</span>
-          <span class="hide-on-mobile">Salva dati</span>
-        </button>
       </div>
     </header>
 
     <script>
       document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
-          if (typeof mostraPannelloSalvataggio === 'function') {
-            mostraPannelloSalvataggio({
-              titolo: 'Backup Cantiere / Hub',
-              onJSON: () => { if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile(); },
-              nascondWord: true
-            });
-          } else if (typeof exportDatabaseToFile === 'function') {
-            exportDatabaseToFile();
-          }
-        });
-
         // Pulsante Ricarica OneDrive (MOD-4)
         document.getElementById('btn-onedrive-ricarica')?.addEventListener('click', async () => {
           if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
@@ -1943,6 +1928,9 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           document.getElementById('form-anagrafica')?.reset();
           await _aggiornaCantSel(); // ripopola select dopo reset
         });
+
+        // Avvia Sync Impostazioni (MOD-8)
+        if (typeof avviaSyncImpostazioni === 'function') avviaSyncImpostazioni();
 
         // Controlla se arriva da dashboard con una view specifica
         const openView = (typeof ripristinaStatoSuiteCSE === 'function')
