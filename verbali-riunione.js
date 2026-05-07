@@ -65,6 +65,12 @@ async function salvaRiunione(event) {
     firmante:        window.appState._firmaNome || 'Geom. Dogano Casella',
     createdAt:       new Date().toISOString()
   };
+  
+  if (!riunione.noteDecisione) {
+    showToast('La motivazione del CSE è obbligatoria.', 'warning');
+    document.getElementById('riunione-note-decisione')?.focus();
+    return;
+  }
 
   await saveItem('verbali', riunione);
 

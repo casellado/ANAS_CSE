@@ -34,6 +34,18 @@ async function salvaVerificaPOS(event) {
     cse:          (document.getElementById('pos-cse')?.value || '').trim() || 'Geom. Dogano Casella',
     createdAt:    new Date().toISOString()
   };
+  
+  if (!verificaPOS.noteCSE) {
+    showToast('La motivazione del CSE è obbligatoria per la verifica POS.', 'warning');
+    document.getElementById('pos-note')?.focus();
+    return;
+  }
+  
+  if (!verificaPOS.nomeImpresa) {
+    showToast("Inserire il nome dell'impresa esecutrice.", 'warning');
+    document.getElementById('pos-impresa')?.focus();
+    return;
+  }
 
   await saveItem('verbali', verificaPOS);
 

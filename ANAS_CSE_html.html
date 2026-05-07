@@ -941,9 +941,9 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           <!-- BUG-2 FIX: NOTE CSE / MOTIVAZIONE (sempre visibile per tutti gli esiti) -->
           <div>
             <label for="riunione-note-decisione" class="text-xs font-semibold text-slate-600 block mb-1">
-              Note CSE / Motivazione della Decisione
+              Note CSE / Motivazione della Decisione <span class="text-red-500">*</span>
             </label>
-            <textarea id="riunione-note-decisione" rows="3"
+            <textarea id="riunione-note-decisione" rows="3" required
               placeholder="Es. La decisione è motivata dalla verifica effettuata in data odierna. Si richiama l'art. 92 c.1 lett. a) D.Lgs 81/08."
               class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
@@ -1093,6 +1093,17 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             </label>
             <textarea id="pos-integrazioni" rows="3"
               placeholder="Es. Integrare il capitolo 4 con le misure antirumore per l'operazione di fresatura.&#10;Aggiornare l'elenco DPI con le schede tecniche delle imbracature."
+              class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+          </div>
+
+          <!-- BUG-2 FIX: NOTE CSE / MOTIVAZIONE (sempre visibile) -->
+          <div>
+            <label for="pos-note" class="text-xs font-semibold text-slate-600 block mb-1">
+              Note CSE / Motivazione della Decisione <span class="text-red-500">*</span>
+            </label>
+            <textarea id="pos-note" rows="3" required
+              placeholder="Es. Il POS risulta conforme a seguito dell'integrazione della scheda tecnica del ponteggio."
               class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
           </div>
