@@ -57,6 +57,30 @@ const IMPOSTAZIONI_DEFAULT = {
   riuDl: ''
 };
 
+// Caching in memoria per le impostazioni condivise OneDrive
+// Evita letture concorrenti pesanti sul File System Access API
+let _cachedCondivise = null;
+let _condivisePromise = null;
+
+async function _getCondiviseMemorizzate() {
+  if (_cachedCondivise) return _cachedCondivise;
+  if (_condivisePromise) return _condivisePromise;
+  
+  if (typeof leggiImpostazioniCondivise === 'function') {
+    _condivisePromise = leggiImpostazioniCondivise().then(res => {
+      _cachedCondivise = res || {};
+      _condivisePromise = null;
+      return _cachedCondivise;
+    }).catch(err => {
+      console.warn('[Impostazioni] Errore cache condivise:', err.message);
+      _condivisePromise = null;
+      return {};
+    });
+    return _condivisePromise;
+  }
+  return {};
+}
+
 // ─────────────────────────────────────────────
 // 1. Carica impostazioni da IndexedDB
 // ─────────────────────────────────────────────
@@ -74,24 +98,21 @@ async function caricaImpostazioni(skipCondivise = false) {
   if (skipCondivise) return locali;
 
   // BUG-8 FIX: merge con impostazioni condivise da OneDrive
-  // Le impostazioni condivise (loghi, committente) vengono ereditate
-  // da tutti gli utenti sincronizzati, a meno che il locale non le sovrascriva
+  // Usiamo la cache in memoria per evitare freeze (file system blocking)
   try {
-    if (typeof leggiImpostazioniCondivise === 'function') {
-      const condivise = await leggiImpostazioniCondivise();
-      if (condivise && typeof condivise === 'object') {
-        // Le condivise fanno da base, le locali sovrascrivono
-        for (const [key, value] of Object.entries(condivise)) {
-          if (key === 'aggiornatoAt' || key === 'aggiornatoDa') continue;
-          // Se il locale non ha un valore proprio per questo campo, eredita il condiviso
-          if (!locali[key] || locali[key] === IMPOSTAZIONI_DEFAULT[key]) {
-            locali[key] = value;
-          }
+    const condivise = await _getCondiviseMemorizzate();
+    if (condivise && typeof condivise === 'object') {
+      // Le condivise fanno da base, le locali sovrascrivono
+      for (const [key, value] of Object.entries(condivise)) {
+        if (key === 'aggiornatoAt' || key === 'aggiornatoDa') continue;
+        // Se il locale non ha un valore proprio per questo campo, eredita il condiviso
+        if (!locali[key] || locali[key] === IMPOSTAZIONI_DEFAULT[key]) {
+          locali[key] = value;
         }
       }
     }
   } catch (err) {
-    console.warn('[Impostazioni] Errore lettura condivise OneDrive:', err.message);
+    console.warn('[Impostazioni] Errore merge condivise:', err.message);
   }
 
   return locali;
@@ -103,6 +124,9 @@ async function caricaImpostazioni(skipCondivise = false) {
 // ─────────────────────────────────────────────
 async function salvaImpostazioni(dati) {
   await saveItem('impostazioni', { id: IMPOSTAZIONI_KEY, data: dati });
+
+  // Invalida la cache condivise per forzare la rilettura (se necessario in futuro)
+  _cachedCondivise = null;
 
   // BUG-8 FIX: salva i campi condivisi su OneDrive (se attivo)
   try {
