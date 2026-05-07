@@ -534,7 +534,7 @@ function generaHTMLVerbale(v, imp) {
     : '–';
 
   // BUG-1 FIX: fallback alla firma persistente dalle Impostazioni se la firma del verbale è assente
-  const firmaBase64 = v.firma || imp.firmaImmagine || null;
+  const firmaBase64 = v.firma || window._firmaCorrente?.base64 || imp.firmaImmagine || null;
   const firmaHtml = firmaBase64
     ? `<img src="${firmaBase64}"
             style="max-width:280px; max-height:90px; border:1px solid #e2e8f0;

@@ -88,6 +88,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
   const pecImpresa  = p?.pecImpresa  || (document.getElementById('pos-pec')?.value    || '').trim();
   const esito       = p?.esito       || document.querySelector('input[name="pos-esito"]:checked')?.value || '';
   const integrazioni= p?.integrazioni|| (document.getElementById('pos-integrazioni')?.value || '').trim();
+  const noteCSE     = p?.noteCSE      || (document.getElementById('pos-note')?.value || '').trim();
   const cse         = p?.cse         || imp.posTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella';
 
   const data = p?.data
@@ -252,14 +253,30 @@ async function exportPOSWord(posId, tipoExport = 'word') {
             <strong>non idoneo</strong> il Piano Operativo di Sicurezza dell'impresa <strong>${escapeHtml(nomeImpresa || '___________________________')}</strong>.
           </div>
         </div>
+
+        <!-- BUG-2 FIX: Note / Motivazione Decisione -->
+        <div style="margin-top:6mm; padding:8pt; background:#f8fafc; border:0.5pt solid #cbd5e1; border-radius:4pt;">
+          <div style="font-size:9pt; font-weight:bold; color:#475569; margin-bottom:3pt; text-transform:uppercase;">
+            Note CSE / Motivazione della Decisione
+          </div>
+          <div style="font-size:10pt; line-height:1.4;">
+            ${p?.noteCSE || (document.getElementById('pos-note')?.value || '__________________________________________________________________')}
+          </div>
+        </div>
       </div>
 
       <!-- 9) FIRME -->
       <table style="width:100%; border-collapse:collapse; margin-top:6mm;">
         <tr>
           <td style="width:60mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">
-            <strong>Coordinatore Sicurezza (CSE)</strong><br><br><br><br>
-            <span>__________________________</span>
+            <strong>Coordinatore Sicurezza (CSE)</strong><br>
+            <div style="height:20mm; vertical-align:middle; padding:5pt 0;">
+              ${(p?.firma || window._firmaCorrente?.base64 || imp.firmaImmagine) ? `
+                <img src="${p?.firma || window._firmaCorrente?.base64 || imp.firmaImmagine}" style="max-height:18mm; max-width:55mm; display:block;">
+              ` : '<br><br>'}
+            </div>
+            <span>__________________________</span><br>
+            <span style="font-size:8pt; color:#64748b;">${escapeHtml(cse)}</span>
           </td>
           <td style="width:60mm; border:none; padding:4pt 0; text-align:center; vertical-align:top; font-size:9pt;">
             <strong>Responsabile dei Lavori</strong><br><br><br><br>
