@@ -417,6 +417,21 @@ async function generaVerificaPOSPDFBlob(v) {
     cursor += (lines.length * 5) + 5;
     if (cursor > 270) { doc.addPage(); cursor = 20; }
   }
+
+  // Aggiunta Firma CSE (v2.2.13)
+  const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+  const firmaFinale = v.firma || imp.firmaImmagine || null;
+  if (firmaFinale && firmaFinale.startsWith('data:image')) {
+    cursor += 10;
+    if (cursor > 250) { doc.addPage(); cursor = 20; }
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Firma Digitale CSE (SafeHub):", margin, cursor);
+    const ext = firmaFinale.includes('png') ? 'PNG' : 'JPEG';
+    doc.addImage(firmaFinale, ext, margin, cursor + 2, 60, 20, undefined, 'FAST');
+    cursor += 25;
+    doc.text(v.cse || imp.firmaNome || "Geom. Dogano Casella", margin, cursor);
+  }
   
   return doc.output('blob');
 }
@@ -447,6 +462,21 @@ async function generaODSPDFBlob(v) {
   doc.setFont("helvetica", "normal");
   const lines = doc.splitTextToSize(v.descrizione || "–", 170);
   doc.text(lines, margin, cursor);
+  cursor += (lines.length * 5) + 15;
+
+  // Aggiunta Firma CSE (v2.2.13)
+  const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+  const firmaFinale = v.firma || imp.firmaImmagine || null;
+  if (firmaFinale && firmaFinale.startsWith('data:image')) {
+    if (cursor > 250) { doc.addPage(); cursor = 20; }
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Firma Digitale CSE (SafeHub):", margin, cursor);
+    const ext = firmaFinale.includes('png') ? 'PNG' : 'JPEG';
+    doc.addImage(firmaFinale, ext, margin, cursor + 2, 60, 20, undefined, 'FAST');
+    cursor += 25;
+    doc.text(imp.firmaNome || "Geom. Dogano Casella", margin, cursor);
+  }
   
   return doc.output('blob');
 }

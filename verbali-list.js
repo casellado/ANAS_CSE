@@ -332,6 +332,17 @@ async function renderDettaglioVerbale(containerId) {
           <div class="text-slate-700 whitespace-pre-wrap">${escapeHtml(v.note)}</div>
         </div>` : ''}
 
+        ${v.firma ? `
+        <div class="bg-slate-50 p-3 rounded-lg sm:col-span-2 border border-slate-200">
+          <div class="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wide">Firma CSE</div>
+          <div class="bg-white p-2 border border-slate-200 rounded-lg inline-block">
+            <img src="${v.firma}" class="max-h-24 max-w-full" alt="Firma CSE">
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1 italic">
+            Firmato digitalmente il ${v.firmaTimestamp ? new Date(v.firmaTimestamp).toLocaleString('it-IT') : '–'}
+          </div>
+        </div>` : ''}
+
       </div>
 
       <div class="bg-slate-50 p-4 rounded-lg sm:col-span-2 border border-slate-200">

@@ -287,8 +287,12 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
       <table style="width:100%; border-collapse:collapse;">
         <tr>
           <td style="width:90mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">
-            <strong>Il Coordinatore per la Sicurezza (CSE)</strong><br><br><br><br>
-            <span>__________________________</span><br>
+            <strong>Il Coordinatore per la Sicurezza (CSE)</strong><br>
+            ${(function() {
+              const f = r?.firma || imp.firmaImmagine || null;
+              if (f) return `<img src="${f}" style="max-height:20mm; max-width:60mm; display:block; margin:4pt 0;">`;
+              return '<br><br><br><br><span>__________________________</span><br>';
+            })()}
             <span style="font-size:8pt; color:#475569;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</span>
           </td>
           <td style="width:90mm; border:none; padding:4pt 0; text-align:right; vertical-align:top; font-size:9pt;">
