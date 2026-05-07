@@ -533,6 +533,12 @@ const OD_STRUTTURA_LOTTO = [
   '05_Comunicazioni_e_Ordini_di_Servizio/01_ODS_Inviati_dal_CSE',
   '05_Comunicazioni_e_Ordini_di_Servizio/02_ODS_Ricevuti_da_ANAS_e_DL',
 
+  '07_Mezzi_Attrezzature/01_Libretti_e_Manuali',
+  '07_Mezzi_Attrezzature/02_Dichiarazioni_CE',
+  '07_Mezzi_Attrezzature/03_Verifiche_Periodiche',
+  '07_Mezzi_Attrezzature/04_Foto_Mezzi',
+  '07_Mezzi_Attrezzature/05_Verbali_Ispezione',
+
   '99_Archivio_e_Altri_Documenti/Allegati_Vari'
 ];
 
@@ -560,9 +566,16 @@ const OD_MAPPA_SOTTOCARTELLE = {
   'sospensione':                       '04_Criticita_e_Provvedimenti/04_Lettere_di_Sospensione_Lavori',
   'segnalazione-rup':                  '04_Criticita_e_Provvedimenti/05_Segnalazioni_al_RUP_e_Enti_Vigilanza',
 
+  'ods':                               '05_Comunicazioni_e_Ordini_di_Servizio/01_ODS_Inviati_dal_CSE',
   'ods-ricevuto':                      '05_Comunicazioni_e_Ordini_di_Servizio/02_ODS_Ricevuti_da_ANAS_e_DL',
-  'ods-inviato':                       '05_Comunicazioni_e_Ordini_di_Servizio/01_ODS_Inviati_dal_CSE',
 
+  'mezzo-libretto':                    '07_Mezzi_Attrezzature/01_Libretti_e_Manuali',
+  'mezzo-ce':                          '07_Mezzi_Attrezzature/02_Dichiarazioni_CE',
+  'mezzo-verifica':                    '07_Mezzi_Attrezzature/03_Verifiche_Periodiche',
+  'foto-mezzo':                        '07_Mezzi_Attrezzature/04_Foto_Mezzi',
+  'verbale-mezzi':                     '07_Mezzi_Attrezzature/05_Verbali_Ispezione',
+
+  'default':                           '99_Archivio_e_Altri_Documenti/Allegati_Vari',
   'documento':                         '99_Archivio_e_Altri_Documenti/Allegati_Vari',
   'generico':                          '99_Archivio_e_Altri_Documenti/Allegati_Vari'
 };

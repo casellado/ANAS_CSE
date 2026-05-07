@@ -20,6 +20,15 @@ La versione 2.0 trasforma la Suite da strumento locale a piattaforma collaborati
 
 ---
 
+## 🏗️ Modulo MOD-10: Mezzi e Attrezzature (Alta Vigilanza)
+Implementazione del monitoraggio mezzi ai sensi dell'art. 92 D.Lgs 81/08.
+- **Tracciabilità**: Registro completo mezzi per impresa con scadenze verbali e CE.
+- **NC Automatiche**: Generazione flussi di Non Conformità per mezzi non in regola.
+- **Allegato A**: Tabella riepilogativa mezzi integrabile nel Verbale di Sopralluogo.
+- **Ispezione Formale**: Nuovo template verbale autonomo (MOD-10.8) per verifiche periodiche.
+
+---
+
 ## 🔧 Architettura v2.0
 
 | Layer | Tecnologia | Note |

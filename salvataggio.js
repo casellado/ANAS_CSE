@@ -300,6 +300,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
       statoLuoghi: document.getElementById('verbale-stato-luoghi')?.value,
       note: document.getElementById('verbale-note')?.value,
       projectId: window.appState?.currentProject,
+      allegaMezzi: document.getElementById('verbale-allega-mezzi')?.checked || false,
       firmante: imp.firmaNome || 'Geom. Dogano Casella'
     };
   }
@@ -403,6 +404,8 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         </td>
       </tr>
     </table>
+
+    ${v.allegaMezzi ? await _generaTabellaMezziHTML(v.projectId) : ''}
   `;
 
   if (tipoExport === 'anteprima') {
@@ -621,4 +624,74 @@ async function exportImpresaWord(impresaId) {
   `;
 
   scaricaComeWord(html, `Scheda_Impresa_${(impresa.nome || '').replace(/\s+/g, '_')}`);
+}
+async function _generaTabellaMezziHTML(projectId) {
+  if (!projectId || typeof getMezziByProject !== 'function') return '';
+  
+  try {
+    const mezzi = await getMezziByProject(projectId);
+    const presenti = mezzi.filter(m => m.presenteInCantiere);
+    if (presenti.length === 0) return '';
+
+    // Mappa Imprese
+    const imprese = await getAll('imprese').catch(() => []);
+    const impMap = {};
+    imprese.forEach(i => impMap[i.id] = i.ragioneSociale || i.nome);
+
+    let html = `
+      <div style="margin-top: 20pt; page-break-before: always;">
+        <h2 style="color: #0f172a; border-bottom: 2px solid #0f172a;">ALLEGATO A — RILEVAMENTO MEZZI E ATTREZZATURE</h2>
+        <p style="font-size: 9pt; color: #64748b; margin-bottom: 10pt;">
+          Elenco dei mezzi d'opera e delle attrezzature complesse riscontrati in cantiere in data odierna 
+          ai fini dell'alta vigilanza del CSE (Art. 92 D.Lgs 81/08).
+        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 9pt;">
+          <thead>
+            <tr style="background-color: #f8fafc;">
+              <th style="border: 1px solid #cbd5e1; padding: 4pt;">Impresa Esecutrice</th>
+              <th style="border: 1px solid #cbd5e1; padding: 4pt;">Tipologia Mezzo</th>
+              <th style="border: 1px solid #cbd5e1; padding: 4pt;">Marca / Modello</th>
+              <th style="border: 1px solid #cbd5e1; padding: 4pt;">Matricola / Serie</th>
+              <th style="border: 1px solid #cbd5e1; padding: 4pt;">Esito Doc.</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    presenti.forEach(m => {
+      const tipologia = (typeof TIPOLOGIE_MEZZI !== 'undefined') 
+        ? TIPOLOGIE_MEZZI.find(t => t.id === m.tipologia)?.nome || m.tipologia
+        : m.tipologia;
+      
+      const conf = (typeof valutaConformitaDocumentale === 'function')
+        ? valutaConformitaDocumentale(m)
+        : { conforme: true };
+
+      const esitoStyle = conf.conforme ? 'color: green; font-weight: bold;' : 'color: red; font-weight: bold;';
+      const esitoLabel = conf.conforme ? 'CONFORME' : 'NON CONFORME';
+
+      html += `
+        <tr>
+          <td style="border: 1px solid #cbd5e1; padding: 4pt;">${escapeHtml(impMap[m.impresaId] || '–')}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 4pt;">${escapeHtml(tipologia)}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 4pt;">${escapeHtml(m.marca)} ${escapeHtml(m.modello)}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 4pt;">${escapeHtml(m.matricola || m.numeroSerie || '–')}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 4pt; text-align: center; ${esitoStyle}">${esitoLabel}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+        <div style="font-size: 8pt; color: #94a3b8; margin-top: 5pt; font-style: italic;">
+          Nota: La conformità documentale è riferita alla presenza di libretto d'uso, dichiarazione CE e verifiche periodiche di legge (ove applicabili).
+        </div>
+      </div>
+    `;
+    return html;
+  } catch (err) {
+    console.error('Errore generazione tabella mezzi:', err);
+    return '';
+  }
 }

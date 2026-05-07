@@ -85,6 +85,8 @@
   <script defer src="./lettera-segnalazione-rup.js?v=2.2.4"></script>
   <script defer src="./report-giornaliero.js?v=2.2.4"></script>
   <script defer src="./scorciatoie.js?v=2.2.4"></script>
+  <script defer src="./mezzi.js?v=2.2.7"></script>
+  <script defer src="./verbali-mezzi.js?v=2.2.7"></script>
   <!-- ── OneDrive Livello 2 (v2.0) ── -->
   <script defer src="./storage-onedrive.js?v=2.2.5"></script>
   <script defer src="./onedrive-ui.js?v=2.2.5"></script>
@@ -283,6 +285,11 @@
       <button aria-label="Documenti Fondamentali Cantiere" onclick="switchView('documenti-fondamentali')"
         data-nav="documenti-fondamentali" class="nav-btn">
         <span class="nav-icon" aria-hidden="true">📋</span> Doc. Fondamentali
+      </button>
+
+      <button aria-label="Mezzi e Attrezzature di Cantiere" onclick="switchView('mezzi')"
+        data-nav="mezzi" class="nav-btn">
+        <span class="nav-icon" aria-hidden="true">🚜</span> Mezzi & Attrezzature
       </button>
 
       <button aria-label="Documenti Normative" onclick="switchView('documenti')" data-nav="documenti" class="nav-btn">
@@ -518,6 +525,14 @@
         <!-- KPI documentali e scadenze -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
 
+          <div class="kpi-card text-center" data-severity="info" onclick="switchView('mezzi')" style="cursor:pointer">
+            <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">
+              Mezzi Tracciati</div>
+            <div id="kpi-mezzi-totali" class="text-3xl font-bold kpi-value" style="color:var(--color-text)"
+              aria-live="polite">0</div>
+            <div class="text-[10px] mt-1 text-amber-600 font-bold hidden" id="kpi-mezzi-non-conformi"></div>
+          </div>
+
           <div class="kpi-card text-center" data-severity="info">
             <div class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--color-text-muted)">
               Documenti Totali</div>
@@ -699,6 +714,17 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
               placeholder="Es. Si prescrive integrazione segnaletica verticale entro 48h. Si richiama impresa all'obbligo DPI."
               class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+          </div>
+
+          <!-- MOD-10.10 Allegato Mezzi -->
+          <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between">
+            <div>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="verbale-allega-mezzi" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-5 h-5">
+                <span class="font-bold text-sm text-slate-800">Allega tabella Mezzi & Attrezzature</span>
+              </label>
+              <div class="text-xs text-slate-500 ml-7 mt-0.5" id="label-conteggio-mezzi">Caricamento mezzi in corso...</div>
+            </div>
           </div>
 
           <!-- Sezione NC da Verbale -->
@@ -1333,6 +1359,47 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           </div>
         </div>
 
+        <!-- ========================================= -->
+        <!-- VIEW MEZZI & ATTREZZATURE (MOD-10)        -->
+        <!-- ========================================= -->
+        <section id="view-mezzi" class="page-transition page-hidden space-y-6"
+                 role="region" aria-label="Mezzi e Attrezzature di Cantiere"
+                 aria-hidden="true">
+          
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">🚜 Mezzi & Attrezzature</h3>
+              <div class="text-xs text-slate-500 mt-1">
+                Tracciamento mezzi presenti in cantiere e documentazione fornita dalle imprese
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="if(typeof apriFormVerbaleMezzi === 'function') apriFormVerbaleMezzi(window.appState.currentProject)"
+                      class="bg-white border border-slate-300 text-slate-700 text-sm px-3 py-2 rounded-lg font-semibold hover:bg-slate-50 shadow-sm">
+                📋 Genera Verbale
+              </button>
+              <button onclick="mostraModalNuovoMezzo(window.appState.currentProject)"
+                      class="bg-blue-700 text-white text-sm px-3 py-2 rounded-lg font-semibold hover:bg-blue-800 shadow-sm">
+                + Nuovo mezzo riscontrato
+              </button>
+            </div>
+          </div>
+          
+          <!-- Banner riepilogo conformità -->
+          <div id="mezzi-banner-conformita" role="status" aria-live="polite"></div>
+          
+          <!-- Filtri -->
+          <div class="flex flex-wrap gap-2">
+            <button class="filter-mezzo active bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition" data-filter="tutti">Tutti</button>
+            <button class="filter-mezzo bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition" data-filter="non-conformi">⚠️ Non conformi</button>
+            <button class="filter-mezzo bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition" data-filter="scadenza-vicina">⏰ Scadenza ≤ 30gg</button>
+            <button class="filter-mezzo bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition" data-filter="presenti">📍 Presenti oggi</button>
+          </div>
+          
+          <!-- Lista mezzi -->
+          <div id="mezzi-list-spa" class="space-y-3"></div>
+        </section>
+
         <!-- LISTA DOCUMENTI (condivisa, filtrata per tab attivo) -->
         <div id="documenti-list" role="list" aria-label="Lista documenti" aria-live="polite" class="space-y-3"></div>
 
@@ -1386,7 +1453,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
 ───────────────────────────────────────────────────── -->
   <script>
     // Elenco completo delle view
-    const VIEWS = ['hub', 'anagrafica', 'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento', 'verifica-pos', 'nc', 'ods-ricevuti', 'documenti-fondamentali', 'documenti', 'impostazioni'];
+    const VIEWS = ['hub', 'anagrafica', 'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento', 'verifica-pos', 'nc', 'ods-ricevuti', 'documenti-fondamentali', 'mezzi', 'documenti', 'impostazioni'];
 
     const VIEW_TITLES = {
       'hub': '🏢 Hub Cantieri',
@@ -1398,6 +1465,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
       'nc': '⚠️ Non Conformità / ODS Inviati',
       'ods-ricevuti': '📥 ODS Ricevuti',
       'documenti-fondamentali': '📋 Doc. Fondamentali Cantiere',
+      'mezzi': '🚜 Mezzi & Attrezzature',
       'documenti': '📚 Normative & Documenti',
       'impostazioni': '⚙️ Impostazioni Verbale PDF'
     };
@@ -1412,7 +1480,7 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
     // ── Guard: view che richiedono cantiere attivo ──
     const VIEWS_REQUIRE_PROJECT = [
       'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento',
-      'verifica-pos', 'nc', 'documenti', 'documenti-fondamentali'
+      'verifica-pos', 'nc', 'documenti', 'documenti-fondamentali', 'mezzi'
       // 'ods-ricevuti' NON richiede cantiere: gli ODS possono essere generici
     ];
 
@@ -1533,6 +1601,50 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           if (typeof renderDocumentiObbligatori === 'function') renderDocumentiObbligatori();
           if (typeof renderNCList === 'function') renderNCList('dashboard-nc-list');
           if (typeof alertScadenze === 'function') alertScadenze();
+          
+          // MOD-10: KPI Mezzi
+          if (typeof getMezziByProject === 'function') {
+            getMezziByProject(window.appState.currentProject).then(mezzi => {
+              const elTot = document.getElementById('kpi-mezzi-totali');
+              if (elTot) elTot.textContent = mezzi.length;
+              
+              let ncCount = 0;
+              mezzi.forEach(m => {
+                if (!valutaConformitaDocumentale(m).conforme) ncCount++;
+              });
+              
+              const elNc = document.getElementById('kpi-mezzi-non-conformi');
+              const card = elTot ? elTot.closest('.kpi-card') : null;
+              
+              if (elNc && card) {
+                if (ncCount > 0) {
+                  elNc.textContent = ncCount + ' NON CONFORMI';
+                  elNc.classList.remove('hidden');
+                  card.setAttribute('data-severity', 'warning');
+                  // Mostra banner alert mezzi
+                  let banner = document.getElementById('alert-mezzi-dashboard');
+                  if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'alert-mezzi-dashboard';
+                    banner.className = 'alert-critical alert-pulse mt-3 cursor-pointer';
+                    banner.onclick = () => switchView('mezzi');
+                    banner.innerHTML = `<p class="font-bold text-red-800 text-sm">🚨 Attenzione: ${ncCount} mezzi in cantiere senza documentazione conforme.</p>
+                                        <p class="text-sm text-red-700 mt-1">Clicca qui per verificare e generare eventuali Non Conformità.</p>`;
+                    document.getElementById('view-dashboard-cantiere').insertBefore(banner, document.getElementById('view-dashboard-cantiere').children[2]);
+                  } else {
+                    banner.innerHTML = `<p class="font-bold text-red-800 text-sm">🚨 Attenzione: ${ncCount} mezzi in cantiere senza documentazione conforme.</p>
+                                        <p class="text-sm text-red-700 mt-1">Clicca qui per verificare e generare eventuali Non Conformità.</p>`;
+                    banner.style.display = 'block';
+                  }
+                } else {
+                  elNc.classList.add('hidden');
+                  card.setAttribute('data-severity', 'info');
+                  const banner = document.getElementById('alert-mezzi-dashboard');
+                  if (banner) banner.style.display = 'none';
+                }
+              }
+            });
+          }
           break;
 
         case 'nuovo-verbale':
@@ -1544,7 +1656,9 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             }
           })();
           // Popola select imprese
-          _popolaSelectImprese();
+          if (typeof _popolaSelectImprese === 'function') _popolaSelectImprese();
+          // MOD-10.10: Conteggio mezzi per allegato
+          if (typeof _aggiornaConteggioMezziVerbale === 'function') _aggiornaConteggioMezziVerbale();
           // Inizializza firma canvas (si resetta ogni volta che entri nella view)
           if (typeof renderFirmaCanvas === 'function') {
             window._firmaCorrente = null;
@@ -1614,6 +1728,11 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
         case 'documenti-fondamentali':
           if (typeof renderDocumentiFondamentali === 'function') {
             renderDocumentiFondamentali('view-documenti-fondamentali-container', window.appState?.currentProject);
+          }
+          break;
+        case 'mezzi':
+          if (typeof renderMezziCantiere === 'function') {
+            renderMezziCantiere('mezzi-list-spa', window.appState.currentProject);
           }
           break;
 

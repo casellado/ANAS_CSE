@@ -84,6 +84,13 @@ function _sottocartellaSuggerita(tipoDoc) {
     'fondamentale-duvri':               '01_Documenti_Fondamentali/DUVRI',
     'fondamentale-autorizzazioni':      '01_Documenti_Fondamentali/Autorizzazioni_ANAS',
 
+    // Mezzi e Attrezzature (MOD-10)
+    'mezzo-libretto':                   '07_Mezzi_Attrezzature/Libretti',
+    'mezzo-ce':                         '07_Mezzi_Attrezzature/CE',
+    'mezzo-verifica':                   '07_Mezzi_Attrezzature/Verifiche',
+    'foto-mezzo':                       '07_Mezzi_Attrezzature/Foto',
+    'verbale-mezzi':                    '07_Mezzi_Attrezzature/Verbali',
+
     // Fallback
     'documento':            '99_Altri_Documenti',
     'foto':                 '03_Non_Conformita/Foto',

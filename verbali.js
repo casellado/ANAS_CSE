@@ -53,6 +53,7 @@ async function salvaVerbale(event) {
     statoLuoghi:     document.getElementById('verbale-stato-luoghi')?.value || '',
     note:            document.getElementById('verbale-note')?.value        || '',
     oggetto:         document.getElementById('verbale-oggetto')?.value     || '',
+    allegaMezzi:     document.getElementById('verbale-allega-mezzi')?.checked || false,
     firma:           firmaData ? firmaData.png       : null,
     firmaTimestamp:  firmaData ? firmaData.timestamp : null,
     firmante:        firmaData ? firmaData.firmante  : 'Geom. Dogano Casella — CSE',
@@ -196,3 +197,30 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', salvaVerbale);
   }
 });
+
+// ─────────────────────────────────────────────
+// 7. Conta Mezzi per Checkbox Verbale
+// ─────────────────────────────────────────────
+window._aggiornaConteggioMezziVerbale = async function() {
+  const lbl = document.getElementById('label-conteggio-mezzi');
+  const chk = document.getElementById('verbale-allega-mezzi');
+  if (!lbl || !chk || !window.appState?.currentProject) return;
+  
+  if (typeof getMezziByProject !== 'function') return;
+  
+  try {
+    const mezzi = await getMezziByProject(window.appState.currentProject);
+    const presenti = mezzi.filter(m => m.presenteInCantiere).length;
+    
+    if (presenti === 0) {
+      lbl.innerHTML = `<span class="text-amber-600">Nessun mezzo registrato nel cantiere. La tabella sarà vuota.</span>`;
+      chk.disabled = true;
+      chk.checked = false;
+    } else {
+      lbl.innerHTML = `${presenti} mezzi/attrezzature riscontrati.`;
+      chk.disabled = false;
+    }
+  } catch (err) {
+    lbl.innerText = 'Errore caricamento mezzi.';
+  }
+};

@@ -2,7 +2,7 @@
 // v7: store foto, imprese_cantieri, impostazioni
 
 const DB_NAME    = 'ANAS_SafeHub_DB';
-const DB_VERSION = 10;          // v10: Forza allineamento cache v2.2.2 (MOD-25)
+const DB_VERSION = 11;          // v11: Aggiunto store 'mezzi' (MOD-10)
 
 let db = null;
 
@@ -59,13 +59,13 @@ function initDB() {
         s.createIndex('by_riferimento', ['tipo', 'riferimentoId'], { unique: false });
       }
 
-      // 8. Foto NC  ← MANCAVA (causava il crash di foto.js con DB_VERSION+1)
+      // 8. Foto NC
       if (!db.objectStoreNames.contains('foto')) {
         const s = db.createObjectStore('foto', { keyPath: 'id' });
         s.createIndex('ncId', 'ncId', { unique: false });
       }
 
-      // 9. Assegnazione Imprese ↔ Cantieri  ← MANCAVA (imprese-assegnazione.js)
+      // 9. Assegnazione Imprese ↔ Cantieri
       if (!db.objectStoreNames.contains('imprese_cantieri')) {
         const s = db.createObjectStore('imprese_cantieri', { keyPath: 'id' });
         s.createIndex('projectId',  'projectId',  { unique: false });
@@ -81,6 +81,14 @@ function initDB() {
       if (!db.objectStoreNames.contains('sync_queue')) {
         const s = db.createObjectStore('sync_queue', { keyPath: 'id' });
         s.createIndex('status', 'status', { unique: false });
+      }
+
+      // 12. Mezzi e Attrezzature (MOD-10)
+      if (!db.objectStoreNames.contains('mezzi')) {
+        const s = db.createObjectStore('mezzi', { keyPath: 'id' });
+        s.createIndex('projectId', 'projectId', { unique: false });
+        s.createIndex('impresaId', 'impresaId', { unique: false });
+        s.createIndex('tipologia', 'tipologia', { unique: false });
       }
     };
 
