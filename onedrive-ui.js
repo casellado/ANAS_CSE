@@ -48,7 +48,17 @@ async function aggiornaStatoOneDriveUI() {
     btn.setAttribute('title', 'Archivio condiviso OneDrive configurato e attivo. Clicca per gestire.');
     btn.setAttribute('aria-label', 'OneDrive attivo — clicca per gestire');
     _mostraBtnRicarica();
+    
+    // BUG-9 FIX: Blocco USB — Nascondi i bottoni USB/Salva Dati se OneDrive è attivo
+    document.querySelectorAll('[data-usb-only], #btn-topbar-salvadati').forEach(el => {
+      el.classList.add('hidden');
+    });
   } else {
+    // BUG-9 FIX: Ripristina i bottoni USB se OneDrive non è attivo
+    document.querySelectorAll('[data-usb-only], #btn-topbar-salvadati').forEach(el => {
+      el.classList.remove('hidden');
+    });
+
     // Controlla se c'è un handle salvato ma senza permesso
     const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
     const handle = imp && imp.onedrive_folder_handle;

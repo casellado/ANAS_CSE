@@ -192,6 +192,9 @@ function _initFirmaCanvas(firmaId, onSave) {
   canvas._strokes = strokes;
   canvas._hasStroke = () => hasStroke;
   canvas._ctx = ctx;
+  // BUG-1 FIX: salva dimensioni CSS per il calcolo coordinate nel timestamp
+  canvas._cssWidth = rect.width;
+  canvas._cssHeight = rect.height;
 }
 
 // ─────────────────────────────────────────────
@@ -244,7 +247,10 @@ function _firmaConferma(firmaId, containerId) {
   ctx.font = '11px monospace';
   ctx.fillStyle = '#64748b';
   ctx.textAlign = 'right';
-  ctx.fillText('CSE: Geom. Dogano Casella — ' + tsLabel, canvas.width - 8, canvas.height - 6);
+  // BUG-1 FIX: usa coordinate CSS (non Retina) poiché ctx.scale(ratio) è già applicato
+  const cssW = canvas._cssWidth  || (canvas.width  / (window.devicePixelRatio || 1));
+  const cssH = canvas._cssHeight || (canvas.height / (window.devicePixelRatio || 1));
+  ctx.fillText('CSE: Geom. Dogano Casella — ' + tsLabel, cssW - 8, cssH - 6);
   ctx.restore();
 
   // Genera PNG

@@ -30,8 +30,9 @@ window.enterProject = function (id, nome) {
   window.appState.currentProject = id;
   window.appState.projectName    = nome;
 
-  // MOD-4: invalida cache del lotto e riavvia il polling
+  // MOD-4 + BUG-6 FIX: invalida cache del lotto E la cache globale per forzare rilettura fresh
   if (typeof invalidaCacheLotto === 'function') invalidaCacheLotto(id);
+  if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
   _avviaPollingModifiche(id);
 
   apriDashboardCantiere(id, nome);

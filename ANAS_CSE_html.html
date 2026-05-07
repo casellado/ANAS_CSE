@@ -926,6 +926,20 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
           </div>
 
+          <!-- BUG-2 FIX: NOTE CSE / MOTIVAZIONE (sempre visibile per tutti gli esiti) -->
+          <div>
+            <label for="riunione-note-decisione" class="text-xs font-semibold text-slate-600 block mb-1">
+              Note CSE / Motivazione della Decisione
+            </label>
+            <textarea id="riunione-note-decisione" rows="3"
+              placeholder="Es. La decisione è motivata dalla verifica effettuata in data odierna. Si richiama l'art. 92 c.1 lett. a) D.Lgs 81/08."
+              class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                           focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+            <div class="text-xs text-slate-400 mt-1">
+              Questo campo è obbligatorio per motivare la decisione del CSE, indipendentemente dall'esito.
+            </div>
+          </div>
+
           <!-- BOTTONI -->
           <div class="flex flex-wrap gap-3 pt-2">
             <button type="submit" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm

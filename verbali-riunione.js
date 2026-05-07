@@ -60,6 +60,8 @@ async function salvaRiunione(event) {
     argomentiLiberi,
     criticita,
     decisioni,
+    // BUG-2 FIX: campo Note motivazionali (sempre presente per tutti gli esiti)
+    noteDecisione:   (document.getElementById('riunione-note-decisione')?.value || '').trim(),
     firmante:        window.appState._firmaNome || 'Geom. Dogano Casella',
     createdAt:       new Date().toISOString()
   };
@@ -101,6 +103,8 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
   const argLiberi   = r?.argomentiLiberi || document.getElementById('riunione-argomenti-liberi')?.value || '';
   const critVal     = r?.criticita       || document.getElementById('riunione-criticita')?.value        || '';
   const decVal      = r?.decisioni       || document.getElementById('riunione-decisioni')?.value        || '';
+  // BUG-2 FIX: Note motivazionali
+  const noteDecVal  = r?.noteDecisione   || document.getElementById('riunione-note-decisione')?.value   || '';
 
   const cantiere = window.appState?.currentProject || '______';
   const nomeCant = window.appState?.projectName    || '';
@@ -265,7 +269,21 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
         </tr>
       </table>
 
-      <!-- 10) FIRMA FINALE -->
+      <!-- 10) NOTE CSE / MOTIVAZIONE (BUG-2 FIX) -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr style="background:#f1f5f9;">
+          <th style="width:180mm; border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">
+            Note CSE / Motivazione della Decisione
+          </th>
+        </tr>
+        <tr>
+          <td style="width:180mm; border:0.5pt solid #000; padding:6pt 8pt; height:25mm; vertical-align:top; font-size:9pt; line-height:1.4;">
+            ${noteDecVal ? escapeHtml(noteDecVal).replace(/\n/g,'<br>') : '<div style="height:15mm;"></div>'}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 11) FIRMA FINALE -->
       <table style="width:100%; border-collapse:collapse;">
         <tr>
           <td style="width:90mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">

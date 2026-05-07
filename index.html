@@ -358,8 +358,8 @@
           </form>
         </section>
 
-        <!-- ── SYNC VIEW ── -->
-        <section id="sync-view" class="page-transition" role="region" aria-label="Gestione dati USB" aria-hidden="true">
+        <!-- ── SYNC VIEW (BUG-9 FIX: data-usb-only) ── -->
+        <section id="sync-view" data-usb-only class="page-transition" role="region" aria-label="Gestione dati USB" aria-hidden="true">
 
           <h2 class="text-base font-semibold text-slate-700 mb-4">Gestione Dati USB</h2>
 
@@ -368,7 +368,8 @@
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
               <strong>Come funziona:</strong> Il file <code>data/database.json</code> sulla chiavetta
               è il <strong>master</strong>. L'app carica automaticamente i dati da quel file
-              all'avvio. Usa i pulsanti qui sotto per importare ed esportare manualmente.
+              all'avvio. Usa i pulsanti qui sotto per importare ed esportare manualmente.<br><br>
+              <strong>Nota:</strong> Se usi OneDrive, questa sezione è disabilitata poiché il salvataggio è in tempo reale.
             </div>
 
             <div class="space-y-3">
@@ -436,6 +437,9 @@
   <!-- ═══════════ PWA + SW REGISTRATION E TOPBAR WIRING ═══════════ -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // BUG-5 FIX: Inizializza il pannello OneDrive nell'Hub
+      if (typeof initOneDriveUI === 'function') initOneDriveUI();
+      
       // Wiring Salva Dati
       document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
         if (typeof mostraPannelloSalvataggio === 'function') {

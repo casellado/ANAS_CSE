@@ -61,20 +61,57 @@ const IMPOSTAZIONI_DEFAULT = {
 // 1. Carica impostazioni da IndexedDB
 // ─────────────────────────────────────────────
 async function caricaImpostazioni() {
+  let locali = { ...IMPOSTAZIONI_DEFAULT };
   try {
     const item = await getItem('impostazioni', IMPOSTAZIONI_KEY);
     if (item && item.data) {
-      return { ...IMPOSTAZIONI_DEFAULT, ...item.data };
+      locali = { ...IMPOSTAZIONI_DEFAULT, ...item.data };
     }
   } catch (_) { }
-  return { ...IMPOSTAZIONI_DEFAULT };
+
+  // BUG-8 FIX: merge con impostazioni condivise da OneDrive
+  // Le impostazioni condivise (loghi, committente) vengono ereditate
+  // da tutti gli utenti sincronizzati, a meno che il locale non le sovrascriva
+  try {
+    if (typeof leggiImpostazioniCondivise === 'function') {
+      const condivise = await leggiImpostazioniCondivise();
+      if (condivise && typeof condivise === 'object') {
+        // Le condivise fanno da base, le locali sovrascrivono
+        for (const [key, value] of Object.entries(condivise)) {
+          if (key === 'aggiornatoAt' || key === 'aggiornatoDa') continue;
+          // Se il locale non ha un valore proprio per questo campo, eredita il condiviso
+          if (!locali[key] || locali[key] === IMPOSTAZIONI_DEFAULT[key]) {
+            locali[key] = value;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Impostazioni] Errore lettura condivise OneDrive:', err.message);
+  }
+
+  return locali;
 }
 
 // ─────────────────────────────────────────────
 // 2. Salva impostazioni in IndexedDB
+//    BUG-8 FIX: propaga i campi condivisi su OneDrive
 // ─────────────────────────────────────────────
 async function salvaImpostazioni(dati) {
   await saveItem('impostazioni', { id: IMPOSTAZIONI_KEY, data: dati });
+
+  // BUG-8 FIX: salva i campi condivisi su OneDrive (se attivo)
+  try {
+    if (typeof salvaImpostazioniCondivise === 'function' &&
+        typeof isArchivioOneDriveAttivo === 'function') {
+      const odAttivo = await isArchivioOneDriveAttivo();
+      if (odAttivo) {
+        await salvaImpostazioniCondivise(dati);
+      }
+    }
+  } catch (err) {
+    console.warn('[Impostazioni] Errore salvataggio condivise OneDrive:', err.message);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -468,8 +505,10 @@ function generaHTMLVerbale(v, imp) {
     ? new Date(v.data).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : '–';
 
-  const firmaHtml = v.firma
-    ? `<img src="${v.firma}"
+  // BUG-1 FIX: fallback alla firma persistente dalle Impostazioni se la firma del verbale è assente
+  const firmaBase64 = v.firma || imp.firmaImmagine || null;
+  const firmaHtml = firmaBase64
+    ? `<img src="${firmaBase64}"
             style="max-width:280px; max-height:90px; border:1px solid #e2e8f0;
                    border-radius:6px; display:block; margin-top:4px;"
             alt="Firma CSE">`

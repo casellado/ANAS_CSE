@@ -336,17 +336,33 @@ async function generaVerbalePDFBlob(v) {
     if (cursor > 270) { doc.addPage(); cursor = 20; }
   }
 
-  // Firma (se presente)
-  if (v.firma) {
+  // BUG-1 FIX: Firma con fallback a firma persistente dalle Impostazioni
+  const firmaBase64 = v.firma || null;
+  let firmaPersistente = null;
+  if (!firmaBase64) {
+    try {
+      if (typeof caricaImpostazioni === 'function') {
+        const imp = await caricaImpostazioni();
+        firmaPersistente = imp.firmaImmagine || null;
+      }
+    } catch (_) {}
+  }
+  const firmaFinale = firmaBase64 || firmaPersistente;
+
+  if (firmaFinale) {
     try {
       cursor += 10;
+      if (cursor > 250) { doc.addPage(); cursor = 20; }
       doc.setFontSize(10);
       doc.text("Firma CSE:", margin, cursor);
-      doc.addImage(v.firma, 'PNG', margin, cursor + 5, 50, 20);
+      doc.addImage(firmaFinale, 'PNG', margin, cursor + 5, 50, 20);
       cursor += 30;
       doc.text(v.firmante || "Geom. Dogano Casella", margin, cursor);
     } catch (e) {
       console.warn("Impossibile inserire firma nel PDF:", e);
+      // Fallback: stampa solo il nome
+      doc.setFontSize(10);
+      doc.text("Firma CSE: " + (v.firmante || "Geom. Dogano Casella"), margin, cursor + 10);
     }
   }
 

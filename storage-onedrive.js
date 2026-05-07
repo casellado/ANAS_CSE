@@ -407,6 +407,61 @@ async function salvaImprese(elenco) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 10b. BUG-8 FIX: IMPOSTAZIONI CONDIVISE (loghi, committente, struttura)
+//      Salvate in _safehub/impostazioni_condivise.json
+//      Visibili a tutti gli utenti sincronizzati sulla stessa cartella
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OD_IMPOSTAZIONI_CONDIVISE = 'impostazioni_condivise.json';
+
+/** Campi che vengono condivisi tra tutti gli utenti */
+const CAMPI_CONDIVISI = [
+  'logoSinistro', 'logoDestro', 'logoSinistroDimData', 'logoDestroDimData',
+  'committenteNome', 'committenteIndirizzo', 'committentePEC',
+  'posCodicePpm', 'posCommessa', 'posStruttura', 'posCUP', 'posCIG',
+  'rlNome', 'rlQualifica',
+  'rupNome', 'rupQualifica',
+  'strutturaNome', 'strutturaQualifica'
+];
+
+/**
+ * Legge le impostazioni condivise da OneDrive.
+ * Restituisce un oggetto con solo i campi condivisi, o {} se non esiste.
+ */
+async function leggiImpostazioniCondivise() {
+  const dir = await _getOrCreateSafehubDir();
+  if (!dir) return {};
+  try {
+    const data = await _leggiJSON(dir, OD_IMPOSTAZIONI_CONDIVISE);
+    return data || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+/**
+ * Salva le impostazioni condivise su OneDrive.
+ * Accetta un oggetto completo di impostazioni — salva solo i CAMPI_CONDIVISI.
+ */
+async function salvaImpostazioniCondivise(impostazioni) {
+  const dir = await _getOrCreateSafehubDir();
+  if (!dir) return;
+  
+  // Estrai solo i campi condivisi
+  const condivise = {};
+  for (const campo of CAMPI_CONDIVISI) {
+    if (impostazioni[campo] !== undefined && impostazioni[campo] !== null && impostazioni[campo] !== '') {
+      condivise[campo] = impostazioni[campo];
+    }
+  }
+  condivise.aggiornatoAt = new Date().toISOString();
+  condivise.aggiornatoDa = await _getNomeTecnico();
+  
+  await _scriviJSON(dir, OD_IMPOSTAZIONI_CONDIVISE, condivise);
+  console.info('[OneDrive] Impostazioni condivise salvate ✓');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 11. AUDIT LOG
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -654,6 +709,55 @@ function invalidaCacheLotto(lottoId) {
   _odCache.delete(lottoId);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BUG 3+4 FIX: ELIMINAZIONE FISICA LOTTO DA ONEDRIVE
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Elimina il file JSON del lotto dalla cartella _safehub/.
+ * NON elimina le cartelle documentali (vedi eliminaCartelleLotto).
+ */
+async function eliminaFileLotto(lottoId) {
+  const dir = await _getOrCreateSafehubDir();
+  if (!dir) return;
+  const safeLottoId = _sanitizeNomeCartella(lottoId);
+  const nomeFile = `Lotto_${safeLottoId}.json`;
+  try {
+    await dir.removeEntry(nomeFile);
+    console.info(`[OneDrive] File ${nomeFile} eliminato.`);
+  } catch (err) {
+    if (err.name === 'NotFoundError') {
+      // File già assente — ok
+      return;
+    }
+    console.warn(`[OneDrive] Impossibile eliminare ${nomeFile}:`, err.message);
+  }
+  // Invalida cache
+  _odCache.delete(lottoId);
+}
+
+/**
+ * Elimina ricorsivamente la cartella documentale del lotto
+ * (Lotto_XXX/ con tutte le 21 sottocartelle).
+ * Usa removeEntry con { recursive: true } (Chrome 110+).
+ */
+async function eliminaCartelleLotto(lottoId) {
+  const radice = await _getHandleRadice();
+  if (!radice) return;
+  const safeLottoId = _sanitizeNomeCartella(lottoId);
+  const nomeLotto = `Lotto_${safeLottoId}`;
+  try {
+    await radice.removeEntry(nomeLotto, { recursive: true });
+    console.info(`[OneDrive] Cartella ${nomeLotto}/ eliminata ricorsivamente.`);
+  } catch (err) {
+    if (err.name === 'NotFoundError') {
+      // Cartella già assente — ok
+      return;
+    }
+    console.warn(`[OneDrive] Impossibile eliminare cartella ${nomeLotto}/:`, err.message);
+  }
+}
+
 /** Invalida tutta la cache in memoria */
 function invalidaCacheOneDrive() {
   _odCache.clear();
@@ -679,3 +783,9 @@ window.getTagLiberiLotto = getTagLiberiLotto;
 window.getLastModifiedLotto = getLastModifiedLotto;
 window.invalidaCacheLotto = invalidaCacheLotto;
 window.invalidaCacheOneDrive = invalidaCacheOneDrive;
+// BUG 3+4 FIX: esporta funzioni di eliminazione
+window.eliminaFileLotto = eliminaFileLotto;
+window.eliminaCartelleLotto = eliminaCartelleLotto;
+// BUG-8 FIX: esporta funzioni impostazioni condivise
+window.leggiImpostazioniCondivise = leggiImpostazioniCondivise;
+window.salvaImpostazioniCondivise = salvaImpostazioniCondivise;

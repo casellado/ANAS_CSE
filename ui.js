@@ -1097,6 +1097,8 @@ async function confermaNuovoCantiere() {
   const emailRup     = (document.getElementById('nc-email-rup')?.value     || '').trim();
   const emailDl      = (document.getElementById('nc-email-dl')?.value      || '').trim();
   const emailImpresa = (document.getElementById('nc-email-impresa')?.value || '').trim();
+  // BUG-7 FIX: campo RL (Responsabile dei Lavori)
+  const rl           = (document.getElementById('nc-rl')?.value            || '').trim();
 
   if (!id || !nome) {
     showToast('Codice e Nome sono obbligatori.', 'warning');
@@ -1113,6 +1115,16 @@ async function confermaNuovoCantiere() {
     }
   } catch (_) { /* se getAll fallisce, prosegui comunque */ }
 
+  // BUG-7 FIX: Genera tracking number automatico (AAAA-MM-GG/CSE-NNN)
+  const oggi = new Date().toISOString().slice(0, 10); // AAAA-MM-GG
+  let progressivo = 1;
+  try {
+    const tutti = await getAll('projects');
+    const stessoGiorno = tutti.filter(p => p.createdAt && p.createdAt.startsWith(oggi));
+    progressivo = stessoGiorno.length + 1;
+  } catch (_) {}
+  const trackingNumber = `${oggi}/CSE-${String(progressivo).padStart(3, '0')}`;
+
   const project = {
     id,
     nome,
@@ -1121,6 +1133,8 @@ async function confermaNuovoCantiere() {
     emailRup,
     emailDl,
     emailImpresa,
+    rl,                    // BUG-7 FIX: Responsabile dei Lavori
+    trackingNumber,        // BUG-7 FIX: Numero di tracciamento standard
     createdAt: new Date().toISOString()
   };
 
@@ -1128,7 +1142,7 @@ async function confermaNuovoCantiere() {
     await saveItem('projects', project);
     chiudiModalNuovoCantiere();
     await refreshProjectsGrid();
-    showToast(`Cantiere "${nome}" creato correttamente ✓`, 'success');
+    showToast(`Cantiere "${nome}" creato · Tracking: ${trackingNumber} ✓`, 'success');
   } catch (err) {
     showToast('Errore nel salvataggio: ' + err, 'error');
   }

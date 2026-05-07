@@ -593,15 +593,13 @@ async function _getAllFromOneDriveConCache(storeName) {
 /** Cancellazione su OneDrive */
 async function _deleteFromOneDrive(storeName, id) {
   if (storeName === 'projects') {
-    // Rimuovi dal registro — non cancella il file JSON del lotto (sicurezza dati)
-    // Leggiamo il registro, filtriamo il lotto e riscriviamo il registro completo
+    // BUG 3+4 FIX: Eliminazione completa del progetto da OneDrive
+    // 1. Rimuovi dal registro.json
     try {
       var registro = await leggiRegistroLotti();
       registro.lotti = registro.lotti.filter(function(l) { return l.id !== id; });
       registro.aggiornatoAt = new Date().toISOString();
 
-      // Usa _getOrCreateSafehubDir e _scriviJSON che sono nel closure di storage-onedrive.js
-      // Approccio: sovrascriviamo il registro tramite il file system handle diretto
       if (typeof _getOrCreateSafehubDir === 'function') {
         var safehubDir = await _getOrCreateSafehubDir();
         if (safehubDir) {
@@ -620,9 +618,45 @@ async function _deleteFromOneDrive(storeName, id) {
         }
       }
     } catch (err) {
-      console.error('[Storage Router] Errore cancellazione progetto da OneDrive:', err);
+      console.error('[Storage Router] Errore cancellazione progetto da registro OneDrive:', err);
       throw err;
     }
+
+    // 2. BUG 3+4 FIX: Elimina il file JSON del lotto (_safehub/Lotto_XXX.json)
+    try {
+      if (typeof eliminaFileLotto === 'function') {
+        await eliminaFileLotto(id);
+      }
+    } catch (err) {
+      console.warn('[Storage Router] Errore eliminazione file lotto:', err.message);
+    }
+
+    // 3. BUG 3+4 FIX: Elimina le cartelle documentali (Lotto_XXX/)
+    try {
+      if (typeof eliminaCartelleLotto === 'function') {
+        await eliminaCartelleLotto(id);
+      }
+    } catch (err) {
+      console.warn('[Storage Router] Errore eliminazione cartelle lotto:', err.message);
+    }
+
+    // 4. BUG 3+4 FIX: Invalida cache locale — rimuovi i record correlati dalla IndexedDB
+    try {
+      if (typeof invalidaCacheLotto === 'function') invalidaCacheLotto(id);
+      if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
+      // Pulizia cascata dei dati correlati al progetto dalla cache IndexedDB
+      var storesCorrelati = ['verbali', 'nc', 'imprese_cantieri', 'documenti'];
+      for (var i = 0; i < storesCorrelati.length; i++) {
+        try {
+          var items = await _getAllLocal(storesCorrelati[i]);
+          for (var j = 0; j < items.length; j++) {
+            if (items[j].projectId === id) {
+              await _deleteItemLocal(storesCorrelati[i], items[j].id);
+            }
+          }
+        } catch (_) { /* best effort */ }
+      }
+    } catch (_) { /* best effort */ }
 
     if (typeof aggiungiAudit === 'function') {
       await aggiungiAudit({ azione: 'projects.delete', itemId: id });
