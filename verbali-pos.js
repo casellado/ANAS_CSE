@@ -20,6 +20,9 @@ async function salvaVerificaPOS(event) {
   ).length + 1;
   const progressivoVAP = `${annoCorrente}/VAP-${String(countVAP).padStart(2, '0')}`;
 
+  const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+  const firmaData = window._firmaCorrente || null;
+
   const verificaPOS = {
     id:           'pos_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
     tipo:         'verifica-pos',
@@ -32,6 +35,8 @@ async function salvaVerificaPOS(event) {
     integrazioni: (document.getElementById('pos-integrazioni')?.value || '').trim(),
     noteCSE,      // MOD-2: Motivazione decisione CSE
     cse:          (document.getElementById('pos-cse')?.value || '').trim() || 'Geom. Dogano Casella',
+    firma:        firmaData ? firmaData.png : (imp.firmaImmagine || null),
+    firmaTimestamp: firmaData ? firmaData.timestamp : null,
     createdAt:    new Date().toISOString()
   };
   
@@ -112,6 +117,9 @@ async function exportPOSWord(posId, tipoExport = 'word') {
   const logoAnasHtml = logoAnas
     ? `<img src="${logoAnas}" style="max-height:30mm; max-width:50mm; object-fit:contain;">`
     : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
+
+  // Priorità: 1. Firma salvata nel record, 2. Firma appena fatta (sessione), 3. Firma persistente
+  const firmaImg = p?.firma || window._firmaCorrente?.png || imp.firmaImmagine;
 
   const html = `
     <!-- CONTENITORE LAYOUT INDUSTRIALE DETERMINISTICO -->
@@ -260,31 +268,44 @@ async function exportPOSWord(posId, tipoExport = 'word') {
             Note CSE / Motivazione della Decisione
           </div>
           <div style="font-size:10pt; line-height:1.4;">
-            ${p?.noteCSE || (document.getElementById('pos-note')?.value || '__________________________________________________________________')}
+            ${escapeHtml(noteCSE || '__________________________________________________________________').replace(/\n/g,'<br>')}
           </div>
         </div>
       </div>
 
       <!-- 9) FIRME -->
-      <table style="width:100%; border-collapse:collapse; margin-top:6mm;">
+      <table style="width:100%; border-collapse:collapse; margin-top:8mm; border-top:1pt solid #e2e8f0; padding-top:4mm;">
         <tr>
-          <td style="width:60mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">
-            <strong>Coordinatore Sicurezza (CSE)</strong><br>
-            <div style="height:20mm; vertical-align:middle; padding:5pt 0;">
-              ${(p?.firma || window._firmaCorrente?.base64 || imp.firmaImmagine) ? `
-                <img src="${p?.firma || window._firmaCorrente?.base64 || imp.firmaImmagine}" style="max-height:18mm; max-width:55mm; display:block;">
-              ` : '<br><br>'}
+          <td style="width:33%; border:none; padding:0 6mm 0 0; text-align:left; vertical-align:bottom;">
+            <!-- Blocco firma CSE -->
+            <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
+              Il Coordinatore per la Sicurezza (CSE)
             </div>
-            <span>__________________________</span><br>
-            <span style="font-size:8pt; color:#64748b;">${escapeHtml(cse)}</span>
+            ${firmaImg ? `
+            <div style="border:1pt solid #e2e8f0; border-radius:4pt; background:#fff; padding:4pt; display:inline-block; margin-bottom:2mm;">
+              <img src="${firmaImg}"
+                   style="display:block; max-height:22mm; max-width:70mm; width:auto; height:auto; object-fit:contain;"
+                   alt="Firma CSE">
+            </div>
+            ` : `
+            <div style="height:22mm; border-bottom:1pt solid #000; width:70mm; margin-bottom:2mm;"></div>
+            `}
+            <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(cse)}</div>
+            ${imp.posTecnicoQualifica ? `<div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.posTecnicoQualifica)}</div>` : ''}
           </td>
-          <td style="width:60mm; border:none; padding:4pt 0; text-align:center; vertical-align:top; font-size:9pt;">
-            <strong>Responsabile dei Lavori</strong><br><br><br><br>
-            <span>__________________________</span>
+          <td style="width:33%; border:none; padding:0 3mm; text-align:center; vertical-align:bottom;">
+            <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
+              Responsabile dei Lavori
+            </div>
+            <div style="height:22mm; border-bottom:1pt solid #000; width:100%; margin-bottom:2mm;"></div>
+            <div style="font-size:8pt; color:#94a3b8;">${escapeHtml(imp.posRup || '___________________________')}</div>
           </td>
-          <td style="width:60mm; border:none; padding:4pt 0; text-align:right; vertical-align:top; font-size:9pt;">
-            <strong>Responsabile Struttura</strong><br><br><br><br>
-            <span>__________________________</span>
+          <td style="width:33%; border:none; padding:0 0 0 6mm; text-align:right; vertical-align:bottom;">
+            <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
+              Responsabile Struttura
+            </div>
+            <div style="height:22mm; border-bottom:1pt solid #000; width:100%; margin-bottom:2mm;"></div>
+            <div style="font-size:8pt; color:#94a3b8;">___________________________</div>
           </td>
         </tr>
       </table>

@@ -62,6 +62,8 @@ async function salvaRiunione(event) {
     decisioni,
     // BUG-2 FIX: campo Note motivazionali (sempre presente per tutti gli esiti)
     noteDecisione:   (document.getElementById('riunione-note-decisione')?.value || '').trim(),
+    firma:           window._firmaCorrente?.png || null,
+    firmaTimestamp:  window._firmaCorrente?.timestamp || null,
     firmante:        window.appState._firmaNome || 'Geom. Dogano Casella',
     createdAt:       new Date().toISOString()
   };
@@ -290,18 +292,26 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
       </table>
 
       <!-- 11) FIRMA FINALE -->
-      <table style="width:100%; border-collapse:collapse;">
+      <table style="width:100%; border-collapse:collapse; margin-top:8mm; border-top:1pt solid #cbd5e1; padding-top:4mm;">
         <tr>
-          <td style="width:90mm; border:none; padding:4pt 0; text-align:left; vertical-align:top; font-size:9pt;">
-            <strong>Il Coordinatore per la Sicurezza (CSE)</strong><br>
+          <td style="width:50%; border:none; padding:0 8mm 0 0; text-align:left; vertical-align:bottom;">
+            <!-- Blocco firma CSE -->
+            <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
+              Il Coordinatore per la Sicurezza (CSE)
+            </div>
             ${(function() {
-              const f = r?.firma || window._firmaCorrente?.base64 || imp.firmaImmagine || null;
-              if (f) return `<img src="${f}" style="max-height:20mm; max-width:60mm; display:block; margin:4pt 0;">`;
-              return '<br><br><br><br><span>__________________________</span><br>';
+              // Priorità: 1. Firma salvata nel record, 2. Firma appena fatta (sessione), 3. Firma persistente
+              const f = r?.firma || window._firmaCorrente?.png || imp.firmaImmagine || null;
+              if (f) return `
+                <div style="border:1pt solid #e2e8f0; border-radius:4pt; background:#fff; padding:4pt; display:inline-block; margin-bottom:2mm;">
+                  <img src="${f}" style="display:block; max-height:22mm; max-width:70mm; width:auto; height:auto; object-fit:contain;" alt="Firma CSE">
+                </div>`;
+              return '<div style="height:22mm; border-bottom:1pt solid #000; width:70mm; margin-bottom:2mm;"></div>';
             })()}
-            <span style="font-size:8pt; color:#475569;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</span>
+            <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</div>
+            ${imp.riuTecnicoQualifica ? `<div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.riuTecnicoQualifica)}</div>` : ''}
           </td>
-          <td style="width:90mm; border:none; padding:4pt 0; text-align:right; vertical-align:top; font-size:9pt;">
+          <td style="width:50%; border:none; padding:0 0 0 8mm; text-align:right; vertical-align:bottom;">
             &nbsp;
           </td>
         </tr>

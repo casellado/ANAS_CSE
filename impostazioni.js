@@ -534,7 +534,7 @@ function generaHTMLVerbale(v, imp) {
     : '–';
 
   // BUG-1 FIX: fallback alla firma persistente dalle Impostazioni se la firma del verbale è assente
-  const firmaBase64 = v.firma || window._firmaCorrente?.base64 || imp.firmaImmagine || null;
+  const firmaBase64 = v.firma || window._firmaCorrente?.png || imp.firmaImmagine || null;
   const firmaHtml = firmaBase64
     ? `<img src="${firmaBase64}"
             style="max-width:280px; max-height:90px; border:1px solid #e2e8f0;
@@ -659,15 +659,20 @@ function generaHTMLVerbale(v, imp) {
     </table>
 
     <!-- FIRMA -->
-    <table style="width:100%; border-collapse:collapse; margin-top:20px; font-size:11px;">
+    <table style="width:100%; border-collapse:collapse; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:12px; font-size:11px;">
       <tr>
-        <td style="width:50%; padding-right:20px; vertical-align:top;">
-          <div style="color:#64748b; font-size:10px; text-transform:uppercase;
-                      font-weight:600; margin-bottom:6px;">
+        <td style="width:55%; padding-right:20px; vertical-align:bottom;">
+          <div style="color:#64748b; font-size:10px; text-transform:uppercase; font-weight:700; letter-spacing:.04em; margin-bottom:6px;">
             Firma del CSE
           </div>
-          ${firmaHtml}
-          <div style="margin-top:8px; font-weight:700; color:#1e293b;">
+          ${firmaBase64 ? `
+          <div style="border:1px solid #e2e8f0; border-radius:6px; background:#fff; padding:6px; display:inline-block; margin-bottom:6px;">
+            <img src="${firmaBase64}"
+                 style="display:block; max-height:25mm; max-width:80mm; width:auto; height:auto; object-fit:contain;"
+                 alt="Firma CSE">
+          </div>` : `
+          <div style="height:25mm; border-bottom:1px solid #000; width:80mm; margin-bottom:6px;"></div>`}
+          <div style="font-weight:700; color:#1e293b; margin-top:4px;">
             ${imp.firmaNome || v.firmante || '–'}
           </div>
           <div style="color:#64748b; font-size:10px;">
@@ -682,9 +687,8 @@ function generaHTMLVerbale(v, imp) {
                </div>`
       : ''}
         </td>
-        <td style="width:50%; padding-left:20px; vertical-align:top;">
-          <div style="color:#64748b; font-size:10px; text-transform:uppercase;
-                      font-weight:600; margin-bottom:6px;">
+        <td style="width:45%; padding-left:20px; vertical-align:bottom;">
+          <div style="color:#64748b; font-size:10px; text-transform:uppercase; font-weight:700; letter-spacing:.04em; margin-bottom:6px;">
             Timbro / Ricevuto
           </div>
           <div style="width:100%; height:90px; border:1px solid #cbd5e1; border-radius:6px;"></div>
