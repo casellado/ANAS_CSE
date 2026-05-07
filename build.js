@@ -70,7 +70,10 @@ const JS_FILES = [
   'onedrive-ui.js',
   'migrazione-onedrive.js',
   'emergenza.js',
-  'lettera-segnalazione-rup.js'
+  'lettera-segnalazione-rup.js',
+  'mezzi.js',
+  'verbali-mezzi.js',
+  'settings-sync.js'
   // NOTA: sw.js NON va offuscato — il browser lo richiede leggibile per il Service Worker
 ];
 
@@ -91,7 +94,12 @@ const STATIC_FILES = [
   'animazioni.css',
   'mobile.css',
   'icon-192.png',
-  'icon-512.png'
+  'icon-512.png',
+  'database.json',
+  'Mod_RE_01-10_Riunione_di_Coordinamento.docx',
+  'Mod_RE_01-10_Riunione_di_Coordinamento.pdf',
+  'Mod_RE_01-5_Verifica_idoneita_POS.docx',
+  'Mod_RE_01-5_Verifica_idoneita_POS.pdf'
 ];
 
 // Cartelle da copiare
