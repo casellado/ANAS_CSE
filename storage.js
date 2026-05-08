@@ -10,7 +10,7 @@
 
 // Store da includere nel backup (NO blob binari)
 const STORES_EXPORT = ['projects', 'verbali', 'nc', 'imprese',
-                       'lavoratori', 'persone_fisiche', 'imprese_cantieri', 'doc_links', 'impostazioni'];
+                       'lavoratori', 'persone_fisiche', 'imprese_cantieri', 'doc_links', 'impostazioni', 'mezzi'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLASSIFICAZIONE STORE
@@ -21,7 +21,7 @@ const STORES_SOLO_LOCALE = new Set(['impostazioni', 'foto', 'doc_links']);
 
 /** Store gestiti da OneDrive (dati condivisi) quando OneDrive è attivo */
 const STORES_ONEDRIVE = new Set([
-  'projects', 'verbali', 'nc', 'imprese_cantieri', 'imprese', 'lavoratori', 'persone_fisiche', 'documenti'
+  'projects', 'verbali', 'nc', 'imprese_cantieri', 'imprese', 'lavoratori', 'persone_fisiche', 'documenti', 'mezzi'
 ]);
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -2,6 +2,27 @@
 // MODULO MEZZI E ATTREZZATURE (MOD-10)
 // ─────────────────────────────────────────────
 
+// Helper di formattazione date (fallback se non definite globalmente)
+if (typeof formattaData !== 'function') {
+  window.formattaData = function(dateStr) {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (_) { return dateStr; }
+  };
+}
+if (typeof formattaDataOra !== 'function') {
+  window.formattaDataOra = function(dateStr) {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    } catch (_) { return dateStr; }
+  };
+}
+
 const TIPOLOGIE_MEZZI = [
   // 1. Sollevamento materiali (Allegato VII categoria SC)
   { id: 'gru-torre',          nome: 'Gru a torre',                      cat: 'SC', verifica: 12 },  // mesi
@@ -63,7 +84,7 @@ async function creaMezzo(projectId, dati) {
   const id = 'mezzo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const now = new Date().toISOString();
   
-  const nomeAutore = await _getNomeTecnico();
+  const nomeAutore = typeof _getNomeTecnico === 'function' ? await _getNomeTecnico() : 'CSE';
   
   const nuovoMezzo = {
     id: id,
@@ -109,7 +130,7 @@ async function aggiornaMezzo(mezzoId, modifiche) {
   const mezzo = await getMezzo(mezzoId);
   if (!mezzo) throw new Error('Mezzo non trovato');
   
-  const nomeAutore = await _getNomeTecnico();
+  const nomeAutore = typeof _getNomeTecnico === 'function' ? await _getNomeTecnico() : 'CSE';
   
   const aggiornato = {
     ...mezzo,
