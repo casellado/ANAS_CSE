@@ -166,10 +166,14 @@ La Non Conformità, a oltre 24 ore dalla sua apertura, risulta ancora aperta e n
   `;
 
   modal.addEventListener('keydown', e => {
-    if (e.key === 'Escape') modal.remove();
+    if (e.key === 'Escape') {
+      if (confirm('Attenzione: chiudendo perderai i dati inseriti. Confermi?')) modal.remove();
+    }
   });
   modal.addEventListener('click', e => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) {
+      if (confirm('Attenzione: chiudendo perderai i dati inseriti. Confermi?')) modal.remove();
+    }
   });
   document.body.appendChild(modal);
 

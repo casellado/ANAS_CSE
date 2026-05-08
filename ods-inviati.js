@@ -193,8 +193,20 @@ async function _apriModalNuovoODS() {
     </div>
   `;
 
-  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('keydown', e => { 
+    if (e.key === 'Escape') {
+      if (confirm('Attenzione: chiudendo perderai i dati inseriti. Confermi?')) {
+        modal.remove();
+      }
+    } 
+  });
+  modal.addEventListener('click', e => { 
+    if (e.target === modal) {
+      if (confirm('Attenzione: chiudendo perderai i dati inseriti. Confermi?')) {
+        modal.remove();
+      }
+    } 
+  });
   document.body.appendChild(modal);
 
   // Aggiungi sezione workflow ODS nel modal (dopo i bottoni)

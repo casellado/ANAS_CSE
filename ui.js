@@ -1216,14 +1216,23 @@ function apriModalNuovoCantiere() {
   // Focus primo campo
   modal.querySelector('#nc-id').focus();
 
-  // Chiudi su Escape
+  // Chiudi su Escape o click fuori con conferma
+  const confermaChiusura = () => {
+    const id = document.getElementById('nc-id').value;
+    const nome = document.getElementById('nc-nome').value;
+    if (id || nome) {
+      if (confirm('Attenzione: i dati inseriti andranno persi. Confermi l\\'uscita?')) chiudiModalNuovoCantiere();
+    } else {
+      chiudiModalNuovoCantiere();
+    }
+  };
+
   modal.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') chiudiModalNuovoCantiere();
+    if (e.key === 'Escape') confermaChiusura();
   });
 
-  // Chiudi cliccando fuori
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) chiudiModalNuovoCantiere();
+    if (e.target === modal) confermaChiusura();
   });
 
   modal.querySelector('#btn-modal-cancel').addEventListener('click', chiudiModalNuovoCantiere);
