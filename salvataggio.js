@@ -301,7 +301,9 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
       note: document.getElementById('verbale-note')?.value,
       projectId: window.appState?.currentProject,
       allegaMezzi: document.getElementById('verbale-allega-mezzi')?.checked || false,
-      firmante: imp.firmaNome || 'Geom. Dogano Casella'
+      firmante: imp.firmaNome || 'Geom. Dogano Casella',
+      presenti: typeof _raccogliPresenti === 'function' ? _raccogliPresenti() : [],
+      delegaCSE: typeof _raccogliDelegaCSE === 'function' ? _raccogliDelegaCSE() : null
     };
   }
   if (!v) { showToast('Verbale non trovato.', 'error'); return; }
@@ -387,15 +389,50 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
       <div class="valore" style="white-space:pre-wrap;">${escapeHtml(v.note)}</div>
     </div>` : ''}
 
+    ${(v.presenti && v.presenti.length > 0) ? `
+    <!-- FLUSSO 1: PRESENTI AL SOPRALLUOGO -->
+    <h2>Presenti al Sopralluogo</h2>
+    <table>
+      <tr>
+        <th style="width:30pt;">N.</th>
+        <th>Nome e Cognome</th>
+        <th style="width:100pt;">Ruolo</th>
+        <th style="width:150pt;">Firma</th>
+      </tr>
+      ${v.presenti.map((p, i) => `
+      <tr>
+        <td style="text-align:center;">${i + 1}</td>
+        <td>${escapeHtml(p.nome || '–')}</td>
+        <td>${escapeHtml(p.ruolo || '–')}</td>
+        <td style="text-align:center;">
+          ${p.firmaBase64
+            ? `<img src="${p.firmaBase64}" style="max-width:140pt; max-height:50pt; object-fit:contain;">`
+            : '<span style="color:#94a3b8;">Non firmato</span>'}
+        </td>
+      </tr>`).join('')}
+    </table>` : ''}
+
+    ${v.delegaCSE ? `
+    <!-- FLUSSO 1: DELEGA CSE -->
+    <div class="campo highlight" style="border-left-color:#d97706;">
+      <div class="label">Delega CSE</div>
+      <div class="valore">
+        Il presente verbale è stato redatto da <strong>${escapeHtml(v.delegaCSE.nome || '–')}</strong>
+        in qualità di <strong>delegato del CSE</strong>
+        ${v.delegaCSE.qualifica ? `— ${escapeHtml(v.delegaCSE.qualifica)}` : ''}
+        ${v.delegaCSE.attoDelega ? `<br>Atto delega: ${escapeHtml(v.delegaCSE.attoDelega)}` : ''}
+      </div>
+    </div>` : ''}
+
     <!-- FIRMA -->
     <table style="margin-top:20pt; width:100%;">
       <tr>
         <td style="width:50%; vertical-align:top; border:none; padding-right:16pt;">
-          <div class="label">Firma del CSE</div>
+          <div class="label">Firma del CSE${v.delegaCSE ? ' (delegato)' : ''}</div>
           ${firmaImg}
-          <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(imp.firmaNome || v.firmante || 'Dogano Casella')}</div>
-          <div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaQualifica || 'CSE')}</div>
-          ${imp.firmaAlbo && !imp.firmaAlbo.includes('Albo Geometri') ? `<div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo)}</div>` : ''}
+          <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(v.delegaCSE ? v.delegaCSE.nome : (imp.firmaNome || v.firmante || 'Dogano Casella'))}</div>
+          <div style="font-size:9pt; color:#64748b;">${escapeHtml(v.delegaCSE ? 'Delegato CSE' : (imp.firmaQualifica || 'CSE'))}</div>
+          ${!v.delegaCSE && imp.firmaAlbo && !imp.firmaAlbo.includes('Albo Geometri') ? `<div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo)}</div>` : ''}
           ${v.firmaTimestamp ? `<div style="font-size:9pt; color:#94a3b8;">Firmato il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}</div>` : ''}
         </td>
         <td style="width:50%; vertical-align:top; border:none; padding-left:16pt;">
