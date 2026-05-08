@@ -695,8 +695,18 @@ async function apriModalModificaCantiere(projectId) {
   modal.querySelector('#mod-nome').focus();
 }
 
-  const newId  = (document.getElementById('mod-id')?.value   || '').trim();
+async function confermaModificaCantiere(projectId) {
+  const nome   = (document.getElementById('mod-nome')?.value   || '').trim();
+  const loc    = (document.getElementById('mod-loc')?.value    || '').trim();
+  const status = document.getElementById('mod-status')?.value || 'ok';
   
+  // P4: email destinatari
+  const emailRup     = (document.getElementById('mod-email-rup')?.value     || '').trim();
+  const emailDl      = (document.getElementById('mod-email-dl')?.value      || '').trim();
+  const emailImpresa = (document.getElementById('mod-email-impresa')?.value || '').trim();
+  const rl           = (document.getElementById('mod-rl')?.value            || '').trim();
+
+  const newId  = (document.getElementById('mod-id')?.value   || '').trim();
   if (!nome) { showToast('Il nome è obbligatorio.', 'warning'); return; }
   if (!newId) { showToast('Il codice cantiere è obbligatorio.', 'warning'); return; }
 
@@ -1221,7 +1231,7 @@ function apriModalNuovoCantiere() {
     const id = document.getElementById('nc-id').value;
     const nome = document.getElementById('nc-nome').value;
     if (id || nome) {
-      if (confirm('Attenzione: i dati inseriti andranno persi. Confermi l\\'uscita?')) chiudiModalNuovoCantiere();
+      if (confirm("Attenzione: i dati inseriti andranno persi. Confermi l'uscita?")) chiudiModalNuovoCantiere();
     } else {
       chiudiModalNuovoCantiere();
     }
