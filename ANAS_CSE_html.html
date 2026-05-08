@@ -72,8 +72,9 @@
   <script defer src="./verbali-list.js?v=2.2.13"></script>
   <script defer src="./imprese-list.js?v=2.2.13"></script>
   <script defer src="./imprese-assegnazione.js?v=2.2.13"></script>
-  <script defer src="./lavoratori.js?v=2.2.13"></script>
-  <script defer src="./export.js?v=2.2.13"></script>
+  <script defer src="./lavoratori.js?v=2.2.14"></script>
+  <script defer src="./persone-fisiche.js?v=2.2.14"></script>
+  <script defer src="./export.js?v=2.2.14"></script>
   <script defer src="./impostazioni.js?v=2.2.13"></script>
   <script defer src="./salvataggio.js?v=2.2.13"></script>
   <script defer src="./email.js?v=2.2.13"></script>
@@ -242,6 +243,10 @@
 
       <button aria-label="Anagrafiche Imprese" onclick="switchView('anagrafica')" data-nav="anagrafica" class="nav-btn">
         <span class="nav-icon" aria-hidden="true">👥</span> Anagrafiche
+      </button>
+
+      <button aria-label="Persone Fisiche" onclick="switchView('persone-fisiche')" data-nav="persone-fisiche" class="nav-btn">
+        <span class="nav-icon" aria-hidden="true">👤</span> Persone Fisiche
       </button>
 
       <button aria-label="Dashboard Cantiere" onclick="switchView('dashboard-cantiere')" data-nav="dashboard-cantiere"
@@ -484,6 +489,127 @@
           </div>
 
         </form>
+
+      </section>
+
+      <!-- ─────────── VIEW: PERSONE FISICHE (P9) ─────────── -->
+      <section id="view-persone-fisiche" class="page-transition page-hidden space-y-6" role="region"
+        aria-label="Anagrafiche Persone Fisiche" aria-hidden="true">
+
+        <h3 class="text-xl font-bold text-slate-900">👤 Anagrafiche Persone Fisiche</h3>
+        <p class="text-xs text-slate-500 -mt-4">RUP, RL, DL, CSP, CSE, Dirigenti e Funzionari ANAS</p>
+
+        <form id="form-persona-fisica"
+          class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl"
+          novalidate onsubmit="return false">
+
+          <div>
+            <label for="pf-nome" class="text-xs font-semibold text-slate-600 block mb-1">Nome <span class="text-red-500">*</span></label>
+            <input id="pf-nome" type="text" placeholder="Es. Mario" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-required="true">
+          </div>
+
+          <div>
+            <label for="pf-cognome" class="text-xs font-semibold text-slate-600 block mb-1">Cognome <span class="text-red-500">*</span></label>
+            <input id="pf-cognome" type="text" placeholder="Es. Rossi" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-required="true">
+          </div>
+
+          <div>
+            <label for="pf-ruolo" class="text-xs font-semibold text-slate-600 block mb-1">Ruolo <span class="text-red-500">*</span></label>
+            <select id="pf-ruolo" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                         focus:ring-2 focus:ring-blue-400 focus:outline-none">
+              <option value="RUP">R.U.P. (Responsabile Unico del Procedimento)</option>
+              <option value="RL">R.L. (Responsabile dei Lavori)</option>
+              <option value="DL">D.L. (Direttore dei Lavori)</option>
+              <option value="CSP">C.S.P. (Coord. Sicurezza Progettazione)</option>
+              <option value="CSE">C.S.E. (Coord. Sicurezza Esecuzione)</option>
+              <option value="DIRIGENTE">Dirigente ANAS</option>
+              <option value="FUNZIONARIO">Funzionario Tecnico</option>
+              <option value="ALTRO">Altro</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="pf-qualifica" class="text-xs font-semibold text-slate-600 block mb-1">Qualifica / Mansione</label>
+            <input id="pf-qualifica" type="text" placeholder="Es. Funzionario tecnico ANAS" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="pf-ente" class="text-xs font-semibold text-slate-600 block mb-1">Ente / Struttura</label>
+            <input id="pf-ente" type="text" placeholder="Es. ANAS S.p.A. — Struttura Territoriale Calabria" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="pf-email" class="text-xs font-semibold text-slate-600 block mb-1">Email</label>
+            <input id="pf-email" type="email" placeholder="m.rossi@stradeanas.it" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="pf-telefono" class="text-xs font-semibold text-slate-600 block mb-1">Telefono</label>
+            <input id="pf-telefono" type="tel" placeholder="+39 0961 ..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="pf-cellulare" class="text-xs font-semibold text-slate-600 block mb-1">Cellulare</label>
+            <input id="pf-cellulare" type="tel" placeholder="+39 333 ..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="pf-cf" class="text-xs font-semibold text-slate-600 block mb-1">Codice Fiscale</label>
+            <input id="pf-cf" type="text" maxlength="16" placeholder="RSSMRA80A01H501U" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-mono
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="pf-ordine" class="text-xs font-semibold text-slate-600 block mb-1">Ordine Professionale</label>
+            <input id="pf-ordine" type="text" placeholder="Es. Ordine Ingegneri CZ n. 12345" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="pf-note" class="text-xs font-semibold text-slate-600 block mb-1">Note</label>
+            <textarea id="pf-note" rows="2" placeholder="Note libere..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+          </div>
+
+          <div class="sm:col-span-2 flex justify-end">
+            <button id="btn-save-persona" type="button" onclick="salvaPersonaFisica()"
+                    class="bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold
+                           hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400">
+              ✅ Salva Persona
+            </button>
+          </div>
+
+        </form>
+
+        <!-- Filtri lista -->
+        <div class="flex flex-wrap gap-3 items-center">
+          <select id="pf-filtro-ruolo" onchange="renderListaPersoneFisiche()"
+                  class="border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            <option value="">Tutti i ruoli</option>
+            <option value="RUP">RUP</option>
+            <option value="RL">RL</option>
+            <option value="DL">DL</option>
+            <option value="CSP">CSP</option>
+            <option value="CSE">CSE</option>
+            <option value="DIRIGENTE">Dirigente</option>
+            <option value="FUNZIONARIO">Funzionario</option>
+            <option value="ALTRO">Altro</option>
+          </select>
+          <input id="pf-filtro-testo" type="search" placeholder="🔍 Cerca per nome, qualifica, ente..."
+                 oninput="renderListaPersoneFisiche()"
+                 class="flex-1 min-w-[200px] border border-slate-300 rounded-lg p-2 text-sm
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+        </div>
+
+        <!-- Lista persone -->
+        <div id="lista-persone-fisiche"></div>
 
       </section>
 
@@ -1113,8 +1239,11 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             <label for="pos-cse" class="text-xs font-semibold text-slate-600 block mb-1">
               Il Coordinatore per l'Esecuzione (CSE)
             </label>
-            <input id="pos-cse" type="text" placeholder="Es. Geom. Dogano Casella" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+            <select id="pos-cse" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
+                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
+              <option value="">— Seleziona da anagrafica —</option>
+              <!-- Popolato da popolaSelectPersoneFisiche('pos-cse', 'CSE') -->
+            </select>
           </div>
 
           <!-- BOTTONI -->
@@ -1450,11 +1579,12 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
 ───────────────────────────────────────────────────── -->
   <script>
     // Elenco completo delle view
-    const VIEWS = ['hub', 'anagrafica', 'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento', 'verifica-pos', 'nc', 'ods-ricevuti', 'documenti-fondamentali', 'mezzi', 'documenti', 'impostazioni'];
+    const VIEWS = ['hub', 'anagrafica', 'persone-fisiche', 'dashboard-cantiere', 'nuovo-verbale', 'riunione-coordinamento', 'verifica-pos', 'nc', 'ods-ricevuti', 'documenti-fondamentali', 'mezzi', 'documenti', 'impostazioni'];
 
     const VIEW_TITLES = {
       'hub': '🏢 Hub Cantieri',
       'anagrafica': '👥 Anagrafica Imprese',
+      'persone-fisiche': '👤 Persone Fisiche',
       'dashboard-cantiere': '📊 Dashboard Cantiere',
       'nuovo-verbale': '📝 Nuovo Verbale di Sopralluogo',
       'riunione-coordinamento': '📋 Verbale Riunione di Coordinamento',
@@ -1583,6 +1713,10 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           })();
           break;
 
+        case 'persone-fisiche':
+          if (typeof renderListaPersoneFisiche === 'function') renderListaPersoneFisiche();
+          break;
+
         case 'dashboard-cantiere':
           // Render KPI documentali, scadenze e documenti obbligatori
           if (typeof calcolaKPIDocumenti === 'function') {
@@ -1698,17 +1832,19 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           break;
 
         case 'verifica-pos':
-          // Pre-popola campo CSE e data odierna
+          // P9: Popola select CSE da anagrafica + pre-seleziona da impostazioni
           (async () => {
-            const cseInput = document.getElementById('pos-cse');
             const dataInput = document.getElementById('pos-data');
             if (dataInput && !dataInput.value) {
               dataInput.value = new Date().toISOString().slice(0, 10);
             }
-            if (cseInput && !cseInput.value && typeof caricaImpostazioni === 'function') {
-              const imp = await caricaImpostazioni().catch(() => ({}));
-              if (imp.firmaNome) cseInput.value = imp.firmaNome;
+            // Popola select CSE da anagrafica persone fisiche
+            if (typeof popolaSelectPersoneFisiche === 'function') {
+              const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni().catch(() => ({})) : {};
+              await popolaSelectPersoneFisiche('pos-cse', 'CSE', imp.firmaNome || '');
             }
+            // Popola select imprese
+            if (typeof _popolaSelectImprese === 'function') _popolaSelectImprese();
           })();
           break;
 

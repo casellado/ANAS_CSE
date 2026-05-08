@@ -2,7 +2,7 @@
 // v7: store foto, imprese_cantieri, impostazioni
 
 const DB_NAME    = 'ANAS_SafeHub_DB';
-const DB_VERSION = 13;          // v13: Force-fix creazione store 'mezzi' (MOD-10)
+const DB_VERSION = 14;          // v14: store 'persone_fisiche' (P9 — Anagrafiche RL, RUP, dirigenti)
 
 let db = null;
 
@@ -89,6 +89,12 @@ function initDB() {
         s.createIndex('projectId', 'projectId', { unique: false });
         s.createIndex('impresaId', 'impresaId', { unique: false });
         s.createIndex('tipologia', 'tipologia', { unique: false });
+      }
+
+      // 13. Persone Fisiche — RUP, RL, DL, dirigenti, funzionari (P9)
+      if (!db.objectStoreNames.contains('persone_fisiche')) {
+        const s = db.createObjectStore('persone_fisiche', { keyPath: 'id' });
+        s.createIndex('ruolo', 'ruolo', { unique: false });
       }
     };
 

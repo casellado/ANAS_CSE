@@ -10,7 +10,7 @@
 
 // Store da includere nel backup (NO blob binari)
 const STORES_EXPORT = ['projects', 'verbali', 'nc', 'imprese',
-                       'lavoratori', 'imprese_cantieri', 'doc_links', 'impostazioni'];
+                       'lavoratori', 'persone_fisiche', 'imprese_cantieri', 'doc_links', 'impostazioni'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLASSIFICAZIONE STORE
@@ -21,7 +21,7 @@ const STORES_SOLO_LOCALE = new Set(['impostazioni', 'foto', 'doc_links']);
 
 /** Store gestiti da OneDrive (dati condivisi) quando OneDrive è attivo */
 const STORES_ONEDRIVE = new Set([
-  'projects', 'verbali', 'nc', 'imprese_cantieri', 'imprese', 'lavoratori', 'documenti'
+  'projects', 'verbali', 'nc', 'imprese_cantieri', 'imprese', 'lavoratori', 'persone_fisiche', 'documenti'
 ]);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ async function processSyncQueue() {
           
           if (storeName === 'projects') await _saveProjectOnDrive(item);
           else if (['verbali', 'nc', 'imprese_cantieri', 'documenti'].indexOf(storeName) >= 0) await _saveInLotto(storeName, item);
-          else if (['imprese', 'lavoratori'].indexOf(storeName) >= 0) await _saveImpresaOrLavoratore(storeName, item);
+          else if (['imprese', 'lavoratori', 'persone_fisiche'].indexOf(storeName) >= 0) await _saveImpresaOrLavoratore(storeName, item);
         } 
         else if (task.action === 'delete') {
           await _deleteFromOneDrive(task.storeName, task.data.id || task.data);
@@ -264,6 +264,7 @@ const _routerSaveItem = async function(storeName, item) {
         break;
       case 'imprese':
       case 'lavoratori':
+      case 'persone_fisiche':
         await _saveImpresaOrLavoratore(storeName, itemArricchito);
         break;
       default:
@@ -521,30 +522,36 @@ async function _saveInLotto(storeName, item) {
 async function _saveImpresaOrLavoratore(storeName, item) {
   if (typeof leggiImprese !== 'function') throw new Error('storage-onedrive.js non caricato');
 
-  // Leggi l'elenco attuale (il file imprese.json tiene sia imprese che lavoratori)
-  const currentRaw = await leggiImprese(); // { imprese: [], lavoratori: [] } o array flat
+  // Leggi l'elenco attuale (il file imprese.json tiene imprese, lavoratori e persone_fisiche)
+  const currentRaw = await leggiImprese(); // { imprese: [], lavoratori: [], persone_fisiche: [] } o array flat
   // Normalizza: può essere array flat (legacy) o oggetto strutturato
-  let   imprese    = [];
-  let   lavoratori = [];
+  let   imprese          = [];
+  let   lavoratori       = [];
+  let   persone_fisiche  = [];
 
   if (Array.isArray(currentRaw)) {
     // Legacy flat: tutti i record nella stessa lista
-    imprese    = currentRaw.filter(x => !x.impresaId);
+    imprese    = currentRaw.filter(x => !x.impresaId && !x.ruolo);
     lavoratori = currentRaw.filter(x =>  x.impresaId);
+    persone_fisiche = currentRaw.filter(x => x.ruolo && !x.impresaId);
   } else {
-    imprese    = Array.isArray(currentRaw.imprese)    ? currentRaw.imprese    : [];
-    lavoratori = Array.isArray(currentRaw.lavoratori) ? currentRaw.lavoratori : [];
+    imprese         = Array.isArray(currentRaw.imprese)         ? currentRaw.imprese         : [];
+    lavoratori      = Array.isArray(currentRaw.lavoratori)      ? currentRaw.lavoratori      : [];
+    persone_fisiche = Array.isArray(currentRaw.persone_fisiche) ? currentRaw.persone_fisiche : [];
   }
 
   if (storeName === 'imprese') {
     const idx = imprese.findIndex(x => x.id === item.id);
     if (idx >= 0) imprese[idx] = item; else imprese.push(item);
+  } else if (storeName === 'persone_fisiche') {
+    const idx = persone_fisiche.findIndex(x => x.id === item.id);
+    if (idx >= 0) persone_fisiche[idx] = item; else persone_fisiche.push(item);
   } else {
     const idx = lavoratori.findIndex(x => x.id === item.id);
     if (idx >= 0) lavoratori[idx] = item; else lavoratori.push(item);
   }
 
-  await salvaImprese({ imprese, lavoratori });
+  await salvaImprese({ imprese, lavoratori, persone_fisiche });
 
   if (typeof aggiungiAudit === 'function') {
     await aggiungiAudit({
