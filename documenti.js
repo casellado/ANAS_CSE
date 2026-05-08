@@ -469,6 +469,9 @@ async function confermaEliminaDocumento(id, nomeDoc) {
   const modal = document.createElement('div');
   modal.id        = 'modal-elimina-doc';
   modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', 'Conferma eliminazione documento');
   modal.innerHTML = `
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4 text-center">
       <div class="text-4xl">🗑️</div>

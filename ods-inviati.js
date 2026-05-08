@@ -334,7 +334,8 @@ async function salvaODSInviato() {
   const html     = _buildODSHtml(ods, cantiere, imp);
 
   const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-  const filename = `${protocollo}.doc`;
+  const safeProtocollo = String(protocollo).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${safeProtocollo}.doc`;
 
   if (typeof salvaDocumento === 'function') {
     await salvaDocumento({
@@ -466,7 +467,7 @@ function _buildODSHtml(ods, cantiere, imp) {
   <!-- PREMESSA -->
   <p>Il sottoscritto <strong>${escapeHtml(cseNome)}</strong>, in qualità di
   ${escapeHtml(cseQualifica)} del cantiere in oggetto, in applicazione dei
-  compiti previsti dall'art. 92 del D.Lgs 81/2008,</p>
+  compiti previsti dall'art. 92 c.1 lett. f del D.Lgs 81/2008,</p>
 
   <!-- DISPOSITIVO -->
   <h4>Dispone</h4>
@@ -525,7 +526,7 @@ function _buildODSHtml(ods, cantiere, imp) {
   </div>
 
   <div class="footer">
-    Atto emesso ai sensi dell'art. 92 D.Lgs 81/2008 —
+    Atto emesso ai sensi dell'art. 92 c.1 lett. f D.Lgs 81/2008 —
     Generato da ANAS SafeHub il ${new Date().toLocaleString('it-IT')}
   </div>
 

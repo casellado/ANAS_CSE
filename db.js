@@ -103,7 +103,7 @@ function initDB() {
       resolve();
     };
 
-    req.onerror = () => reject('Errore apertura IndexedDB: ' + req.error);
+    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
 }
 
@@ -117,9 +117,24 @@ function saveItem(storeName, item) {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
     const t   = db.transaction(storeName, 'readwrite');
     const s   = t.objectStore(storeName);
-    const req = s.put(item);
-    req.onsuccess = () => resolve(item);
-    req.onerror   = () => reject('Errore salvataggio in ' + storeName + ': ' + req.error);
+    try {
+      const req = s.put(item);
+      req.onsuccess = () => resolve(item);
+      req.onerror   = () => {
+        console.error(req.error);
+        if (req.error && req.error.name === 'QuotaExceededError') {
+          reject('Spazio di archiviazione esaurito. Elimina alcuni file o libera spazio sul dispositivo.');
+        } else {
+          reject('Errore di archiviazione locale. Riprovare.');
+        }
+      };
+    } catch (e) {
+      if (e.name === 'QuotaExceededError') {
+        reject('Spazio di archiviazione esaurito. Elimina alcuni file o libera spazio sul dispositivo.');
+      } else {
+        reject('Errore di archiviazione locale. Riprovare.');
+      }
+    }
   });
 }
 
@@ -131,7 +146,7 @@ function getAll(storeName) {
     const s   = t.objectStore(storeName);
     const req = s.getAll();
     req.onsuccess = () => resolve(req.result || []);
-    req.onerror   = () => reject('Errore lettura da ' + storeName + ': ' + req.error);
+    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
 }
 
@@ -143,7 +158,7 @@ function getItem(storeName, id) {
     const s   = t.objectStore(storeName);
     const req = s.get(id);
     req.onsuccess = () => resolve(req.result || null);
-    req.onerror   = () => reject('Errore get da ' + storeName + ': ' + req.error);
+    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
 }
 
@@ -156,7 +171,7 @@ function getByIndex(storeName, indexName, value) {
     const idx = s.index(indexName);
     const req = idx.getAll(value);
     req.onsuccess = () => resolve(req.result || []);
-    req.onerror   = () => reject('Errore lettura indice ' + indexName + ': ' + req.error);
+    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
 }
 
@@ -168,7 +183,7 @@ function deleteItem(storeName, id) {
     const s   = t.objectStore(storeName);
     const req = s.delete(id);
     req.onsuccess = () => resolve();
-    req.onerror   = () => reject('Errore cancellazione da ' + storeName + ': ' + req.error);
+    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
 }
 
@@ -180,6 +195,6 @@ function clearStore(storeName) {
     const s   = t.objectStore(storeName);
     const req = s.clear();
     req.onsuccess = () => resolve();
-    req.onerror   = () => reject('Errore clear store ' + storeName + ': ' + req.error);
+    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
 }

@@ -447,7 +447,8 @@ async function generaODSPDFBlob(v) {
   doc.text("Ordine di Servizio (ODS)", margin, cursor);
   cursor += 10;
   doc.setFontSize(10);
-  doc.text(`Protocollo: ${v.protocollo || 'N/A'} · Data: ${v.dataApertura.slice(0,10)}`, margin, cursor);
+  const formattaDataIT = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT') : 'N/A';
+  doc.text(`Protocollo: ${v.protocollo || 'N/A'} · Data: ${formattaDataIT(v.dataApertura)}`, margin, cursor);
   cursor += 15;
 
   doc.setFont("helvetica", "bold");

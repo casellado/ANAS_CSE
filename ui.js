@@ -1252,12 +1252,18 @@ async function confermaNuovoCantiere() {
     showToast('Codice e Nome sono obbligatori.', 'warning');
     return;
   }
+  
+  const safeId = id.toUpperCase();
+  if (!/^[A-Z0-9_\-]+$/.test(safeId)) {
+      showToast('Il codice Cantiere ammette solo Maiuscole, numeri e trattini.', 'warning');
+      return;
+  }
 
   // Controlla ID duplicato — saveItem farebbe put() sovrascrivendo i dati esistenti
   try {
     const existing = await getAll('projects');
-    if (existing.some(p => p.id === id)) {
-      showToast(`Il codice "${id}" è già in uso. Scegli un codice diverso.`, 'warning');
+    if (existing.some(p => p.id === safeId)) {
+      showToast(`Il codice "${safeId}" è già in uso. Scegli un codice diverso.`, 'warning');
       document.getElementById('nc-id')?.focus();
       return;
     }
@@ -1274,7 +1280,7 @@ async function confermaNuovoCantiere() {
   const trackingNumber = `${oggi}/CSE-${String(progressivo).padStart(3, '0')}`;
 
   const project = {
-    id,
+    id: safeId,
     nome,
     loc,
     status,
@@ -1286,6 +1292,9 @@ async function confermaNuovoCantiere() {
     createdAt: new Date().toISOString()
   };
 
+  const btnSave = document.getElementById('btn-conferma-nuovo-cantiere'); // o similare, lo disabilitiamo se c'è
+  if (btnSave) btnSave.disabled = true;
+
   try {
     await saveItem('projects', project);
     chiudiModalNuovoCantiere();
@@ -1293,6 +1302,8 @@ async function confermaNuovoCantiere() {
     showToast(`Cantiere "${nome}" creato · Tracking: ${trackingNumber} ✓`, 'success');
   } catch (err) {
     showToast('Errore nel salvataggio: ' + err, 'error');
+  } finally {
+    if (btnSave) btnSave.disabled = false;
   }
 }
 

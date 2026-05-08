@@ -254,7 +254,8 @@ ${cseAlbo ? '<span style="font-size: 9pt;">' + escapeHtml(cseAlbo) + '</span>' :
 
 async function _scaricaLetteraSegnalazioneWord(html, cantiereId, dataLettera, cantiereNome) {
   const blob = new Blob(['﻿', html], { type: 'application/msword' });
-  const filename = `Segnalazione_RUP_${cantiereId}_${dataLettera}.doc`;
+  const safeId = String(cantiereId).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Segnalazione_RUP_${safeId}_${dataLettera}.doc`;
 
   if (typeof salvaIntelligente === 'function') {
     await salvaIntelligente({

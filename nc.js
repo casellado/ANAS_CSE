@@ -262,9 +262,10 @@ function calcolaScadenzaNC(livello, dataApertura) {
   const apertura = new Date(dataApertura || new Date());
 
   switch (livello) {
-    case 'gravissima': apertura.setHours(apertura.getHours() + 24); break; // 24h
-    case 'grave':      apertura.setDate(apertura.getDate() + 3);    break; // 3gg
-    default:           apertura.setDate(apertura.getDate() + 7);    break; // 7gg (media/lieve)
+    case 'gravissima': apertura.setHours(apertura.getHours() + 24); break;
+    case 'grave':      apertura.setDate(apertura.getDate() + 7);    break;
+    case 'media':      apertura.setDate(apertura.getDate() + 15);   break;
+    default:           apertura.setDate(apertura.getDate() + 30);   break; // lieve
   }
 
   return apertura.toISOString();

@@ -43,9 +43,10 @@ async function salvaVerbale(event) {
   const annoCorrente = new Date().getFullYear();
   const countVS = verbaliEsistenti.filter(v => 
     v.tipo === 'sopralluogo' && 
-    v.data && v.data.startsWith(annoCorrente.toString())
+    v.data && v.data.startsWith(oggi)
   ).length + 1;
-  const progressivoVS = `${annoCorrente}/VS-${String(countVS).padStart(2, '0')}`;
+  const dataCompatta = oggi.replace(/-/g, '');
+  const progressivoVS = `${dataCompatta}/VS${String(countVS).padStart(2, '0')}`;
 
   // Recupera firma (se presente)
   const firmaData = window._firmaCorrente || null;

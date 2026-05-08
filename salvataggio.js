@@ -430,7 +430,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         <td style="width:50%; vertical-align:top; border:none; padding-right:16pt;">
           <div class="label">Firma del CSE${v.delegaCSE ? ' (delegato)' : ''}</div>
           ${firmaImg}
-          <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(v.delegaCSE ? v.delegaCSE.nome : (imp.firmaNome || v.firmante || 'Dogano Casella'))}</div>
+          <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(v.delegaCSE ? v.delegaCSE.nome : (imp.firmaNome || v.firmante || 'Geom. Dogano Casella — CSE ANAS SpA'))}</div>
           <div style="font-size:9pt; color:#64748b;">${escapeHtml(v.delegaCSE ? 'Delegato CSE' : (imp.firmaQualifica || 'CSE'))}</div>
           ${!v.delegaCSE && imp.firmaAlbo && !imp.firmaAlbo.includes('Albo Geometri') ? `<div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo)}</div>` : ''}
           ${v.firmaTimestamp ? `<div style="font-size:9pt; color:#94a3b8;">Firmato il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}</div>` : ''}
@@ -524,7 +524,7 @@ async function exportNCWord(ncId) {
     <div style="margin-top:20pt;">
       <div class="label">Firma del CSE</div>
       <div class="firma-box" style="margin-top:4pt;"></div>
-      <div style="margin-top:4pt; font-weight:bold;">${escapeHtml(imp.firmaNome || 'Dogano Casella')}</div>
+      <div style="margin-top:4pt; font-weight:bold;">${escapeHtml(imp.firmaNome || 'Geom. Dogano Casella — CSE ANAS SpA')}</div>
       <div style="font-size:9pt; color:#64748b;">Coordinatore Sicurezza in Esecuzione (CSE)</div>
     </div>
   `;
