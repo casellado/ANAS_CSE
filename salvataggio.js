@@ -61,7 +61,7 @@ function mostraPannelloSalvataggio(opzioni = {}) {
               <div class="font-semibold text-slate-800 text-sm">🖨️ PDF (Stampa / Salva)</div>
               <div class="text-xs text-slate-500 mt-1">
                 Apre la finestra di stampa. Scegli "Salva come PDF"
-                per salvare su PC, USB o OneDrive.
+                per salvare su PC o OneDrive.
               </div>
             </div>
             <button onclick="_salvaPDF()" 
@@ -80,7 +80,7 @@ function mostraPannelloSalvataggio(opzioni = {}) {
               <div class="font-semibold text-slate-800 text-sm">📄 Word (.doc)</div>
               <div class="text-xs text-slate-500 mt-1">
                 Scarica un file editabile in Word, LibreOffice o Google Docs.
-                Salvalo dove vuoi (PC, USB, OneDrive).
+                Salvalo dove vuoi (PC, OneDrive).
               </div>
             </div>
             <button onclick="_salvaWord()"
@@ -133,7 +133,7 @@ function mostraPannelloSalvataggio(opzioni = {}) {
           <button onclick="_salvaDirectoUSB()"
                   class="mt-2 w-full text-center text-xs bg-slate-800 text-white px-3 py-2 rounded-lg
                          hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400">
-            💾 Salva direttamente su USB / Cartella (Chrome)
+            💾 Salva direttamente su PC / Cartella (Chrome)
           </button>
         </div>
 

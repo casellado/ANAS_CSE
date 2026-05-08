@@ -197,6 +197,39 @@ async function _apriModalNuovoODS() {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 
+  // Aggiungi sezione workflow ODS nel modal (dopo i bottoni)
+  const footerDiv = modal.querySelector('.bg-slate-50');
+  if (footerDiv) {
+    const workflowSection = document.createElement('div');
+    workflowSection.className = 'px-5 py-3 border-t border-slate-100 space-y-3';
+    workflowSection.innerHTML = `
+      <div class="text-xs font-bold text-slate-600 uppercase tracking-wide">📋 Workflow ODS</div>
+      <div class="flex flex-wrap gap-2" id="ods-workflow-badges">
+        <span class="ods-badge-stato px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 ring-2 ring-blue-400" data-stato="emesso">📝 Emesso</span>
+        <span class="text-slate-300">→</span>
+        <span class="ods-badge-stato px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="trasmesso">📨 Trasmesso</span>
+        <span class="text-slate-300">→</span>
+        <span class="ods-badge-stato px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="riscontrato">✅ Riscontrato</span>
+        <span class="text-slate-300">→</span>
+        <span class="ods-badge-stato px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="archiviato">📁 Archiviato</span>
+      </div>
+      <div>
+        <div class="text-xs font-semibold text-slate-600 mb-1">📎 Carica PDF firmato (sostituzione)</div>
+        <div class="border-2 border-dashed border-blue-300 rounded-xl p-4 text-center
+                    hover:border-blue-500 hover:bg-blue-50 transition cursor-pointer"
+             ondragover="event.preventDefault(); this.classList.add('border-blue-500','bg-blue-50');"
+             ondragleave="this.classList.remove('border-blue-500','bg-blue-50');"
+             ondrop="_handleODSDropFirmato(event)"
+             onclick="document.getElementById('ods-file-firmato').click()">
+          <div class="text-sm text-slate-500">Trascina qui il PDF ODS firmato</div>
+          <input type="file" id="ods-file-firmato" accept=".pdf" class="hidden" onchange="_handleODSFileFirmato(this)">
+        </div>
+        <div id="ods-firmato-info" class="hidden mt-2 text-xs text-green-600 font-semibold"></div>
+      </div>
+    `;
+    footerDiv.parentNode.insertBefore(workflowSection, footerDiv.nextSibling);
+  }
+
   setTimeout(() => document.getElementById('ods-oggetto')?.focus(), 50);
 }
 
@@ -524,4 +557,54 @@ async function getODSList() {
   if (!window.appState?.currentProject) return [];
   const tutti = await getByIndex('nc', 'projectId', window.appState.currentProject);
   return tutti.filter(x => x.tipoAtto === 'ods-inviato');
+}
+
+// ─────────────────────────────────────────────
+// 9. FLUSSO 3 — Drag&Drop PDF firmato ODS
+// ─────────────────────────────────────────────
+
+window._odsPDFFirmato = null;
+
+function _handleODSDropFirmato(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+  const file = event.dataTransfer?.files?.[0];
+  if (file) _processaODSFileFirmato(file);
+}
+
+function _handleODSFileFirmato(input) {
+  const file = input.files?.[0];
+  if (file) _processaODSFileFirmato(file);
+}
+
+async function _processaODSFileFirmato(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    if (typeof showToast === 'function') showToast('Solo file PDF accettati.', 'warning');
+    return;
+  }
+
+  window._odsPDFFirmato = file;
+
+  const info = document.getElementById('ods-firmato-info');
+  if (info) {
+    info.classList.remove('hidden');
+    info.innerHTML = `✅ PDF firmato: <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+  }
+
+  // Salva subito su OneDrive
+  const projectId = window.appState?.currentProject;
+  if (projectId && typeof salvaDocumento === 'function') {
+    try {
+      await salvaDocumento({
+        filename: file.name,
+        blob: file,
+        cantiereId: projectId,
+        tipoDoc: 'ods-firmato',
+        titoloCondivisione: `ODS firmato — ${file.name}`
+      });
+      if (typeof showToast === 'function') showToast('PDF ODS firmato archiviato ✓', 'success');
+    } catch (err) {
+      console.warn('[ODS] Errore archiviazione PDF firmato:', err);
+    }
+  }
 }

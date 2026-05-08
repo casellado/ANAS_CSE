@@ -220,7 +220,7 @@
           </button>
           <!-- Salva dati unificato -->
           <button id="btn-topbar-salvadati" class="topbar-btn topbar-btn-dark"
-            aria-label="Salva database su USB">
+            aria-label="Salva database locale">
             <span aria-hidden="true">💾</span>
             <span class="hide-on-mobile">Salva dati</span>
           </button>
@@ -371,17 +371,17 @@
           </form>
         </section>
 
-        <!-- ── SYNC VIEW (BUG-9 FIX: data-usb-only) ── -->
-        <section id="sync-view" data-usb-only class="page-transition" role="region" aria-label="Gestione dati USB" aria-hidden="true">
+        <!-- ── SYNC VIEW ── -->
+        <section id="sync-view" data-usb-only class="page-transition" role="region" aria-label="Gestione dati locale" aria-hidden="true">
 
-          <h2 class="text-base font-semibold text-slate-700 mb-4">Gestione Dati USB</h2>
+          <h2 class="text-base font-semibold text-slate-700 mb-4">Gestione Dati Locale</h2>
 
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-5 max-w-2xl">
 
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-              <strong>Come funziona:</strong> Il file <code>data/database.json</code> sulla chiavetta
-              è il <strong>master</strong>. L'app carica automaticamente i dati da quel file
-              all'avvio. Usa i pulsanti qui sotto per importare ed esportare manualmente.<br><br>
+              <strong>Come funziona:</strong> Il file <code>database.json</code>
+              contiene tutti i dati dell'app. Usa i pulsanti qui sotto per importare
+              ed esportare i dati manualmente.<br><br>
               <strong>Nota:</strong> Se usi OneDrive, questa sezione è disabilitata poiché il salvataggio è in tempo reale.
             </div>
 
@@ -397,9 +397,9 @@
               <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <span class="text-2xl" aria-hidden="true">📂</span>
                 <div>
-                  <div class="font-semibold text-slate-800 text-sm">Carica database da USB</div>
+                  <div class="font-semibold text-slate-800 text-sm">Carica database da backup</div>
                   <div class="text-xs text-slate-500 mb-3">
-                    Seleziona manualmente il file <code>database.json</code> dalla chiavetta.
+                    Seleziona un file <code>database.json</code> salvato in precedenza.
                     I dati verranno uniti a quelli già presenti.
                   </div>
                   <button id="btn-load-usb-2" class="bg-slate-800 text-white text-xs px-4 py-2 rounded-lg
@@ -413,10 +413,10 @@
               <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <span class="text-2xl" aria-hidden="true">💾</span>
                 <div>
-                  <div class="font-semibold text-slate-800 text-sm">Salva database su USB</div>
+                  <div class="font-semibold text-slate-800 text-sm">Salva database come backup</div>
                   <div class="text-xs text-slate-500 mb-3">
-                    Esporta lo stato corrente in un file <code>database.json</code> da copiare
-                    sulla chiavetta USB.
+                    Esporta lo stato corrente in un file <code>database.json</code> da conservare
+                    come backup.
                   </div>
                   <button class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg
                                  hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
