@@ -27,6 +27,7 @@ async function salvaVerificaPOS(event) {
     id:           'pos_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
     tipo:         'verifica-pos',
     protocollo:   progressivoVAP,
+    stato:        'redatto',      // FLUSSO 2: workflow stato
     projectId:    window.appState.currentProject,
     data:         document.getElementById('pos-data')?.value || new Date().toISOString().slice(0,10),
     nomeImpresa:  (document.getElementById('pos-impresa')?.value || '').trim(),
@@ -37,6 +38,8 @@ async function salvaVerificaPOS(event) {
     cse:          (document.getElementById('pos-cse')?.value || '').trim() || 'Geom. Dogano Casella',
     firma:        firmaData ? firmaData.png : (imp.firmaImmagine || null),
     firmaTimestamp: firmaData ? firmaData.timestamp : null,
+    protocolloANAS:   (document.getElementById('pos-protocollo-anas')?.value || '').trim(),
+    dataProtocollo:   (document.getElementById('pos-data-protocollo')?.value || '').trim(),
     createdAt:    new Date().toISOString()
   };
   
@@ -379,10 +382,179 @@ function apriSalvataggioVerificaPOS(posId) {
       onWord:      function() { exportPOSWord(id); },
       onEmail:     function() {
         if (typeof mostraPannelloEmail === 'function')
-          mostraPannelloEmail({ tipo: 'generico' });
+          mostraPannelloEmail({ tipo: 'verifica-pos' });
       }
     });
   } else {
     exportPOSWord(id);
+  }
+}
+
+// ─────────────────────────────────────────────
+// 5. FLUSSO 2 — Workflow Verbale Approvazione POS
+// ─────────────────────────────────────────────
+
+/** Stati possibili del workflow POS */
+const POS_STATI = ['redatto', 'firmato_cse', 'in_protocollo', 'protocollato', 'archiviato'];
+const POS_STATI_COLORS = {
+  redatto:        { bg: 'bg-blue-100',   text: 'text-blue-700',   ring: 'ring-blue-400' },
+  firmato_cse:    { bg: 'bg-cyan-100',   text: 'text-cyan-700',   ring: 'ring-cyan-400' },
+  in_protocollo:  { bg: 'bg-amber-100',  text: 'text-amber-700',  ring: 'ring-amber-400' },
+  protocollato:   { bg: 'bg-green-100',  text: 'text-green-700',  ring: 'ring-green-400' },
+  archiviato:     { bg: 'bg-emerald-100',text: 'text-emerald-700',ring: 'ring-emerald-400' }
+};
+
+/** File temporanei caricati (per salvataggio) */
+window._posPDFFirmato = null;
+window._posLetteraTrasmissione = null;
+
+/**
+ * Aggiorna visivamente i badge del workflow allo stato dato
+ */
+function _aggiornaWorkflowBadges(statoCorrente) {
+  const badges = document.querySelectorAll('.pos-badge-stato');
+  const statoIdx = POS_STATI.indexOf(statoCorrente);
+
+  badges.forEach(badge => {
+    const stato = badge.dataset.stato;
+    const idx = POS_STATI.indexOf(stato);
+    const colors = POS_STATI_COLORS[stato] || POS_STATI_COLORS.redatto;
+
+    // Reset classi
+    badge.classList.remove('ring-2', 'bg-blue-100', 'text-blue-700', 'ring-blue-400',
+      'bg-cyan-100', 'text-cyan-700', 'ring-cyan-400',
+      'bg-amber-100', 'text-amber-700', 'ring-amber-400',
+      'bg-green-100', 'text-green-700', 'ring-green-400',
+      'bg-emerald-100', 'text-emerald-700', 'ring-emerald-400',
+      'bg-slate-100', 'text-slate-400');
+
+    if (idx <= statoIdx) {
+      // Stato raggiunto o superato
+      badge.classList.add(colors.bg, colors.text);
+      if (idx === statoIdx) badge.classList.add('ring-2', colors.ring);
+    } else {
+      // Stato futuro
+      badge.classList.add('bg-slate-100', 'text-slate-400');
+    }
+  });
+}
+
+/**
+ * Gestisce drag&drop del PDF firmato
+ */
+function _handlePOSDropFirmato(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50');
+  const file = event.dataTransfer?.files?.[0];
+  if (file) _processaPOSFileFirmato(file);
+}
+
+function _handlePOSFileFirmato(input) {
+  const file = input.files?.[0];
+  if (file) _processaPOSFileFirmato(file);
+}
+
+async function _processaPOSFileFirmato(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    if (typeof showToast === 'function') showToast('Solo file PDF accettati.', 'warning');
+    return;
+  }
+
+  window._posPDFFirmato = file;
+
+  const info = document.getElementById('pos-firmato-info');
+  if (info) {
+    info.classList.remove('hidden');
+    info.innerHTML = `✅ PDF firmato caricato: <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+  }
+
+  if (typeof showToast === 'function') showToast('PDF firmato caricato — verrà salvato con "Aggiorna Stato"', 'success');
+}
+
+/**
+ * Gestisce drag&drop della lettera di trasmissione
+ */
+function _handlePOSDropLettera(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('border-amber-500', 'bg-amber-50');
+  const file = event.dataTransfer?.files?.[0];
+  if (file) _processaPOSFileLettera(file);
+}
+
+function _handlePOSFileLettera(input) {
+  const file = input.files?.[0];
+  if (file) _processaPOSFileLettera(file);
+}
+
+function _processaPOSFileLettera(file) {
+  window._posLetteraTrasmissione = file;
+
+  const info = document.getElementById('pos-lettera-info');
+  if (info) {
+    info.classList.remove('hidden');
+    info.innerHTML = `📋 Lettera caricata: <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+  }
+
+  if (typeof showToast === 'function') showToast('Lettera di trasmissione caricata', 'success');
+}
+
+/**
+ * Aggiorna lo stato del workflow POS:
+ * - Determina lo stato in base ai dati inseriti
+ * - Salva PDF firmato e lettera su OneDrive
+ * - Aggiorna il record verbale
+ */
+async function aggiornaPOSWorkflowStato() {
+  // Determina stato automaticamente
+  const protocollo = (document.getElementById('pos-protocollo-anas')?.value || '').trim();
+  const dataProtocollo = (document.getElementById('pos-data-protocollo')?.value || '').trim();
+  const haFirmato = !!window._posPDFFirmato;
+  const haLettera = !!window._posLetteraTrasmissione;
+
+  let nuovoStato = 'redatto';
+  if (haFirmato && haLettera && protocollo && dataProtocollo) nuovoStato = 'archiviato';
+  else if (protocollo && dataProtocollo) nuovoStato = 'protocollato';
+  else if (haFirmato) nuovoStato = 'firmato_cse';
+  else if (protocollo) nuovoStato = 'in_protocollo';
+
+  // Aggiorna badge visuale
+  _aggiornaWorkflowBadges(nuovoStato);
+
+  // Salva file su OneDrive se disponibili
+  const projectId = window.appState?.currentProject;
+  if (!projectId) {
+    if (typeof showToast === 'function') showToast('Nessun cantiere selezionato.', 'error');
+    return;
+  }
+
+  try {
+    // Salva PDF firmato
+    if (window._posPDFFirmato && typeof salvaDocumento === 'function') {
+      await salvaDocumento({
+        filename: window._posPDFFirmato.name,
+        blob: window._posPDFFirmato,
+        cantiereId: projectId,
+        tipoDoc: 'verifica-pos-firmato',
+        titoloCondivisione: `Verifica POS firmata — ${window._posPDFFirmato.name}`
+      });
+    }
+
+    // Salva lettera trasmissione
+    if (window._posLetteraTrasmissione && typeof salvaDocumento === 'function') {
+      await salvaDocumento({
+        filename: window._posLetteraTrasmissione.name,
+        blob: window._posLetteraTrasmissione,
+        cantiereId: projectId,
+        tipoDoc: 'lettera-trasmissione',
+        titoloCondivisione: `Lettera di trasmissione POS — ${window._posLetteraTrasmissione.name}`
+      });
+    }
+
+    if (typeof showToast === 'function') {
+      showToast(`Stato aggiornato: ${nuovoStato.replace(/_/g, ' ').toUpperCase()} ✓`, 'success');
+    }
+  } catch (err) {
+    console.error('[FLUSSO 2] Errore aggiornamento workflow POS:', err);
+    if (typeof showToast === 'function') showToast('Errore durante il salvataggio dei file.', 'error');
   }
 }

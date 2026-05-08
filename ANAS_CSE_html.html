@@ -1318,12 +1318,96 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
               📄 Word
             </button>
             <button type="button"
-              onclick="if(typeof mostraPannelloEmail==='function') mostraPannelloEmail({tipo:'generico'})" class="bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
+              onclick="if(typeof mostraPannelloEmail==='function') mostraPannelloEmail({tipo:'verifica-pos'})" class="bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
                          hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-              aria-label="Invia via email">
-              ✉️ Email
+              aria-label="Invia via email a RL">
+              ✉️ Email a RL
             </button>
           </div>
+
+          <!-- ── FLUSSO 2: WORKFLOW VERBALE POS ── -->
+          <fieldset class="border border-indigo-200 rounded-xl p-4 space-y-4 bg-indigo-50/30 mt-4">
+            <legend class="text-xs font-bold text-indigo-700 px-2 uppercase tracking-wide">
+              📋 Workflow Verbale Approvazione POS
+            </legend>
+
+            <!-- Stato workflow -->
+            <div>
+              <div class="text-xs font-semibold text-slate-600 mb-2">Stato corrente</div>
+              <div class="flex flex-wrap gap-2" id="pos-workflow-badges">
+                <span class="pos-badge-stato px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 ring-2 ring-blue-400" data-stato="redatto">📝 Redatto</span>
+                <span class="text-slate-300">→</span>
+                <span class="pos-badge-stato px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="firmato_cse">🔏 Firmato CSE</span>
+                <span class="text-slate-300">→</span>
+                <span class="pos-badge-stato px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="in_protocollo">📨 In Protocollo</span>
+                <span class="text-slate-300">→</span>
+                <span class="pos-badge-stato px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="protocollato">✅ Protocollato</span>
+                <span class="text-slate-300">→</span>
+                <span class="pos-badge-stato px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400" data-stato="archiviato">📁 Archiviato</span>
+              </div>
+            </div>
+
+            <!-- Protocollo ANAS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="pos-protocollo-anas" class="text-xs font-semibold text-slate-600 block mb-1">
+                  N° Protocollo ANAS
+                </label>
+                <input id="pos-protocollo-anas" type="text" placeholder="Es. Prot. 2026/12345"
+                       class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                              focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+              </div>
+              <div>
+                <label for="pos-data-protocollo" class="text-xs font-semibold text-slate-600 block mb-1">
+                  Data Protocollo
+                </label>
+                <input id="pos-data-protocollo" type="date"
+                       class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
+                              focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- Drag&Drop sostituzione PDF firmato -->
+            <div>
+              <div class="text-xs font-semibold text-slate-600 mb-1">📎 Carica PDF firmato (sostituzione)</div>
+              <div id="pos-dropzone-firmato"
+                   class="border-2 border-dashed border-indigo-300 rounded-xl p-6 text-center
+                          hover:border-indigo-500 hover:bg-indigo-50 transition cursor-pointer"
+                   ondragover="event.preventDefault(); this.classList.add('border-indigo-500','bg-indigo-50');"
+                   ondragleave="this.classList.remove('border-indigo-500','bg-indigo-50');"
+                   ondrop="_handlePOSDropFirmato(event)"
+                   onclick="document.getElementById('pos-file-firmato').click()">
+                <div class="text-indigo-400 text-2xl mb-1">📄</div>
+                <div class="text-sm text-slate-500">Trascina qui il PDF firmato oppure <span class="text-indigo-600 font-semibold underline">clicca per selezionare</span></div>
+                <div class="text-xs text-slate-400 mt-1">Il file sostituirà la versione generata dalla PWA (stesso nome)</div>
+                <input type="file" id="pos-file-firmato" accept=".pdf" class="hidden" onchange="_handlePOSFileFirmato(this)">
+              </div>
+              <div id="pos-firmato-info" class="hidden mt-2 text-xs text-green-600 font-semibold"></div>
+            </div>
+
+            <!-- Upload Lettera di Trasmissione -->
+            <div>
+              <div class="text-xs font-semibold text-slate-600 mb-1">📋 Lettera di Trasmissione (allegato)</div>
+              <div id="pos-dropzone-lettera"
+                   class="border-2 border-dashed border-amber-300 rounded-xl p-4 text-center
+                          hover:border-amber-500 hover:bg-amber-50 transition cursor-pointer"
+                   ondragover="event.preventDefault(); this.classList.add('border-amber-500','bg-amber-50');"
+                   ondragleave="this.classList.remove('border-amber-500','bg-amber-50');"
+                   ondrop="_handlePOSDropLettera(event)"
+                   onclick="document.getElementById('pos-file-lettera').click()">
+                <div class="text-sm text-slate-500">Trascina qui la lettera di trasmissione</div>
+                <input type="file" id="pos-file-lettera" accept=".pdf,.doc,.docx" class="hidden" onchange="_handlePOSFileLettera(this)">
+              </div>
+              <div id="pos-lettera-info" class="hidden mt-2 text-xs text-amber-600 font-semibold"></div>
+            </div>
+
+            <!-- Bottone aggiorna stato -->
+            <button type="button" onclick="aggiornaPOSWorkflowStato()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold text-sm
+                           hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition w-full">
+              🔄 Aggiorna Stato Workflow
+            </button>
+          </fieldset>
 
         </form>
 
