@@ -254,11 +254,18 @@ function apriLightbox(url) {
   const imgContainer = document.getElementById('lb-img-container');
   const img = document.getElementById('lb-img');
   
+  const escFn = function(e) {
+    if (e.key === 'Escape') { chiudiLb(); }
+  };
+  document.addEventListener('keydown', escFn);
+
+  function chiudiLb() {
+    lb.remove();
+    document.removeEventListener('keydown', escFn);
+  }
+
   // Close buttons
-  document.getElementById('lb-close').addEventListener('click', () => lb.remove());
-  document.addEventListener('keydown', function esc(e) {
-    if (e.key === 'Escape') { lb.remove(); document.removeEventListener('keydown', esc); }
-  });
+  document.getElementById('lb-close').addEventListener('click', chiudiLb);
 
   // Gestures (Pinch to Zoom, Swipe Down to Close, Pan)
   let scale = 1, panning = false, pointX = 0, pointY = 0, start = { x: 0, y: 0 }, zoomParams = { distance: 0, initialScale: 1 };
@@ -337,7 +344,7 @@ function apriLightbox(url) {
       // Chiudi lightbox
       lb.style.transition = 'opacity 0.2s';
       lb.style.opacity = '0';
-      setTimeout(() => lb.remove(), 200);
+      setTimeout(() => chiudiLb(), 200);
     } else if (scale === 1) {
       // Resetta pos
       pointY = 0; pointX = 0;

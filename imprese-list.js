@@ -226,6 +226,19 @@ async function eliminaImpresa(impresaId) {
   for (const a of assegnaz.filter(a => a.impresaId === impresaId)) {
     await deleteItem('imprese_cantieri', a.id);
   }
+  
+  // Cleanup: foto collegate all'impresa
+  if (typeof getByIndex === 'function') {
+    const foto = await getByIndex('foto', 'impresaId', impresaId).catch(() => []);
+    for (const f of foto) await deleteItem('foto', f.id);
+  }
+  
+  // Cleanup: doc_links collegati all'impresa
+  if (typeof getByIndex === 'function') {
+    const links = await getByIndex('doc_links', 'riferimentoId', impresaId).catch(() => []);
+    for (const l of links) await deleteItem('doc_links', l.id);
+  }
+
   // Elimina l'impresa
   await deleteItem('imprese', impresaId);
 

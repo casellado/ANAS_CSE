@@ -91,7 +91,7 @@ async function scaricaDocumento(id) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ─────────────────────────────────────────────
@@ -162,10 +162,33 @@ async function switchDocTab(tabId) {
 // 8. Badge ODS
 // ─────────────────────────────────────────────
 async function aggiornaBadgeODS() {
-  const docs = await getDocumenti();
-  const count = docs.filter(d => _categoriaDocumento(d) === 'ods').length;
   const badge = document.getElementById('badge-ods');
-  if (badge) badge.textContent = count;
+  if (!badge) return;
+
+  try {
+    const count = await new Promise((resolve, reject) => {
+      if (!window.db) { resolve(0); return; }
+      const t = window.db.transaction('documenti', 'readonly');
+      const s = t.objectStore('documenti');
+      let odsCount = 0;
+      const req = s.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          if (_categoriaDocumento(cursor.value) === 'ods') {
+            odsCount++;
+          }
+          cursor.continue();
+        } else {
+          resolve(odsCount);
+        }
+      };
+      req.onerror = () => reject(req.error);
+    });
+    badge.textContent = count;
+  } catch (err) {
+    console.warn('Errore calcolo badge ODS:', err);
+  }
 }
 
 // ─────────────────────────────────────────────

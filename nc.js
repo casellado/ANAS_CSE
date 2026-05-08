@@ -137,8 +137,14 @@ async function apriNC(id) {
 // ─────────────────────────────────────────────
 // 5. Salva modifiche NC
 // ─────────────────────────────────────────────
+let _isSavingNC = false;
+
 async function salvaNC() {
+  if (_isSavingNC) return;
   if (!currentNcId) { showToast('Nessuna NC aperta.', 'error'); return; }
+  
+  _isSavingNC = true;
+  try {
 
   const titolo      = (document.getElementById('nc-titolo')?.value     || '').trim();
   const descrizione = (document.getElementById('nc-descrizione')?.value || '').trim();
@@ -163,31 +169,40 @@ async function salvaNC() {
     dataScadenza: nuovaScadenza,
     updatedAt:    new Date().toISOString()
   };
-  await saveItem('nc', updated);
-  
-  // MOD-7: Archiviazione automatica PDF se ODS
-  if (updated.tipoEmissione === 'ods') {
     try {
-      if (typeof generaODSPDFBlob === 'function' && typeof salvaDocumento === 'function') {
-        const pdfBlob = await generaODSPDFBlob(updated);
-        const protSafe = (updated.protocollo || '').replace(/\//g, '_');
-        const filename = `ODS_${protSafe}_${updated.dataApertura.slice(0,10)}.pdf`;
-        await salvaDocumento({
-          filename,
-          blob: pdfBlob,
-          cantiereId: updated.projectId,
-          tipoDoc: 'ods',
-          titoloCondivisione: `Ordine di Servizio ${updated.protocollo} - ${updated.titolo}`
-        });
-      }
+      await saveItem('nc', updated);
     } catch (err) {
-      console.warn('[ODS] Errore archiviazione PDF:', err);
+      console.error('Errore salvataggio NC:', err);
+      showToast('Errore durante il salvataggio.', 'error');
+      return;
     }
+  
+    // MOD-7: Archiviazione automatica PDF se ODS
+    if (updated.tipoEmissione === 'ods') {
+      try {
+        if (typeof generaODSPDFBlob === 'function' && typeof salvaDocumento === 'function') {
+          const pdfBlob = await generaODSPDFBlob(updated);
+          const protSafe = (updated.protocollo || '').replace(/\//g, '_');
+          const filename = `ODS_${protSafe}_${updated.dataApertura.slice(0,10)}.pdf`;
+          await salvaDocumento({
+            filename,
+            blob: pdfBlob,
+            cantiereId: updated.projectId,
+            tipoDoc: 'ods',
+            titoloCondivisione: `Ordine di Servizio ${updated.protocollo} - ${updated.titolo}`
+          });
+        }
+      } catch (err) {
+        console.warn('[ODS] Errore archiviazione PDF:', err);
+      }
+    }
+  
+    showToast((updated.tipoEmissione === 'ods' ? 'ODS' : 'NC') + ' salvata correttamente ✓', 'success');
+    if (typeof showCheckmark === 'function') showCheckmark();
+    return updated;
+  } finally {
+    _isSavingNC = false;
   }
-
-  showToast((updated.tipoEmissione === 'ods' ? 'ODS' : 'NC') + ' salvata correttamente ✓', 'success');
-  if (typeof showCheckmark === 'function') showCheckmark();
-  return updated;
 }
 
 // ─────────────────────────────────────────────
@@ -197,17 +212,22 @@ async function chiudiNC(id) {
   const nc = await getNC(id);
   if (!nc) { showToast('NC non trovata.', 'error'); return; }
 
-  const updated = { ...nc, stato: 'chiusa', dataChiusura: new Date().toISOString() };
-  await saveItem('nc', updated);
-  showToast('NC chiusa correttamente ✓', 'success');
-
-  setTimeout(() => {
-    if (typeof renderKPI === 'function')             renderKPI();
-    if (typeof renderNCListWithFoto === 'function')  renderNCListWithFoto('nc-list');
-    if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
-  }, 150);
-
-  return updated;
+  try {
+    const updated = { ...nc, stato: 'chiusa', dataChiusura: new Date().toISOString() };
+    await saveItem('nc', updated);
+    showToast('NC chiusa correttamente ✓', 'success');
+  
+    setTimeout(() => {
+      if (typeof renderKPI === 'function')             renderKPI();
+      if (typeof renderNCListWithFoto === 'function')  renderNCListWithFoto('nc-list');
+      if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
+    }, 150);
+  
+    return updated;
+  } catch (err) {
+    console.error('Errore chiusura NC:', err);
+    showToast('Errore durante la chiusura.', 'error');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -217,17 +237,22 @@ async function riapriNC(id) {
   const nc = await getNC(id);
   if (!nc) { showToast('NC non trovata.', 'error'); return; }
 
-  const updated = { ...nc, stato: 'aperta', dataChiusura: null };
-  await saveItem('nc', updated);
-  showToast('NC riaperta ✓', 'success');
-
-  setTimeout(() => {
-    if (typeof renderKPI === 'function')             renderKPI();
-    if (typeof renderNCListWithFoto === 'function')  renderNCListWithFoto('nc-list');
-    if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
-  }, 150);
-
-  return updated;
+  try {
+    const updated = { ...nc, stato: 'aperta', dataChiusura: null };
+    await saveItem('nc', updated);
+    showToast('NC riaperta ✓', 'success');
+  
+    setTimeout(() => {
+      if (typeof renderKPI === 'function')             renderKPI();
+      if (typeof renderNCListWithFoto === 'function')  renderNCListWithFoto('nc-list');
+      if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
+    }, 150);
+  
+    return updated;
+  } catch (err) {
+    console.error('Errore riapertura NC:', err);
+    showToast('Errore durante la riapertura.', 'error');
+  }
 }
 
 // ─────────────────────────────────────────────

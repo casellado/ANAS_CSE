@@ -43,31 +43,34 @@ async function renderDocumentiCollegati(containerId, tipo, riferimentoId) {
     return;
   }
 
-  container.innerHTML = docs.map(d => `
+  container.innerHTML = docs.map(d => {
+    const nomeSafe = escapeHtml(d.nome);
+    const tagsSafe = escapeHtml((d.tags || []).join(' · '));
+    return `
     <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 mb-2">
       <div class="flex items-center gap-3 min-w-0">
         ${renderAnteprimaIcona(d)}
         <div class="min-w-0">
-          <div class="text-sm font-semibold text-slate-800 truncate">${d.nome}</div>
-          <div class="text-xs text-slate-400">${(d.tags || []).join(' · ')}</div>
+          <div class="text-sm font-semibold text-slate-800 truncate">${nomeSafe}</div>
+          <div class="text-xs text-slate-400">${tagsSafe}</div>
         </div>
       </div>
       <div class="flex gap-2 shrink-0 ml-2">
         <button onclick="mostraPreviewDocumento('${d.id}')"
                 class="text-xs bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-900
                        focus:outline-none focus:ring-2 focus:ring-slate-400"
-                aria-label="Anteprima ${d.nome}">
+                aria-label="Anteprima ${nomeSafe}">
           Anteprima
         </button>
         <button onclick="scaricaDocumento('${d.id}')"
                 class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700
                        focus:outline-none focus:ring-2 focus:ring-blue-400"
-                aria-label="Scarica ${d.nome}">
+                aria-label="Scarica ${nomeSafe}">
           Scarica
         </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 // ─────────────────────────────────────────────

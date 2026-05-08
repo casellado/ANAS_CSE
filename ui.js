@@ -741,6 +741,22 @@ async function apriModalModificaCantiere(projectId) {
         await saveItem('imprese_cantieri', a);
       }
 
+      const documenti = await getByIndex('documenti', 'projectId', projectId).catch(() => []);
+      for (const d of documenti) {
+        d.projectId = newId;
+        // Aggiorna anche i tag che contengono l'ID vecchio se presente
+        if (d.tags) {
+           d.tags = d.tags.map(t => t === `cantiere:${projectId}` ? `cantiere:${newId}` : t);
+        }
+        await saveItem('documenti', d);
+      }
+
+      const mezzi = await getByIndex('mezzi', 'projectId', projectId).catch(() => []);
+      for (const m of mezzi) {
+        m.projectId = newId;
+        await saveItem('mezzi', m);
+      }
+
       // C. Migrazione su OneDrive se attivo
       if (typeof isArchivioOneDriveAttivo === 'function' && await isArchivioOneDriveAttivo()) {
         if (typeof migraLottoOneDrive === 'function') {
@@ -860,7 +876,14 @@ async function confermaEliminaCantiere(projectId) {
     const assegnazioni = await getByIndex('imprese_cantieri', 'projectId', projectId).catch(() => []);
     for (const a of assegnazioni) await deleteItem('imprese_cantieri', a.id);
 
-    // 4. Infine elimina il cantiere stesso
+    // 4. Mezzi e Documenti
+    const documenti = await getByIndex('documenti', 'projectId', projectId).catch(() => []);
+    for (const d of documenti) await deleteItem('documenti', d.id);
+    
+    const mezzi = await getByIndex('mezzi', 'projectId', projectId).catch(() => []);
+    for (const m of mezzi) await deleteItem('mezzi', m.id);
+
+    // 5. Infine elimina il cantiere stesso
     await deleteItem('projects', projectId);
 
     // BUG 3+4 FIX: Propagazione eliminazione su OneDrive

@@ -120,6 +120,8 @@ function renderRigaDocumentoPopup(doc) {
   const sizeFmt = _formattaBytesPopup(doc.size);
   const tagsStr = (doc.tags || []).join(' · ') || '';
 
+  const nomeSafe = escapeHtml(doc.nome);
+
   return `
     <label class="flex items-center justify-between p-3 bg-white border border-slate-200
                   rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition"
@@ -128,12 +130,12 @@ function renderRigaDocumentoPopup(doc) {
         <input type="checkbox"
                class="doc-select-checkbox w-4 h-4 rounded accent-blue-600"
                value="${doc.id}"
-               aria-label="Seleziona ${doc.nome}" />
+               aria-label="Seleziona ${nomeSafe}" />
         ${typeof renderAnteprimaIcona === 'function' ? renderAnteprimaIcona(doc) : '📄'}
         <div class="min-w-0">
-          <div class="font-semibold text-slate-800 text-sm truncate">${doc.nome}</div>
+          <div class="font-semibold text-slate-800 text-sm truncate">${nomeSafe}</div>
           <div class="flex items-center gap-2 mt-0.5">
-            ${tagsStr ? `<span class="text-xs text-blue-600 font-medium">${tagsStr}</span>` : ''}
+            ${tagsStr ? `<span class="text-xs text-blue-600 font-medium">${escapeHtml(tagsStr)}</span>` : ''}
             ${sizeFmt ? `<span class="text-[10px] text-slate-400">${sizeFmt}</span>` : ''}
           </div>
           ${dataFmt ? `<div class="text-[10px] text-slate-400 mt-0.5">📅 ${dataFmt}</div>` : ''}
@@ -142,7 +144,7 @@ function renderRigaDocumentoPopup(doc) {
       <button onclick="mostraPreviewDocumento('${doc.id}'); event.preventDefault(); event.stopPropagation();"
               class="shrink-0 ml-2 text-xs bg-slate-700 text-white px-2 py-1 rounded
                      hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              aria-label="Anteprima ${doc.nome}">
+              aria-label="Anteprima ${nomeSafe}">
         Anteprima
       </button>
     </label>
@@ -178,7 +180,7 @@ async function filtraPopupDocumenti(term) {
     list.innerHTML = `
       <div class="text-center py-8">
         <div class="text-3xl mb-2">🔍</div>
-        <p class="text-sm text-slate-500">Nessun documento trovato per "<strong>${term || ''}</strong>".</p>
+        <p class="text-sm text-slate-500">Nessun documento trovato per "<strong>${escapeHtml(term || '')}</strong>".</p>
         <p class="text-xs text-slate-400 mt-1">Prova con meno caratteri o controlla nella sezione Documenti.</p>
       </div>`;
     if (countEl) countEl.textContent = '0 risultati';

@@ -31,22 +31,66 @@ async function creaLavoratore(impresaId, dati) {
 }
 
 // ─────────────────────────────────────────────
-// 3. Rimuovi lavoratore
+// 3. Rimuovi lavoratore (con conferma custom e cascade)
 // ─────────────────────────────────────────────
 async function rimuoviLavoratore(id, impresaId) {
-  // Recupera il lavoratore per mostrare un messaggio significativo
   let nome = 'questo lavoratore';
   try {
     const lav = await getItem('lavoratori', id);
     if (lav && lav.nome) nome = `${lav.nome}${lav.cognome ? ' ' + lav.cognome : ''}`;
   } catch(_) {}
 
-  const ok = confirm(`Eliminare definitivamente ${nome}?\n\nQuesta azione non può essere annullata.`);
-  if (!ok) return;
+  const modal = document.createElement('div');
+  modal.id = 'modal-elimina-lavoratore';
+  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4 text-center">
+      <div class="text-4xl">⚠️</div>
+      <h2 class="text-lg font-bold text-slate-800">Rimuovi Lavoratore</h2>
+      <p class="text-sm text-slate-600">
+        Vuoi eliminare definitivamente <strong>${escapeHtml(nome)}</strong>?<br>
+        <span class="text-red-600 font-semibold">Verranno persi foto e documenti associati.</span>
+      </p>
+      <div class="flex justify-center gap-3 pt-2">
+        <button onclick="document.getElementById('modal-elimina-lavoratore').remove()"
+                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
+                       hover:bg-slate-200 focus:outline-none">
+          Annulla
+        </button>
+        <button id="btn-conferma-elimina-lav"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold
+                       hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400">
+          🗑️ Elimina
+        </button>
+      </div>
+    </div>
+  `;
+  
+  modal.querySelector('#btn-conferma-elimina-lav').onclick = async () => {
+    // Cleanup: foto
+    if (typeof getByIndex === 'function') {
+      const foto = await getByIndex('foto', 'lavoratoreId', id).catch(() => []);
+      for (const f of foto) await deleteItem('foto', f.id);
+    }
+    // Cleanup: doc_links
+    if (typeof getByIndex === 'function') {
+      const links = await getByIndex('doc_links', 'riferimentoId', id).catch(() => []);
+      for (const l of links) await deleteItem('doc_links', l.id);
+    }
 
-  await deleteItem('lavoratori', id);
-  showToast('Lavoratore rimosso.', 'info');
-  await renderLavoratoriImpresa('lavoratori-list', impresaId);
+    await deleteItem('lavoratori', id);
+    document.getElementById('modal-elimina-lavoratore')?.remove();
+    showToast('Lavoratore rimosso.', 'info');
+    await renderLavoratoriImpresa('lavoratori-list', impresaId);
+    
+    // Se siamo nel dettaglio, torniamo all'impresa
+    const container = document.getElementById('lavoratore-dettaglio-container');
+    if (container) window.history.back();
+  };
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
+  document.body.appendChild(modal);
 }
 
 // ─────────────────────────────────────────────
