@@ -29,6 +29,10 @@ async function inizializzaAI(options = {}) {
     return;
   }
 
+  // Se esiste già una sessione orfana, distruggiamola preventivamente
+  // per liberare il processo di background di Chrome.
+  distruggiSessioneAI();
+
   const aiOptions = {
     expectedInputs:  [{ type: 'text', languages: ['en'] }],
     expectedOutputs: [{ type: 'text', languages: ['en'] }] // Solo [en, es, ja] sono supportati attualmente
@@ -110,15 +114,17 @@ RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
     console.info('[SafeHub AI] Gemini Nano pronto.');
 
   } catch (err) {
+    console.error('[SafeHub AI] Errore critico inizializzazione:', err.message);
     if (err.message.includes('user gesture')) {
       ai.attesaGesto = true;
       ai.stato = 'download';
-      _aggiornaIndicatoreAI();
-    } else {
-      console.error('[SafeHub AI] Errore critico:', err.message);
+    } else if (err.message.includes('crashed')) {
       ai.stato = 'non-supportato';
-      _aggiornaIndicatoreAI();
+      console.warn('[SafeHub AI] Il processo di background di Chrome è crashato. Riavviare il browser.');
+    } else {
+      ai.stato = 'non-supportato';
     }
+    _aggiornaIndicatoreAI();
   }
 }
 
