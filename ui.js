@@ -1568,10 +1568,16 @@ function mostraManualeUso() {
           <li><strong>Firma Predefinita:</strong> Disegna o carica la tua firma di CSE. Questa firma verrà precompilata nei nuovi verbali per accelerare il lavoro.</li>
           <li><strong>Normative di Riferimento:</strong> Specifica le normative standard da riportare nel footer dei documenti generati.</li>
         </ul>
-        <p><strong>🔗 Integrazione OneDrive:</strong></p>
+        <p><strong>🔗 Integrazione OneDrive e Collaborazione Team:</strong></p>
         <ul class="list-disc ml-5 space-y-1">
           <li><strong>Sincronizzazione:</strong> Collega il tuo account Microsoft OneDrive per salvare una copia sicura dei database di cantiere nel cloud.</li>
-          <li><strong>Collaborazione:</strong> Tramite il Cloud, i dati possono essere condivisi in tempo reale con altri CSE o membri autorizzati del team.</li>
+          <li><strong>Lavorare in Team:</strong> Per condividere i dati con i colleghi:
+            <ol class="list-decimal ml-5 mt-1 space-y-1">
+              <li><strong>Esporta:</strong> Clicca su <code>Esporta Database (JSON)</code> nelle Impostazioni.</li>
+              <li><strong>Condividi:</strong> Carica il file su una cartella OneDrive condivisa con i colleghi.</li>
+              <li><strong>Importa:</strong> Il collega scarica il file e lo carica tramite <code>Importa Database (JSON)</code>.</li>
+            </ol>
+          </li>
         </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">8. Assistente AI (Gemini Nano)</h3>
