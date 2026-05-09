@@ -1,0 +1,67 @@
+Copyright (c) 2026 Geom. Dogano Casella
+
+ANAS SafeHub — Suite gestionale CSE
+Sviluppato autonomamente da Geom. Dogano Casella, ispettore di cantiere
+presso ANAS S.p.A. — Struttura Territoriale Calabria, fuori da orario di
+lavoro e con dotazione informatica personale.
+
+Il presente software è distribuito con licenza MIT come segue.
+
+================================================================================
+MIT License
+================================================================================
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+Dichiarazione di paternità autoriale
+================================================================================
+
+L'autore unico di questo software è Geom. Dogano Casella.
+
+Lo sviluppo è avvenuto integralmente:
+- Fuori da orario di servizio presso ANAS S.p.A.
+- Su strumentazione informatica personale dell'autore
+- Senza utilizzo di codice, materiali o dati riservati di proprietà ANAS
+- Senza istruzioni o commissioni da parte di ANAS S.p.A.
+
+Ai sensi dell'art. 12 bis Legge 633/1941, la titolarità dei diritti
+patrimoniali del presente software resta in capo all'autore.
+
+L'utilizzo del software all'interno di ANAS S.p.A. da parte di colleghi
+Coordinatori della Sicurezza è concesso a titolo gratuito secondo i termini
+della licenza MIT sopra riportata.
+
+================================================================================
+Note tecniche
+================================================================================
+
+Il software contiene riferimenti alla normativa italiana sulla sicurezza nei
+cantieri (D.Lgs 81/08) e alla modulistica ANAS (Mod.RE.01-x) di pubblico uso
+professionale, in quanto strumento operativo per Coordinatori della Sicurezza
+in Esecuzione.
+
+Tali riferimenti normativi e modulistici NON costituiscono materiale riservato
+ANAS e sono utilizzati nell'ambito dell'attività professionale del CSE, come
+previsto dalla normativa di settore.
+
+================================================================================
+
+Per contatti relativi alla licenza o al progetto:
+Geom. Dogano Casella — Ispettore di cantiere ANAS S.p.A. Calabria
