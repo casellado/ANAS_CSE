@@ -1,8 +1,8 @@
-// sw.js — Service Worker ANAS SafeHub v2.2.11
+// sw.js — Service Worker ANAS SafeHub v2.2.15
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Dogano Casella · ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v2.2.14';
+const CACHE_NAME = 'anas-safehub-v2.2.15';
 
 const CACHE_STATIC = [
   './',
@@ -22,7 +22,11 @@ const CACHE_STATIC = [
   './imprese-list.js',
   './mezzi.js',
   './verbali-mezzi.js',
-  './settings-sync.js'
+  './settings-sync.js',
+  './ai-assistente.js',
+  './lib/jszip.min.js',
+  './lib/jspdf.umd.min.js',
+  './lib/html2canvas.min.js'
 ];
 
 // ── INSTALL: precache file statici (resiliente — singoli file) ──
