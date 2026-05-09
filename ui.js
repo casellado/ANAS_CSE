@@ -1591,15 +1591,27 @@ function mostraManualeUso() {
           <li>💾 <strong>Esportazione manuale:</strong> Sempre possibile tramite <code>Esporta Database (JSON)</code> nelle Impostazioni.</li>
         </ul>
 
-        <h3 class="text-base font-bold text-blue-800 border-b pb-1">9. Assistente AI (Gemini Nano)</h3>
-        <p>L'applicazione integra l'assistente AI <strong>Gemini Nano</strong> basato sull'API nativa del browser (Chrome LanguageModel API 138+). Tutte le elaborazioni AI avvengono localmente sul dispositivo dell'utente per garantire velocità, sicurezza e privacy assoluta.</p>
-        <p><strong>🤖 Stato dell'AI e Indicatore:</strong><br>In alto nella topbar, un badge di stato indica lo stato dell'assistente locale:</p>
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">9. Assistente AI (Gemini Nano — Edge Intelligence)</h3>
+        <p>SafeHub è la prima piattaforma del settore a integrare <strong>Gemini Nano</strong>, l'intelligenza artificiale di Google che opera interamente in locale. Questa tecnologia garantisce velocità, sicurezza e privacy assoluta per il CSE.</p>
+        
+        <p><strong>🛠️ Attivazione Tecnica (Chrome 138+):</strong><br>Per motivi di sicurezza, l'AI deve essere abilitata manualmente:</p>
+        <ol class="list-decimal ml-5 space-y-1 text-[13px]">
+          <li>Digita <code>chrome://flags</code> nella barra degli indirizzi.</li>
+          <li>Abilita <strong>#prompt-api-for-gemini-nano</strong> (imposta su <em>Enabled</em>).</li>
+          <li>Abilita <strong>#optimization-guide-on-device-model</strong> (imposta su <em>Enabled BypassPerfRequirement</em>).</li>
+          <li>Riavvia Chrome e clicca sul badge viola <strong>🤖 Clicca per attivare AI</strong> nella topbar di SafeHub.</li>
+        </ol>
+
+        <p><strong>🔒 Privacy e Sicurezza:</strong><br>A differenza delle comuni AI cloud, SafeHub utilizza la <strong>Edge Intelligence</strong>: ogni analisi e suggerimento normativo avviene nel chip del tuo PC. Nessun dato viene inviato esternamente, garantendo la totale riservatezza dei dati ANAS.</p>
+
+        <p><strong>💡 Vantaggi per il CSE:</strong></p>
         <ul class="list-disc ml-5 space-y-1">
-          <li><code>🤖 AI Pronta</code>: Il modello locale è stato caricato e pronto all'uso.</li>
-          <li><code>⏳ AI Download…</code>: Il modello locale è in fase di download.</li>
-          <li><code>— AI N/D</code>: Il modello locale non è supportato da questo browser.</li>
+          <li><strong>Suggerimenti Normativi:</strong> Identificazione automatica degli articoli del D.Lgs 81/08 o D.I. 22/01/2019.</li>
+          <li><strong>Classificazione NC:</strong> Suggerimento della gravità (Lieve/Media/Grave/Gravissima).</li>
+          <li><strong>Prescrizioni Formali:</strong> Trasformazione di appunti in testi formali per i verbali.</li>
         </ul>
-        <p><strong>📝 Casi d'uso dell'Assistente AI:</strong><br>Nei vari moduli (Verbali, NC) sono presenti i pulsanti <code>🤖 Suggerisci con AI</code> per compilare automaticamente i testi basandosi sul contesto normativo e di cantiere.</p>
+
+        <p><strong>🆘 Risoluzione Problemi:</strong><br>Se il download rimane fermo allo 0%, vai su <code>chrome://components</code> e clicca "Check for update" su <strong>Optimization Guide On Device Model</strong>.</p>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">10. Riconoscimenti</h3>
         <p>Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, il cui contributo ha permesso la sperimentazione sul campo dello strumento.</p>
