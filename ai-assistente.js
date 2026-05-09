@@ -10,6 +10,7 @@ window.SAFEHUB_AI = {
   disponibile:  false,  // true solo se LanguageModel è pronto
   stato:        'verifica', // 'verifica' | 'pronto' | 'download' | 'non-supportato'
   progresso:    0,      // percentuale download (0-100)
+  scaricatiMB:  0,      // MB scaricati effettivamente
   sessione:     null,   // sessione LanguageModel attiva
   _onReadyCbs:  []
 };
@@ -48,13 +49,16 @@ async function inizializzaAI() {
         await LanguageModel.create({
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
+              // Calcolo MB (sempre utile come prova di attività)
+              ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
+              
               if (e.total > 0) {
                 const p = Math.round((e.loaded / e.total) * 100);
                 if (p > ai.progresso) {
                   ai.progresso = p;
-                  _aggiornaIndicatoreAI();
                 }
               }
+              _aggiornaIndicatoreAI();
             });
           }
         });
@@ -134,7 +138,9 @@ function _aggiornaIndicatoreAI() {
     'download':       { 
       testo: window.SAFEHUB_AI.progresso > 0 
         ? `⏳ AI Download ${window.SAFEHUB_AI.progresso}%` 
-        : '⏳ AI Avvio Download…',  
+        : (window.SAFEHUB_AI.scaricatiMB > 0 
+            ? `⏳ AI Download ${window.SAFEHUB_AI.scaricatiMB} MB…` 
+            : '⏳ AI Avvio Download…'),  
       cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' 
     },
     'verifica':       { testo: '🔍 AI Verifica…',  cls: 'bg-slate-100 text-slate-500 border-slate-300' },
