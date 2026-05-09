@@ -60,40 +60,45 @@ async function inizializzaAI(options = {}) {
       _aggiornaIndicatoreAI();
       
       console.info('[SafeHub AI] Avvio download assistito...');
-      // Tentativo di creazione (con monitor) per innescare il download
+
+      // Creiamo la sessione (che innesca il download) e agganciamo il monitor
+      // Usiamo una promessa per gestire il completamento del download
       try {
-        await LanguageModel.create({
+        ai.sessione = await LanguageModel.create({
           ...aiOptions,
+          systemPrompt: `Sei un assistente esperto ANAS. RISPONDI RIGOROSAMENTE IN ITALIANO.`,
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
               if (e.total > 0) {
                 ai.progresso = Math.round((e.loaded / e.total) * 100);
               }
+              console.debug(`[SafeHub AI] Progress: ${ai.scaricatiMB}MB (${ai.progresso}%)`);
               _aggiornaIndicatoreAI();
             });
           }
         });
-      } catch (e) {
-        // Se fallisce qui, probabilmente è ancora in download. 
-        // Monitoriamo con il polling.
+      } catch (err) {
+        console.warn('[SafeHub AI] Download in corso, attesa polling...');
         await _aspettaDownload();
       }
     }
 
-    // Creazione sessione finale
-    ai.sessione = await LanguageModel.create({
-      ...aiOptions,
-      systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
+    // Se la sessione non è stata creata sopra (es. eravamo già available), la creiamo ora
+    if (!ai.sessione) {
+      ai.sessione = await LanguageModel.create({
+        ...aiOptions,
+        systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
 Conosci perfettamente:
 - D.Lgs 81/2008 (Testo Unico Sicurezza)
 - D.I. 22/01/2019 (Segnaletica cantieri stradali)
 - Procedure ANAS per Non Conformità: 24h (Gravissima), 7gg (Grave), 15gg (Media), 30gg (Lieve).
 - Ruolo del CSE (Coordinatore Sicurezza in Esecuzione)
 RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
-      temperature: 0.4,
-      topK: 32
-    });
+        temperature: 0.4,
+        topK: 32
+      });
+    }
 
     ai.disponibile = true;
     ai.stato       = 'pronto';
