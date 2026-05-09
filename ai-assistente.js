@@ -19,10 +19,10 @@ window.SAFEHUB_AI = {
 // ─────────────────────────────────────────────
 // 2. Inizializzazione — rileva e scarica il modello
 // ─────────────────────────────────────────────
-async function inizializzaAI() {
+async function inizializzaAI(options = {}) {
+  const { forzaDownload = false } = options;
   const ai = window.SAFEHUB_AI;
 
-  // LanguageModel è l'API Chrome 138+ (non window.ai che è deprecato)
   if (typeof LanguageModel === 'undefined') {
     ai.stato = 'non-supportato';
     _aggiornaIndicatoreAI();
@@ -38,57 +38,53 @@ async function inizializzaAI() {
       return;
     }
 
+    // Se il modello va scaricato e non abbiamo un gesto utente (forzaDownload è false), 
+    // ci fermiamo e chiediamo il click.
+    if ((status === 'downloading' || status === 'downloadable') && !forzaDownload) {
+      console.info('[SafeHub AI] Modello da scaricare. In attesa di interazione utente per avviare.');
+      ai.stato = 'download';
+      ai.attesaGesto = true;
+      _aggiornaIndicatoreAI();
+      return;
+    }
+
+    // Se siamo qui, o il modello è pronto ('available') o abbiamo il permesso di scaricare (forzaDownload)
     if (status === 'downloading' || status === 'downloadable') {
       ai.stato = 'download';
-      ai.progresso = 0;
+      ai.attesaGesto = false;
       _aggiornaIndicatoreAI();
       
-      console.info('[SafeHub AI] Modello mancante o in scaricamento. Avvio sessione per forzare download...');
-
-      // Il download effettivo in Chrome parte spesso solo quando si tenta di creare una sessione
+      console.info('[SafeHub AI] Avvio download assistito...');
+      // Tentativo di creazione (con monitor) per innescare il download
       try {
         await LanguageModel.create({
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
-              // Calcolo MB (sempre utile come prova di attività)
               ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
-              
               if (e.total > 0) {
-                const p = Math.round((e.loaded / e.total) * 100);
-                if (p > ai.progresso) {
-                  ai.progresso = p;
-                }
+                ai.progresso = Math.round((e.loaded / e.total) * 100);
               }
               _aggiornaIndicatoreAI();
             });
           }
         });
-      } catch (err) {
-        console.warn('[SafeHub AI] Creazione fallita durante download:', err.message);
-        // Spesso fallisce con "model not available" se è ancora in download, è normale
-        // Continuiamo col polling per monitorare lo stato generale
+      } catch (e) {
+        // Se fallisce qui, probabilmente è ancora in download. 
+        // Monitoriamo con il polling.
         await _aspettaDownload();
       }
     }
 
-    // Crea sessione con system prompt specifico per CSE ANAS
+    // Creazione sessione finale
     ai.sessione = await LanguageModel.create({
-      expectedInputLanguages: ['it'], // Ottimizzazione lingua (risolve warning console)
+      expectedInputLanguages: ['it'],
       systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
 Conosci perfettamente:
 - D.Lgs 81/2008 (Testo Unico Sicurezza)
 - D.I. 22/01/2019 (Segnaletica cantieri stradali)
-- Procedure ANAS per Non Conformità:
-  * Gravissima = 24h (Sospensione lavori)
-  * Grave = 7 giorni
-  * Media = 15 giorni
-  * Lieve = 30 giorni
+- Procedure ANAS per Non Conformità: 24h (Gravissima), 7gg (Grave), 15gg (Media), 30gg (Lieve).
 - Ruolo del CSE (Coordinatore Sicurezza in Esecuzione)
-
-Rispondi sempre in italiano, in modo conciso e tecnico.
-Usa termini normativi corretti (DPI, preposto, PSC, POS, DVR).
-Non inventare riferimenti normativi non esistenti.
-Quando descrivi una NC o una prescrizione, cita sempre il livello di urgenza e la scadenza corretta basata sui protocolli sopra citati.`,
+Rispondi in italiano, in modo tecnico e conciso.`,
       temperature: 0.4,
       topK: 32
     });
@@ -98,20 +94,17 @@ Quando descrivi una NC o una prescrizione, cita sempre il livello di urgenza e l
     ai.attesaGesto = false;
     _aggiornaIndicatoreAI();
 
-    // Notifica tutti i callback in attesa
     ai._onReadyCbs.forEach(cb => cb());
     ai._onReadyCbs = [];
-
     console.info('[SafeHub AI] Gemini Nano pronto.');
 
   } catch (err) {
     if (err.message.includes('user gesture')) {
-      console.warn('[SafeHub AI] Richiesto intervento utente per avviare download.');
       ai.attesaGesto = true;
-      ai.stato       = 'download';
+      ai.stato = 'download';
       _aggiornaIndicatoreAI();
     } else {
-      console.warn('[SafeHub AI] Impossibile inizializzare:', err.message);
+      console.error('[SafeHub AI] Errore critico:', err.message);
       ai.stato = 'non-supportato';
       _aggiornaIndicatoreAI();
     }
@@ -384,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('click', () => {
   if (window.SAFEHUB_AI.attesaGesto) {
     window.SAFEHUB_AI.attesaGesto = false;
-    inizializzaAI().catch(() => {});
+    inizializzaAI({ forzaDownload: true }).catch(() => {});
   }
 }, { capture: true });
 
