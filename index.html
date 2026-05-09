@@ -65,6 +65,7 @@
   <script defer src="./export.js?v=2.2.13"></script>
   <script defer src="./settings-sync.js?v=2.2.13"></script>
   <script defer src="./emergenza.js?v=2.2.13"></script>
+  <script defer src="./ai-assistente.js"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
@@ -192,6 +193,13 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
+          <!-- Stato AI -->
+          <span id="ai-status-badge"
+                class="text-[10px] px-2 py-1 rounded-full border font-bold uppercase tracking-tight
+                       bg-slate-100 text-slate-400 border-slate-200"
+                aria-label="Stato AI locale">
+            — AI N/D
+          </span>
           <!-- Pulsante OneDrive -->
           <button id="btn-onedrive-status" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
                        bg-slate-700 text-slate-200 hover:bg-slate-600 px-3 py-1.5 rounded-lg

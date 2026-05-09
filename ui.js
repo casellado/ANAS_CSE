@@ -1468,19 +1468,18 @@ function mostraManualeUso() {
   modal.setAttribute('aria-modal', 'true');
 
   modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col h-[85vh]">
-      <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 flex flex-col max-h-[90vh]">
+      <div class="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
         <div>
-          <h2 class="font-bold text-base">📖 Manuale d'Uso: ANAS SafeHub</h2>
-          <div class="text-xs opacity-90">Guida completa offline ed integrazione AI</div>
+          <h2 class="font-bold text-lg">📚 Manuale d'Uso — ANAS SafeHub</h2>
+          <div class="text-xs opacity-80">Guida completa alla piattaforma CSE</div>
         </div>
         <button onclick="document.getElementById('modal-manuale-uso').remove()"
-                class="text-slate-400 hover:text-white text-2xl leading-none"
-                aria-label="Chiudi">✕</button>
+                class="text-blue-100 hover:text-white text-2xl leading-none">✕</button>
       </div>
 
       <div class="p-6 space-y-6 overflow-y-auto flex-1 text-slate-800 text-sm leading-relaxed" style="font-family:sans-serif;">
-        <p>Benvenuto nel Manuale d'Uso ufficiale di <strong>ANAS SafeHub</strong>, la piattaforma professionale dedicata ai Coordinatori della Sicurezza in Fase di Esecuzione (CSE) per i cantieri di ANAS SpA.</p>
+        <p>Benvenuto nel <strong>Manuale d'Uso ufficiale di ANAS SafeHub</strong>, la piattaforma professionale dedicata ai Coordinatori della Sicurezza in Fase di Esecuzione (CSE) per i cantieri di ANAS SpA.</p>
         <p>L'applicazione è progettata con un'architettura <strong>offline-first</strong>, garantendo la piena operatività anche in assenza di connessione Internet (utilizzando il database locale del browser IndexedDB) ed è predisposta per l'uso come <strong>Progressive Web App (PWA)</strong> sia su dispositivi mobili che su desktop.</p>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">1. Introduzione e Installazione (PWA)</h3>
@@ -1500,10 +1499,10 @@ function mostraManualeUso() {
         </ul>
         <p><strong>📊 Dashboard di Cantiere:</strong><br>Una volta selezionato un cantiere, la Dashboard fornisce un riepilogo delle attività in corso:</p>
         <ul class="list-disc ml-5 space-y-1">
-          <li>Statistiche generali sulle imprese e sui lavoratori attivi.</li>
-          <li>Numero di Non Conformità aperte e in scadenza.</li>
-          <li>Visualizzazione dei verbali già emessi.</li>
-          <li>Collegamenti rapidi per creare nuovi elementi.</li>
+          <li>Statistiche generali sulle imprese e sui lavoratori attivi</li>
+          <li>Numero di Non Conformità aperte e in scadenza</li>
+          <li>Visualizzazione dei verbali già emessi</li>
+          <li>Collegamenti rapidi per creare nuovi elementi</li>
         </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">3. Anagrafiche (Imprese e Lavoratori)</h3>
@@ -1525,13 +1524,15 @@ function mostraManualeUso() {
         <ul class="list-disc ml-5 space-y-1">
           <li><strong>Compilazione:</strong> Clicca su <code>Nuovo Verbale</code>. Inserisci data, chilometrica, oggetto del sopralluogo, condizioni meteo, imprese e referenti presenti.</li>
           <li><strong>Prescrizioni del CSE:</strong> Descrivi accuratamente lo stato dei luoghi e le prescrizioni imposte.</li>
+          <li><strong>Numerazione progressiva:</strong> Il sistema assegna automaticamente un numero progressivo nel formato <code>YYYYMMDD/VS01</code>, univoco per cantiere e data.</li>
           <li><strong>Firma e Anteprima:</strong> È possibile apporre la firma digitale e cliccare su <code>🖨️ Anteprima</code> per visualizzare il layout di stampa PDF o <code>📄 Word</code> per scaricare il documento Word conforme.</li>
         </ul>
         <p><strong>4.2 📋 Riunione di Coordinamento:</strong></p>
         <ul class="list-disc ml-5 space-y-1">
           <li><strong>Compilazione:</strong> Clicca su <code>Riunione Coord.</code>. Scegli il tipo di riunione (es. Preliminare, In corso d'opera, Ingresso nuove imprese, Coordinamento RLS).</li>
           <li><strong>Argomenti trattati:</strong> Inserisci gli argomenti di discussione e le decisioni operative assunte.</li>
-          <li><strong>Firma multipla:</strong> Gestisce le firmas dei vari presenti (ANAS, Imprese).</li>
+          <li><strong>Esito e motivazione:</strong> Per ogni esito è obbligatorio compilare il campo "Motivazione del CSE" per documentare l'attività di vigilanza ex art. 92 D.Lgs 81/08.</li>
+          <li><strong>Firma multipla:</strong> Gestisce le firme dei vari presenti (ANAS, Imprese, RL, DL, ecc.) ognuno con identificativo nominativo.</li>
         </ul>
         <p><strong>4.3 ✅ Verifica POS (Mod. RE. 01-5):</strong></p>
         <ul class="list-disc ml-5 space-y-1">
@@ -1543,8 +1544,15 @@ function mostraManualeUso() {
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">5. Modulo Sicurezza (NC e ODS)</h3>
         <p><strong>⚠️ Non Conformità (NC) e Ordini di Servizio (ODS Inviati):</strong></p>
         <ul class="list-disc ml-5 space-y-1">
-          <li><strong>Apertura NC:</strong> Registra le criticità riscontrate in cantiere. Scegli la gravità (<strong>Lieve</strong> - 7gg, <strong>Grave</strong> - 72h, <strong>Gravissima</strong> - 24h).</li>
-          <li><strong>Emissione ODS:</strong> Associa alla NC una specifica disposizione d'ordine (ODS) all'impresa responsabile.</li>
+          <li><strong>Apertura NC:</strong> Registra le criticità riscontrate in cantiere. Scegli la gravità per assegnare automaticamente la scadenza:
+            <ul class="list-disc ml-5 mt-1">
+              <li><strong>Gravissima — 24 ore</strong> (sospensione lavori art. 92 c.1 lett. f)</li>
+              <li><strong>Grave — 7 giorni</strong></li>
+              <li><strong>Media — 15 giorni</strong></li>
+              <li><strong>Lieve — 30 giorni</strong></li>
+            </ul>
+          </li>
+          <li><strong>Emissione ODS:</strong> Associa alla NC una specifica disposizione d'ordine (ODS) all'impresa responsabile. Numerazione automatica nel formato <code>YYYYMMDD/ODS01</code>.</li>
           <li><strong>Evidenze Fotografiche:</strong> È possibile scattare foto in tempo reale dal cantiere e allegarle alla NC.</li>
         </ul>
         <p><strong>📥 ODS Ricevuti:</strong></p>
@@ -1555,49 +1563,52 @@ function mostraManualeUso() {
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">6. Modulo Documenti</h3>
         <p><strong>📋 Documenti Fondamentali:</strong><br>Consente al CSE di raccogliere i documenti cardine del cantiere:</p>
         <ul class="list-disc ml-5 space-y-1">
-          <li>PSC (Piano di Sicurezza e Coordinamento)</li>
-          <li>Fascicolo dell'opera</li>
-          <li>Nomina del CSE</li>
+          <li>PSC, Fascicolo dell'opera, Nomina del CSE, POS, DURC, Notifica Preliminare, CCIAA, ITP, DUVRI.</li>
         </ul>
         <p><strong>📚 Normative & Documenti:</strong><br>Sezione dedicata alla consultazione rapida delle norme vigenti (es. D.Lgs 81/08, D.I. 22/01/2019) e all'archiviazione di documenti extra e allegati.</p>
 
-        <h3 class="text-base font-bold text-blue-800 border-b pb-1">7. Impostazioni, Firme e OneDrive</h3>
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">7. Impostazioni e Firme</h3>
         <p><strong>⚙️ Setup Personale:</strong><br>All'interno della sezione Impostazioni:</p>
         <ul class="list-disc ml-5 space-y-1">
-          <li><strong>Configurazione Loghi:</strong> È possibile caricare i loghi aziendali e del committente (es. ANAS SpA) che verranno inclusi nell'intestazione di tutti i verbali generati.</li>
-          <li><strong>Firma Predefinita:</strong> Disegna o carica la tua firma di CSE. Questa firma verrà precompilata nei nuovi verbali per accelerare il lavoro.</li>
-          <li><strong>Normative di Riferimento:</strong> Specifica le normative standard da riportare nel footer dei documenti generati.</li>
-        </ul>
-        <p><strong>🔗 Integrazione OneDrive e Collaborazione Team:</strong></p>
-        <ul class="list-disc ml-5 space-y-1">
-          <li><strong>Sincronizzazione:</strong> Collega il tuo account Microsoft OneDrive per salvare una copia sicura dei database di cantiere nel cloud.</li>
-          <li><strong>Lavorare in Team:</strong> Per condividere i dati con i colleghi:
-            <ol class="list-decimal ml-5 mt-1 space-y-1">
-              <li><strong>Esporta:</strong> Clicca su <code>Esporta Database (JSON)</code> nelle Impostazioni.</li>
-              <li><strong>Condividi:</strong> Carica il file su una cartella OneDrive condivisa con i colleghi.</li>
-              <li><strong>Importa:</strong> Il collega scarica il file e lo carica tramite <code>Importa Database (JSON)</code>.</li>
-            </ol>
-          </li>
+          <li><strong>Configurazione Loghi:</strong> Carica i loghi aziendali e del committente (es. ANAS SpA) per l'intestazione automatica.</li>
+          <li><strong>Firma Predefinita:</strong> Disegna o carica la tua firma di CSE per precompilare i nuovi verbali.</li>
+          <li><strong>Nome del Tecnico:</strong> Il nome inserito apparirà negli audit log e nei verbali generati.</li>
+          <li><strong>Normative di Riferimento:</strong> Specifica le norme standard da riportare nel footer dei documenti.</li>
         </ul>
 
-        <h3 class="text-base font-bold text-blue-800 border-b pb-1">8. Assistente AI (Gemini Nano)</h3>
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">8. Archivio Condiviso OneDrive (Livello 2)</h3>
+        <p>ANAS SafeHub supporta la modalità <strong>Archivio Condiviso OneDrive</strong>, che permette a più tecnici di lavorare sui medesimi cantieri vedendo gli stessi dati in modo collaborativo.</p>
+        <p><strong>🔗 Configurazione:</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li>Assicurati che il client OneDrive di Windows sia attivo con account ANAS loggato.</li>
+          <li>In SafeHub, clicca il bottone <code>☁️ Configura</code> nella topbar e seleziona una cartella condivisa OneDrive (es. <code>OneDrive\\CSE\\</code>).</li>
+          <li>I dati verranno salvati direttamente nella cartella e sincronizzati automaticamente (delay tipico 30-60s).</li>
+        </ul>
+        <p><strong>📋 Compatibilità:</strong></p>
+        <ul class="list-disc ml-5 space-y-1">
+          <li>✅ <strong>PC Windows con Chrome/Edge desktop:</strong> Pieno supporto Livello 2.</li>
+          <li>⚠️ <strong>Tablet/Telefono:</strong> Usa solo IndexedDB locale. Per consultare i file condivisi, usa l'app OneDrive di Microsoft sul dispositivo.</li>
+          <li>💾 <strong>Esportazione manuale:</strong> Sempre possibile tramite <code>Esporta Database (JSON)</code> nelle Impostazioni.</li>
+        </ul>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">9. Assistente AI (Gemini Nano)</h3>
         <p>L'applicazione integra l'assistente AI <strong>Gemini Nano</strong> basato sull'API nativa del browser (Chrome LanguageModel API 138+). Tutte le elaborazioni AI avvengono localmente sul dispositivo dell'utente per garantire velocità, sicurezza e privacy assoluta.</p>
         <p><strong>🤖 Stato dell'AI e Indicatore:</strong><br>In alto nella topbar, un badge di stato indica lo stato dell'assistente locale:</p>
         <ul class="list-disc ml-5 space-y-1">
           <li><code>🤖 AI Pronta</code>: Il modello locale è stato caricato e pronto all'uso.</li>
           <li><code>⏳ AI Download…</code>: Il modello locale è in fase di download.</li>
-          <li><code>🔍 AI Verifica…</code>: Il browser sta verificando la disponibilità del modello.</li>
           <li><code>— AI N/D</code>: Il modello locale non è supportato da questo browser.</li>
         </ul>
-        <p><strong>📝 Casi d'uso dell'Assistente AI:</strong><br>Nei vari moduli (Verbali, NC) sono presenti i pulsanti <code>🤖 Suggerisci con AI</code> per compilare automaticamente i testi basandosi sul contesto normativo e di cantiere:</p>
-        <ul class="list-disc ml-5 space-y-1">
-          <li><strong>1. Suggerisci Stato dei Luoghi:</strong> Genera la descrizione formale dello "Stato dei luoghi e lavorazioni in corso" per i verbali di sopralluogo.</li>
-          <li><strong>2. Suggerisci Prescrizioni CSE:</strong> Aiuta il CSE a redigere prescrizioni formali basandosi sul problema riscontrato e citando la normativa pertinente (es. D.Lgs 81/08).</li>
-          <li><strong>3. Suggerisci Descrizione Non Conformità:</strong> Compila una descrizione tecnica e prescrittiva per una nuova NC basandosi sulla gravità.</li>
-          <li><strong>4. Riassunto Verbale:</strong> Analizza e riassume in punti chiave i testi di un verbale esistente.</li>
-        </ul>
-        <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 italic">
-          Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, la cui visione ha permesso la sperimentazione e l'adozione di questo strumento.
+        <p><strong>📝 Casi d'uso dell'Assistente AI:</strong><br>Nei vari moduli (Verbali, NC) sono presenti i pulsanti <code>🤖 Suggerisci con AI</code> per compilare automaticamente i testi basandosi sul contesto normativo e di cantiere.</p>
+
+        <h3 class="text-base font-bold text-blue-800 border-b pb-1">10. Riconoscimenti</h3>
+        <p>Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, il cui contributo ha permesso la sperimentazione sul campo dello strumento.</p>
+
+        <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <strong>Geom. Dogano Casella</strong><br>
+          Ispettore di cantiere — assistente al Coordinatore della Sicurezza in Esecuzione<br>
+          ANAS S.p.A. — Struttura Territoriale Calabria<br><br>
+          <em>ANAS SafeHub · by Geom. Dogano Casella · ANAS S.p.A.</em>
         </div>
       </div>
 
@@ -1610,5 +1621,8 @@ function mostraManualeUso() {
     </div>
   `;
 
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
   document.body.appendChild(modal);
+  if (typeof trapFocus === 'function') trapFocus(modal);
 }

@@ -96,6 +96,7 @@
   <script defer src="./migrazione-onedrive.js?v=2.2.13"></script>
   <!-- ── Numeri Emergenza ── -->
   <script defer src="./emergenza.js?v=2.2.13"></script>
+  <script defer src="./ai-assistente.js"></script>
   <style>
     /* ── MOBILE SIDEBAR OVERLAY ── */
     #sidebar-overlay {
@@ -343,6 +344,13 @@
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0">
+        <!-- Stato AI -->
+        <span id="ai-status-badge"
+              class="text-[10px] px-2 py-1 rounded-full border font-bold uppercase tracking-tight
+                     bg-slate-100 text-slate-400 border-slate-200"
+              aria-label="Stato AI locale">
+          — AI N/D
+        </span>
         <!-- Pulsante OneDrive — visibile sempre, disabled su browser non supportati -->
         <button id="btn-onedrive-status" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
                      bg-slate-700 text-slate-200 hover:bg-slate-600 px-3 py-1.5 rounded-lg
@@ -815,6 +823,14 @@
             <textarea id="verbale-stato-luoghi" name="verbale-stato-luoghi" rows="3" placeholder="Es. Fresatura del manto bituminoso in carreggiata nord tra KM 42+350 e KM 42+800.
 Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2019." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+            <button type="button"
+                    class="ai-btn hidden items-center gap-1 text-[10px] bg-violet-600 text-white mt-1.5
+                           px-3 py-1 rounded-lg hover:bg-violet-700 font-bold uppercase tracking-wide
+                           focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    onclick="attivaAI('verbale-stato-luoghi', 'stato-luoghi', {lavorazione: document.getElementById('verbale-oggetto').value, km: document.getElementById('verbale-km').value, meteo: document.getElementById('verbale-meteo').value})"
+                    aria-label="Genera stato dei luoghi con AI">
+              🤖 Suggerisci con AI
+            </button>
           </div>
 
           <!-- Note CSE -->
@@ -826,6 +842,14 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
               placeholder="Es. Si prescrive integrazione segnaletica verticale entro 48h. Si richiama impresa all'obbligo DPI."
               class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+            <button type="button"
+                    class="ai-btn hidden items-center gap-1 text-[10px] bg-violet-600 text-white mt-1.5
+                           px-3 py-1 rounded-lg hover:bg-violet-700 font-bold uppercase tracking-wide
+                           focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    onclick="attivaAI('verbale-note', 'prescrizioni', {problema: document.getElementById('verbale-stato-luoghi').value})"
+                    aria-label="Genera prescrizioni CSE con AI">
+              🤖 Suggerisci Prescrizioni AI
+            </button>
           </div>
 
           <!-- MOD-10.10 Allegato Mezzi -->
@@ -848,13 +872,18 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             <div class="flex flex-wrap gap-2" role="group" aria-label="Livello Non Conformità">
               <button type="button" id="btn-nc-lieve" onclick="selezionaNC('lieve')" class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-blue-300 text-blue-700
                            hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400
-                           transition font-semibold" aria-label="Seleziona NC lieve (7 giorni)">
-                🔵 Lieve (7 gg)
+                           transition font-semibold" aria-label="Seleziona NC lieve (30 giorni)">
+                🔵 Lieve (30 gg)
+              </button>
+              <button type="button" id="btn-nc-media" onclick="selezionaNC('media')" class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-yellow-300 text-yellow-700
+                           hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-400
+                           transition font-semibold" aria-label="Seleziona NC media (15 giorni)">
+                🟡 Media (15 gg)
               </button>
               <button type="button" id="btn-nc-grave" onclick="selezionaNC('grave')" class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-orange-300 text-orange-700
                            hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-400
-                           transition font-semibold" aria-label="Seleziona NC grave (72 ore)">
-                🟠 Grave (72 h)
+                           transition font-semibold" aria-label="Seleziona NC grave (7 giorni)">
+                🟠 Grave (7 gg)
               </button>
               <button type="button" id="btn-nc-gravissima" onclick="selezionaNC('gravissima')" class="nc-btn px-3 py-1.5 rounded-lg text-sm border border-red-400 text-red-700
                            hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400
@@ -882,6 +911,14 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
                 placeholder="Descrivi la non conformità riscontrata. Il testo verrà precompilato automaticamente in base al livello selezionato."
                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                              focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+              <button type="button"
+                      class="ai-btn hidden items-center gap-1 text-[10px] bg-violet-600 text-white mt-1.5
+                             px-3 py-1 rounded-lg hover:bg-violet-700 font-bold uppercase tracking-wide
+                             focus:outline-none focus:ring-2 focus:ring-violet-400"
+                      onclick="attivaAI('descrizione-nc', 'nc', {livello: document.getElementById('livello-nc').value})"
+                      aria-label="Genera descrizione NC con AI">
+                🤖 Suggerisci Descrizione AI
+              </button>
             </div>
           </fieldset>
 
@@ -1455,6 +1492,14 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
               placeholder="Descrizione dettagliata della non conformità riscontrata, con riferimento normativo (D.Lgs 81/08, art. …)"
               class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                            focus:ring-2 focus:ring-blue-400 focus:outline-none resize-y"></textarea>
+            <button type="button"
+                    class="ai-btn hidden items-center gap-1 text-[10px] bg-violet-600 text-white mt-1.5
+                           px-3 py-1 rounded-lg hover:bg-violet-700 font-bold uppercase tracking-wide
+                           focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    onclick="attivaAI('nc-descrizione', 'nc', {livello: document.getElementById('nc-livello').value})"
+                    aria-label="Genera descrizione NC con AI">
+              🤖 Suggerisci Descrizione AI
+            </button>
           </div>
 
           <div class="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
@@ -1473,9 +1518,9 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
               </label>
               <select id="nc-livello" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
                            focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                <option value="lieve">🔵 Lieve (7 giorni)</option>
-                <option value="media">🟡 Media (7 giorni)</option>
-                <option value="grave">🟠 Grave (72 ore)</option>
+                <option value="lieve">🔵 Lieve (30 giorni)</option>
+                <option value="media">🟡 Media (15 giorni)</option>
+                <option value="grave">🟠 Grave (7 giorni)</option>
                 <option value="gravissima">🔴 Gravissima (24 ore)</option>
               </select>
             </div>

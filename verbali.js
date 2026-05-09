@@ -160,8 +160,9 @@ if (typeof calcolaScadenzaNC === 'undefined') {
     const apertura = new Date(dataApertura || new Date());
     switch (livello) {
       case 'gravissima': apertura.setHours(apertura.getHours() + 24); break;
-      case 'grave':      apertura.setDate(apertura.getDate() + 3);    break;
-      default:           apertura.setDate(apertura.getDate() + 7);    break;
+      case 'grave':      apertura.setDate(apertura.getDate() + 7);    break;
+      case 'media':      apertura.setDate(apertura.getDate() + 15);   break;
+      default:           apertura.setDate(apertura.getDate() + 30);   break; // lieve
     }
     return apertura.toISOString();
   };
@@ -187,6 +188,7 @@ function selezionaNC(livello) {
 
   const colori = {
     lieve:     ['bg-blue-200',   'text-blue-800'],
+    media:     ['bg-yellow-200', 'text-yellow-800'],
     grave:     ['bg-orange-200', 'text-orange-800'],
     gravissima:['bg-red-200',    'text-red-800']
   };
@@ -201,9 +203,10 @@ function selezionaNC(livello) {
   if (!textArea) return;
 
   const templates = {
-    lieve:      'Non conformità lieve riscontrata. Si richiede adeguamento entro 7 giorni.',
-    grave:      'Non conformità grave riscontrata. Adeguamento obbligatorio entro 72 ore.',
-    gravissima: 'Pericolo grave e imminente. Si richiede sospensione immediata delle lavorazioni e messa in sicurezza entro 24 ore.'
+    lieve:      'Non conformità lieve riscontrata. Si richiede adeguamento entro 30 giorni.',
+    media:      'Non conformità media riscontrata. Si richiede adeguamento entro 15 giorni.',
+    grave:      'Non conformità grave riscontrata. Adeguamento obbligatorio entro 7 giorni.',
+    gravissima: 'Pericolo grave e imminente. Si richiede sospensione immediata delle lavorazioni e messa in sicurezza entro 24 ore (art. 92 c.1 lett. f D.Lgs 81/08).'
   };
   textArea.value = templates[livello] || '';
 }
