@@ -1596,6 +1596,9 @@ function mostraManualeUso() {
           <li><strong>3. Suggerisci Descrizione Non Conformità:</strong> Compila una descrizione tecnica e prescrittiva per una nuova NC basandosi sulla gravità.</li>
           <li><strong>4. Riassunto Verbale:</strong> Analizza e riassume in punti chiave i testi di un verbale esistente.</li>
         </ul>
+        <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 italic">
+          Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, la cui visione ha permesso la sperimentazione di questo strumento sui cantieri del 3° Mega Lotto Jonica.
+        </div>
       </div>
 
       <div class="bg-slate-50 px-6 py-3 flex justify-end gap-2 border-t border-slate-200 shrink-0">

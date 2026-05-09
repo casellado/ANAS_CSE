@@ -126,4 +126,8 @@ Nei vari moduli (Verbali, NC) sono presenti i pulsanti `🤖 Suggerisci con AI` 
 4. **Riassunto Verbale**: Analizza e riassume in punti chiave i testi di un verbale esistente.
 
 ---
+### 🤝 Ringraziamenti
+Si ringrazia per il supporto e la fase di collaudo il **Geom. Antonio Perrone**, la cui visione ha permesso la sperimentazione di questo strumento sui cantieri del 3° Mega Lotto Jonica.
+
+---
 *Manuale ufficiale aggiornato — SafeHub 2026*
