@@ -346,9 +346,10 @@
       <div class="flex items-center gap-2 shrink-0">
         <!-- Stato AI -->
         <span id="ai-status-badge"
+              onclick="mostraGuidaAttivazioneAI()"
               class="text-[10px] px-2 py-1 rounded-full border font-bold uppercase tracking-tight
-                     bg-slate-100 text-slate-400 border-slate-200"
-              aria-label="Stato AI locale">
+                     bg-slate-100 text-slate-400 border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors"
+              aria-label="Stato AI locale (clicca per guida)">
           — AI N/D
         </span>
         <!-- Pulsante OneDrive — visibile sempre, disabled su browser non supportati -->

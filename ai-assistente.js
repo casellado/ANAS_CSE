@@ -330,3 +330,71 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('beforeunload', distruggiSessioneAI);
+
+// ─────────────────────────────────────────────
+// 14. Guida all'Attivazione AI locale
+// ─────────────────────────────────────────────
+function mostraGuidaAttivazioneAI() {
+  const existing = document.getElementById('modal-guida-ai');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-guida-ai';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="bg-violet-700 text-white px-6 py-4 flex justify-between items-center">
+        <h2 class="font-bold text-lg">🤖 Attivazione AI Locale</h2>
+        <button onclick="document.getElementById('modal-guida-ai').remove()" class="text-violet-100 hover:text-white text-2xl leading-none">✕</button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-sm text-slate-600 leading-relaxed">
+          SafeHub integra <strong>Gemini Nano</strong>, l'intelligenza artificiale locale di Google. Per motivi di sicurezza e privacy, l'AI deve essere abilitata manualmente nel tuo browser Chrome (v138+).
+        </p>
+
+        <div class="space-y-3">
+          <div class="flex gap-3">
+            <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">1</div>
+            <div class="text-xs">Apri una nuova scheda e incolla: <br><code>chrome://flags/#prompt-api-for-gemini-nano</code> <br>Imposta su <strong>Enabled</strong>.</div>
+          </div>
+          <div class="flex gap-3">
+            <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">2</div>
+            <div class="text-xs">Incolla anche: <br><code>chrome://flags/#optimization-guide-on-device-model</code> <br>Imposta su <strong>Enabled BypassPerfRequirement</strong>.</div>
+          </div>
+          <div class="flex gap-3">
+            <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">3</div>
+            <div class="text-xs">Riavvia Chrome. L'app inizierà a scaricare il modello locale (circa 1.5GB) e il badge diventerà verde.</div>
+          </div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+          <p class="text-[10px] text-amber-800 leading-tight">
+            <strong>Nota:</strong> Questa procedura è necessaria solo una volta. L'AI locale garantisce che nessun dato sensibile del cantiere venga inviato a server esterni.
+          </p>
+        </div>
+
+        <button onclick="document.getElementById('modal-guida-ai').remove()"
+                class="w-full bg-violet-700 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-violet-800 transition">
+          Ho capito
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  // Escape handler
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+  
+  if (typeof trapFocus === 'function') trapFocus(modal);
+}
