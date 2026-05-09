@@ -28,22 +28,23 @@ async function inizializzaAI(options = {}) {
   if (_isInitializating) return;
   _isInitializating = true;
 
-  if (typeof LanguageModel === 'undefined') {
-    ai.stato = 'non-supportato';
-    _aggiornaIndicatoreAI();
-    return;
-  }
-
-  // Se esiste già una sessione orfana, distruggiamola preventivamente
-  // per liberare il processo di background di Chrome.
-  distruggiSessioneAI();
-
-  const aiOptions = {
-    expectedInputs:  [{ type: 'text', languages: ['en'] }],
-    expectedOutputs: [{ type: 'text', languages: ['en'] }] // Solo [en, es, ja] sono supportati attualmente
-  };
-
   try {
+    // 1. Verifica disponibilità API
+    if (typeof LanguageModel === 'undefined') {
+      ai.stato = 'non-supportato';
+      _aggiornaIndicatoreAI();
+      return;
+    }
+
+    // 2. Cleanup sessione orfana
+    distruggiSessioneAI();
+
+    const aiOptions = {
+      expectedInputs:  [{ type: 'text', languages: ['en'] }],
+      expectedOutputs: [{ type: 'text', languages: ['en'] }] 
+    };
+
+    // 3. Verifica stato modello
     const status = await LanguageModel.availability(aiOptions);
 
     if (status === 'unavailable') {
@@ -52,17 +53,15 @@ async function inizializzaAI(options = {}) {
       return;
     }
 
-    // Se il modello va scaricato e non abbiamo un gesto utente (forzaDownload è false), 
-    // ci fermiamo e chiediamo il click.
+    // 4. Gestione Download
     if ((status === 'downloading' || status === 'downloadable') && !forzaDownload) {
-      console.info('[SafeHub AI] Modello da scaricare. In attesa di interazione utente per avviare.');
+      console.info('[SafeHub AI] Modello da scaricare. In attesa di interazione utente.');
       ai.stato = 'download';
       ai.attesaGesto = true;
       _aggiornaIndicatoreAI();
       return;
     }
 
-    // Se siamo qui, o il modello è pronto ('available') o abbiamo il permesso di scaricare (forzaDownload)
     if (status === 'downloading' || status === 'downloadable') {
       ai.stato = 'download';
       ai.attesaGesto = false;
@@ -70,8 +69,6 @@ async function inizializzaAI(options = {}) {
       
       console.info('[SafeHub AI] Avvio download assistito...');
 
-      // Creiamo la sessione (che innesca il download) e agganciamo il monitor
-      // Usiamo una promessa per gestire il completamento del download
       try {
         ai.sessione = await LanguageModel.create({
           ...aiOptions,
@@ -82,18 +79,17 @@ async function inizializzaAI(options = {}) {
               if (e.total > 0) {
                 ai.progresso = Math.round((e.loaded / e.total) * 100);
               }
-              console.debug(`[SafeHub AI] Progress: ${ai.scaricatiMB}MB (${ai.progresso}%)`);
               _aggiornaIndicatoreAI();
             });
           }
         });
       } catch (err) {
-        console.warn('[SafeHub AI] Download in corso, attesa polling...');
+        console.warn('[SafeHub AI] Download in corso, polling attivo...');
         await _aspettaDownload();
       }
     }
 
-    // Se la sessione non è stata creata sopra (es. eravamo già available), la creiamo ora
+    // 5. Creazione sessione finale
     if (!ai.sessione) {
       ai.sessione = await LanguageModel.create({
         ...aiOptions,
@@ -117,13 +113,13 @@ RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
     console.info('[SafeHub AI] Gemini Nano pronto.');
 
   } catch (err) {
-    console.error('[SafeHub AI] Errore critico inizializzazione:', err.message);
+    console.error('[SafeHub AI] Errore inizializzazione:', err.message);
     if (err.message.includes('user gesture')) {
       ai.attesaGesto = true;
       ai.stato = 'download';
     } else if (err.message.includes('crashed')) {
       ai.stato = 'non-supportato';
-      console.warn('[SafeHub AI] Il processo di background di Chrome è crashato. Riavviare il browser.');
+      console.warn('[SafeHub AI] Il processo di background di Chrome è crashato.');
     } else {
       ai.stato = 'non-supportato';
     }
@@ -158,7 +154,7 @@ function _aggiornaIndicatoreAI() {
   const badge = document.getElementById('ai-status-badge');
   if (!badge) return;
 
-  const ai = window.SAFEHUB_AI;
+  const ai = window.SAFEHUB_AI || { stato: 'non-supportato', disponibile: false, progresso: 0, scaricatiMB: 0 };
 
   const stati = {
     'pronto':         { testo: '🤖 AI Pronta',     cls: 'bg-green-100 text-green-800 border-green-300' },
@@ -175,14 +171,14 @@ function _aggiornaIndicatoreAI() {
     'non-supportato': { testo: '— AI N/D',          cls: 'bg-slate-100 text-slate-400 border-slate-200' }
   };
 
-  const info = stati[window.SAFEHUB_AI.stato] || stati['non-supportato'];
+  const info = stati[ai.stato] || stati['non-supportato'];
   badge.textContent = info.testo;
   badge.className   = `text-xs px-2 py-1 rounded-full border font-semibold ${info.cls}`;
   badge.setAttribute('aria-label', `Stato AI: ${info.testo}`);
 
   // Mostra/nascondi i pulsanti AI in tutta la pagina
   document.querySelectorAll('.ai-btn').forEach(btn => {
-    btn.style.display = window.SAFEHUB_AI.disponibile ? 'inline-flex' : 'none';
+    btn.style.display = ai.disponibile ? 'inline-flex' : 'none';
   });
 }
 
@@ -390,13 +386,18 @@ function distruggiSessioneAI() {
 // Funzione di sblocco manuale chiamata dal modal o dal badge
 window.sbloccaAI = function() {
   const ai = window.SAFEHUB_AI;
-  if (ai.disponibile) return; // Già pronto
+  if (ai.disponibile && ai.sessione) {
+    console.info('[SafeHub AI] AI già attiva e pronta.');
+    return;
+  }
 
-  console.info('[SafeHub AI] Attivazione on-demand...');
+  console.info('[SafeHub AI] Richiesta attivazione on-demand ricevuta.');
   ai.stato = 'verifica';
   _aggiornaIndicatoreAI();
   
-  inizializzaAI({ forzaDownload: true }).catch(() => {});
+  inizializzaAI({ forzaDownload: true }).catch(err => {
+    console.error('[SafeHub AI] Errore durante lo sblocco manuale:', err);
+  });
 };
 
 // 13. Init automatico + cleanup
@@ -433,9 +434,11 @@ async function verificaSupportoAI() {
 }
 
 function mostraGuidaAttivazioneAI() {
-  // Se siamo in attesa di gesto, questo click è il gesto stesso! Sblocchiamo subito.
-  if (window.SAFEHUB_AI.attesaGesto) {
+  // Se l'AI è spenta o in attesa di gesto (es. per avviare il download), 
+  // questo click attiva l'inizializzazione immediata.
+  if (window.SAFEHUB_AI.stato === 'spento' || window.SAFEHUB_AI.attesaGesto) {
     window.sbloccaAI();
+    return; // Procediamo con l'attivazione invece di mostrare la guida statica
   }
 
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|webOS/i.test(navigator.userAgent);

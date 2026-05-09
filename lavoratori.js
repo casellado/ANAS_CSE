@@ -377,31 +377,31 @@ async function apriModalModificaLavoratore(lavId) {
 
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Nome <span class="text-red-500">*</span></label>
+          <label for="mod-lav-nome" class="text-xs font-semibold text-slate-600 block mb-1">Nome <span class="text-red-500">*</span></label>
           <input id="mod-lav-nome" type="text" value="${escapeHtml(l.nome || '')}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />
         </div>
         <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Cognome <span class="text-red-500">*</span></label>
+          <label for="mod-lav-cognome" class="text-xs font-semibold text-slate-600 block mb-1">Cognome <span class="text-red-500">*</span></label>
           <input id="mod-lav-cognome" type="text" value="${escapeHtml(l.cognome || '')}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />
         </div>
         <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Codice Fiscale</label>
+          <label for="mod-lav-cf" class="text-xs font-semibold text-slate-600 block mb-1">Codice Fiscale</label>
           <input id="mod-lav-cf" type="text" value="${escapeHtml(l.cf || '')}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-mono
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />
         </div>
         <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Mansione</label>
+          <label for="mod-lav-mansione" class="text-xs font-semibold text-slate-600 block mb-1">Mansione</label>
           <input id="mod-lav-mansione" type="text" value="${escapeHtml(l.mansione || '')}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />
         </div>
         <div class="col-span-2">
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Idoneità Lavorativa</label>
+          <label for="mod-lav-idoneita" class="text-xs font-semibold text-slate-600 block mb-1">Idoneità Lavorativa</label>
           <select id="mod-lav-idoneita"
                   class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
                          focus:ring-2 focus:ring-blue-400 focus:outline-none">
@@ -411,7 +411,7 @@ async function apriModalModificaLavoratore(lavId) {
           </select>
         </div>
         <div class="col-span-2">
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Scadenza Idoneità Medica</label>
+          <label for="mod-lav-scadenza" class="text-xs font-semibold text-slate-600 block mb-1">Scadenza Idoneità Medica</label>
           <input id="mod-lav-scadenza" type="date" value="${l.scadenzaVisita || ''}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />

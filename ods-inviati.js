@@ -146,9 +146,9 @@ async function _apriModalNuovoODS() {
 
           <!-- Modalità consegna -->
           <div>
-            <label class="text-xs font-semibold text-slate-700 block mb-1">
+            <span class="text-xs font-semibold text-slate-700 block mb-1">
               Modalità di consegna
-            </label>
+            </span>
             <div class="flex flex-wrap gap-3 text-sm">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="ods-consegna" value="pec" checked />
