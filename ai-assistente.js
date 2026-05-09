@@ -19,9 +19,14 @@ window.SAFEHUB_AI = {
 // ─────────────────────────────────────────────
 // 2. Inizializzazione — rileva e scarica il modello
 // ─────────────────────────────────────────────
+let _isInitializating = false;
+
 async function inizializzaAI(options = {}) {
   const { forzaDownload = false } = options;
   const ai = window.SAFEHUB_AI;
+
+  if (_isInitializating) return;
+  _isInitializating = true;
 
   if (typeof LanguageModel === 'undefined') {
     ai.stato = 'non-supportato';
@@ -125,6 +130,8 @@ RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
       ai.stato = 'non-supportato';
     }
     _aggiornaIndicatoreAI();
+  } finally {
+    _isInitializating = false;
   }
 }
 
@@ -395,7 +402,10 @@ window.sbloccaAI = function() {
 // 13. Init automatico + cleanup
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  inizializzaAI().catch(() => {});
+  // Ritardiamo l'init di 1 secondo per evitare crash durante la navigazione rapida
+  setTimeout(() => {
+    inizializzaAI().catch(() => {});
+  }, 1000);
 });
 
 window.addEventListener('beforeunload', distruggiSessioneAI);
