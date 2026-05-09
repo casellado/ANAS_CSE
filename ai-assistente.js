@@ -30,8 +30,8 @@ async function inizializzaAI(options = {}) {
   }
 
   const aiOptions = {
-    expectedInputs:  [{ type: 'text', languages: ['it'] }],
-    expectedOutputs: [{ type: 'text', languages: ['en'] }] // 'en' per silenziatore warning Chrome
+    expectedInputs:  [{ type: 'text', languages: ['en'] }],
+    expectedOutputs: [{ type: 'text', languages: ['en'] }] // Solo [en, es, ja] sono supportati attualmente
   };
 
   try {
