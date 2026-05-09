@@ -58,7 +58,7 @@ async function inizializzaAI(options = {}) {
       // Tentativo di creazione (con monitor) per innescare il download
       try {
         await LanguageModel.create({
-          expectedInputLanguages: ['it'], // Specifica lingua anche qui (risolve warning)
+          expectedInputLanguages: ['en'], // 'en' è richiesto da Chrome per silenziatore il warning (v138+)
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
@@ -78,14 +78,14 @@ async function inizializzaAI(options = {}) {
 
     // Creazione sessione finale
     ai.sessione = await LanguageModel.create({
-      expectedInputLanguages: ['it'],
+      expectedInputLanguages: ['en'], // Usiamo 'en' per compatibilità API (silenziatore warning)
       systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
 Conosci perfettamente:
 - D.Lgs 81/2008 (Testo Unico Sicurezza)
 - D.I. 22/01/2019 (Segnaletica cantieri stradali)
 - Procedure ANAS per Non Conformità: 24h (Gravissima), 7gg (Grave), 15gg (Media), 30gg (Lieve).
 - Ruolo del CSE (Coordinatore Sicurezza in Esecuzione)
-Rispondi in italiano, in modo tecnico e conciso.`,
+RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
       temperature: 0.4,
       topK: 32
     });
