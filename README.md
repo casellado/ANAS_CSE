@@ -1,99 +1,92 @@
-# ANAS SafeHub — Suite CSE v2.0
-> **Collaborazione Multi-Tecnico · Cloud Sync · Livello 2 Storage**
+# ANAS SafeHub
 
-**Pannello operativo professionale per Coordinatori Sicurezza in Esecuzione (CSE) — ANAS SpA**
-Moderno · Offline-first · Sincronizzato con OneDrive (FSAPI) · PWA installabile
+**Suite gestionale per Coordinatori della Sicurezza in Esecuzione (CSE)**
+Progressive Web App per la gestione documentale dei cantieri ANAS.
 
-Autore: **Geom. Dogano Casella** — CSE ANAS Regione Calabria
-Cantieri operativi: S.S. 106 Jonica · A2 Autostrada del Mediterraneo
-
----
-
-## 🚀 Novità v2.0: Collaborazione Real-Time
-La versione 2.0 trasforma la Suite da strumento locale a piattaforma collaborativa per team di coordinamento, senza abbandonare la resilienza offline.
-
-- **Livello 2 Storage**: Sincronizzazione trasparente tra **IndexedDB** (veloce, offline) e **OneDrive** (condiviso, persistente).
-- **Audit Log Automativo**: Ogni modifica registra autore e timestamp (`modifiedBy`, `modifiedAt`).
-- **Attività Recente**: Feed in tempo reale nella dashboard cantiere per monitorare i progressi del team.
-- **Auto-Sync**: Polling intelligente ogni 3 minuti per rilevare aggiornamenti esterni.
-- **Gestione Conflitti**: Rilevamento modifiche simultanee con opzioni di risoluzione manuale.
+> Sviluppato autonomamente da **Geom. Dogano Casella**, ispettore di cantiere
+> ANAS S.p.A., Struttura Territoriale Calabria — S.S. 106 Jonica + A2 Autostrada del Mediterraneo.
 
 ---
 
-## 🏗️ Modulo MOD-10: Mezzi e Attrezzature (Alta Vigilanza)
-Implementazione del monitoraggio mezzi ai sensi dell'art. 92 D.Lgs 81/08.
-- **Tracciabilità**: Registro completo mezzi per impresa con scadenze verbali e CE.
-- **NC Automatiche**: Generazione flussi di Non Conformità per mezzi non in regola.
-- **Allegato A**: Tabella riepilogativa mezzi integrabile nel Verbale di Sopralluogo.
-- **Ispezione Formale**: Nuovo template verbale autonomo (MOD-10.8) per verifiche periodiche.
+## 🎯 Cos'è SafeHub
 
----
+SafeHub è una PWA (Progressive Web App) che aiuta il CSE a gestire l'intero
+ciclo documentale del cantiere ANAS in conformità al D.Lgs 81/08:
 
-## 🔧 Architettura v2.0
+- 📋 Verbali di sopralluogo, riunioni di coordinamento, verifica POS
+- ⚠️ Non Conformità con scadenze automatiche per livello di gravità
+- 📝 Lettere di sospensione lavori (art. 92 c.1 lett. f)
+- 📅 Diario giornaliero CSE (art. 92 c.1 lett. a)
+- 📁 Archivio documenti fondamentali (PSC, POS, DURC, Nomine)
+- 🚜 Tracciamento mezzi e attrezzature (art. 71 + art. 92)
+- ☁️ Archivio condiviso OneDrive multi-utente
+- 📱 Funziona offline, su PC, tablet e telefono
 
-| Layer | Tecnologia | Note |
-|-------|-----------|------|
-| **UI** | Tailwind CDN + Inter Font + animazioni.css | Premium Dark Mode & Glassmorphism |
-| **Data Layer** | `storage.js` (Router) | Gestisce IndexedDB ↔ OneDrive in modo trasparente |
-| **Local DB** | IndexedDB v7 | 10 store, cache runtime ultra-veloce |
-| **Cloud DB** | OneDrive via File System Access API | Cartella di rete condivisa (File JSON strutturati) |
-| **Sync** | Polling (3 min) + Visibility Change | Rilevamento modifiche esterne non bloccante |
-| **PWA** | Service Worker v2.2.1 | Cache aggressiva + offline totale |
+## 🏗️ Architettura
 
----
+- **Vanilla JavaScript** (zero build step, zero dipendenze npm)
+- **IndexedDB** per persistenza locale
+- **Service Worker** per funzionalità offline
+- **OneDrive** per condivisione dati tra colleghi (Livello 2)
+- **GitHub Pages** per distribuzione
 
-## 🗂️ Struttura Files v2.0 (Nuovi Moduli)
+Filosofia: massima semplicità tecnica, manutenibilità da una persona sola,
+zero dipendenze fragili.
 
-```
-/
-├── storage.js                   Router universale CRUD (IndexedDB + OneDrive)
-├── storage-onedrive.js          Integrazione File System Access API (Cloud Sync)
-├── onedrive-ui.js               Modali configurazione, auth e gestione conflitti
-├── migrazione-onedrive.js       Utility per migrare dati locali verso il cloud
-├── sw.js                        Service Worker v2.2.1 (Force-update logic)
-│
-├── verbali-list.js              Aggiornato: Badge 'Modificato da' + Tempo Relativo
-├── dashboard-cantiere.js        Aggiornato: Sezione 'Attività Recente' (Audit)
-├── ui.js                        Aggiornato: Helper formatTempoRelativo globale
-└── ...                          (Moduli v1.5 preesistenti)
-```
+## 🚀 Come usarla
 
----
+L'applicazione è pubblicata su:
+**https://casellado.github.io/ANAS_CSE/**
 
-## 📋 Configurazione OneDrive
-Per abilitare la collaborazione:
-1. Apri la **Suite CSE** (ANAS_CSE_html.html).
-2. Clicca il bottone **☁️ OneDrive** nella topbar.
-3. Seleziona una cartella condivisa su OneDrive (es. `ANAS_PROGETTI/Lotto_CZ399`).
-4. L'app sincronizzerà automaticamente Verbali e NC tra il database locale e i file JSON nella cartella.
+Per i colleghi CSE che vogliono provarla:
+1. Apri il link sopra in Chrome o Edge
+2. Configura le tue impostazioni (firma, nome, intestazione)
+3. Inizia a creare cantieri e gestire la documentazione
 
----
+Per la condivisione multi-utente con OneDrive aziendale:
+vedi la guida dedicata `guida-collaboratori-safehub.md`.
 
-## ⌨️ Scorciatoie tastiera (v2.0)
+## 📜 Origine e finalità del progetto
 
-| Tasti | Azione |
-|-------|--------|
-| `Alt + 1` | Hub Cantieri |
-| `Alt + 2` | Dashboard cantiere |
-| `Alt + 3` | Non Conformità |
-| `Alt + 4` | Documenti |
-| `Ctrl + N` | Nuovo Verbale di Sopralluogo |
-| `Ctrl + S` | Salva e Sincronizza (Cloud) |
-| `Ctrl + Shift + R` | Nuova Riunione di Coordinamento |
-| `/` | Focus sulla ricerca |
-| `Esc` | Chiudi modal/pannello aperto |
+SafeHub nasce dall'esigenza professionale di velocizzare e standardizzare
+il flusso documentale del Coordinatore della Sicurezza in Esecuzione,
+riducendo il tempo richiesto dalla formalizzazione di verbali, Non
+Conformità, Ordini di Servizio e comunicazioni formali che, con strumenti
+generici come Word ed Excel, comporta una significativa quota di lavoro
+ripetitivo.
 
----
+Il software è stato progettato e sviluppato **integralmente al di fuori
+dell'orario di servizio** presso ANAS S.p.A. e con strumentazione
+informatica personale dell'autore, senza utilizzo di codice, dati o
+materiali riservati di proprietà del datore di lavoro.
 
-## 🛡️ Normativa e Sicurezza Dati
-- **Privacy**: I dati non passano mai per server intermedi. Il sync avviene direttamente tra browser e cartella locale di OneDrive dell'utente.
-- **Audit**: In conformità con le procedure ANAS, ogni verbale e NC porta la firma digitale del tecnico che ha effettuato l'ultima modifica.
-- **Offline**: Se la connessione cade o OneDrive non è raggiungibile, l'app continua a lavorare su IndexedDB e sincronizzerà al ripristino.
+L'obiettivo è duplice: fornire all'autore uno strumento operativo
+quotidiano e mettere a disposizione dei colleghi CSE una soluzione
+semplice, gratuita e priva di vincoli commerciali, conforme al D.Lgs
+81/08 e alla modulistica ANAS pubblicamente in uso.
 
----
+## 📄 Licenza
 
-## 📞 Contatti e Supporto
+Distribuito con licenza **MIT** — vedi file [LICENSE](./LICENSE).
+
+L'utilizzo è libero, gratuito, e copiabile. La paternità autoriale resta
+del Geom. Dogano Casella, come da timestamp pubblici dei commit di questo
+repository.
+
+## 🤝 Contributi
+
+Chi voglia segnalare bug, suggerire migliorie o contribuire al codice può
+aprire una Issue o una Pull Request.
+
+I CSE colleghi che desiderano usare SafeHub nei propri cantieri possono
+farlo liberamente. Per assistenza nella configurazione, contattare l'autore.
+
+## 📞 Contatti
 
 **Geom. Dogano Casella**
-Coordinatore Sicurezza in Esecuzione (CSE) — ANAS SpA
-Regione Calabria
+Ispettore di cantiere — assistente al Coordinatore della Sicurezza in Esecuzione
+ANAS S.p.A. — Struttura Territoriale Calabria
+
+---
+
+*ANAS SafeHub · by Geom. Dogano Casella · ANAS S.p.A.*
