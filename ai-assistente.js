@@ -9,6 +9,7 @@
 window.SAFEHUB_AI = {
   disponibile:  false,  // true solo se LanguageModel è pronto
   stato:        'verifica', // 'verifica' | 'pronto' | 'download' | 'non-supportato'
+  progresso:    0,      // percentuale download (0-100)
   sessione:     null,   // sessione LanguageModel attiva
   _onReadyCbs:  []
 };
@@ -38,10 +39,24 @@ async function inizializzaAI() {
     if (status === 'downloading' || status === 'downloadable') {
       ai.stato = 'download';
       _aggiornaIndicatoreAI();
-      showToast('🤖 AI in download — disponibile tra qualche minuto.', 'info');
-
-      // Aspetta che il download finisca (polling ogni 10s)
-      await _aspettaDownload();
+      showToast('🤖 AI in download (2.4 GB) — monitora il progresso nel badge.', 'info');
+      
+      // Tentativo di monitoraggio progresso (API sperimentale Chrome)
+      try {
+        await LanguageModel.create({
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e) => {
+              if (e.total > 0) {
+                ai.progresso = Math.round((e.loaded / e.total) * 100);
+                _aggiornaIndicatoreAI();
+              }
+            });
+          }
+        });
+      } catch (e) {
+        // Fallback al polling se il monitoraggio fallisce o non supportato
+        await _aspettaDownload();
+      }
     }
 
     // Crea sessione con system prompt specifico per CSE ANAS
@@ -104,7 +119,7 @@ function _aggiornaIndicatoreAI() {
 
   const stati = {
     'pronto':         { testo: '🤖 AI Pronta',     cls: 'bg-green-100 text-green-800 border-green-300' },
-    'download':       { testo: '⏳ AI Download…',  cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    'download':       { testo: `⏳ AI Download ${window.SAFEHUB_AI.progresso}%`,  cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
     'verifica':       { testo: '🔍 AI Verifica…',  cls: 'bg-slate-100 text-slate-500 border-slate-300' },
     'non-supportato': { testo: '— AI N/D',          cls: 'bg-slate-100 text-slate-400 border-slate-200' }
   };
