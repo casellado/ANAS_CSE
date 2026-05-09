@@ -43,6 +43,10 @@ L'adozione di SafeHub nel flusso di lavoro del CSE porta benefici misurabili in 
 - **Standardizzazione**: Produzione di output documentali uniformi, professionali e conformi agli standard ANAS/FS.
 - **Costi**: Implementazione a **costo zero** per l'amministrazione, senza necessità di licenze, infrastrutture server o formazione IT specifica.
 
+## ✨ Supporto alla Redazione con AI
+
+SafeHub include un modulo di assistenza intelligente che permette di trasformare note di cantiere rapide in verbali formali e professionali. L'AI funge da "copilota" per migliorare la qualità del linguaggio tecnico-giuridico, garantendo al contempo la massima riservatezza: l'utente mantiene il controllo totale sui dati, decidendo cosa elaborare per la redazione finale.
+
 ## 🚀 Come usarla
 
 L'applicazione è pubblicata su:
