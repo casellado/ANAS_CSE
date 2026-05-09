@@ -52,10 +52,8 @@ SafeHub include un modulo di assistenza intelligente che permette di trasformare
 L'applicazione è pubblicata su:
 **https://casellado.github.io/ANAS_CSE/**
 
-Per i colleghi CSE che vogliono provarla:
-1. Apri il link sopra in Chrome o Edge
-2. Configura le tue impostazioni (firma, nome, intestazione)
-3. Inizia a creare cantieri e gestire la documentazione
+Per una guida completa all'uso e alla configurazione:
+👉 **[Leggi il Manuale Utente](./MANUALE_UTENTE.md)**
 
 Per la condivisione multi-utente con OneDrive aziendale:
 vedi la guida dedicata `guida-collaboratori-safehub.md`.
