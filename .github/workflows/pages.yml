@@ -2,12 +2,12 @@ name: Deploy GitHub Pages
 on:
   push:
       branches: [ main ]
-        workflow_dispatch:
-        permissions:
+      workflow_dispatch:
+permissions:
           contents: read
             pages: write
               id-token: write
-              concurrency:
+  concurrency:
                 group: "pages"
       cancel-in-progress: true
       jobs:
