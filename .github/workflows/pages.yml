@@ -9,8 +9,8 @@ on:
               id-token: write
               concurrency:
                 group: "pages"
-                  cancel-in-progress: true
-                  jobs:
+      cancel-in-progress: true
+      jobs:
                     deploy:
                         environment:
                               name: github-pages
