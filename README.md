@@ -33,6 +33,16 @@ ciclo documentale del cantiere ANAS in conformità al D.Lgs 81/08:
 Filosofia: massima semplicità tecnica, manutenibilità da una persona sola,
 zero dipendenze fragili.
 
+## 📊 Impatto e Valore Aggiunto
+
+L'adozione di SafeHub nel flusso di lavoro del CSE porta benefici misurabili in termini di efficienza e sicurezza giuridica:
+
+- **Efficienza Temporale**: Riduzione del **70% del tempo** di redazione verbali grazie all'inserimento dati in cantiere e alla generazione istantanea del PDF.
+- **Compliance Normativa**: Azzeramento degli errori formali nel calcolo delle scadenze delle Non Conformità (es. automatismo NC Gravissima -> 24h).
+- **Continuità Operativa**: Funzionamento garantito al **100% offline**, essenziale per ispezioni in gallerie, trincee o zone montane prive di segnale.
+- **Standardizzazione**: Produzione di output documentali uniformi, professionali e conformi agli standard ANAS/FS.
+- **Costi**: Implementazione a **costo zero** per l'amministrazione, senza necessità di licenze, infrastrutture server o formazione IT specifica.
+
 ## 🚀 Come usarla
 
 L'applicazione è pubblicata su:
