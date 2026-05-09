@@ -58,7 +58,7 @@ async function inizializzaAI(options = {}) {
       // Tentativo di creazione (con monitor) per innescare il download
       try {
         await LanguageModel.create({
-          expectedInputLanguages: ['en'], // 'en' è richiesto da Chrome per silenziatore il warning (v138+)
+          expectedOutputs: [{ type: 'text', languages: ['en'] }], // Standard richiesto per silenziatore il warning
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
@@ -78,7 +78,7 @@ async function inizializzaAI(options = {}) {
 
     // Creazione sessione finale
     ai.sessione = await LanguageModel.create({
-      expectedInputLanguages: ['en'], // Usiamo 'en' per compatibilità API (silenziatore warning)
+      expectedOutputs: [{ type: 'text', languages: ['en'] }], // Standard richiesto per silenziatore il warning
       systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
 Conosci perfettamente:
 - D.Lgs 81/2008 (Testo Unico Sicurezza)
