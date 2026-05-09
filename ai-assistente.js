@@ -158,6 +158,8 @@ function _aggiornaIndicatoreAI() {
   const badge = document.getElementById('ai-status-badge');
   if (!badge) return;
 
+  const ai = window.SAFEHUB_AI;
+
   const stati = {
     'pronto':         { testo: '🤖 AI Pronta',     cls: 'bg-green-100 text-green-800 border-green-300' },
     'spento':         { testo: '🤖 Attiva AI',      cls: 'bg-violet-100 text-violet-800 border-violet-300 cursor-pointer animate-pulse' },
