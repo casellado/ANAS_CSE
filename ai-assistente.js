@@ -125,7 +125,8 @@ function _aspettaDownload(maxTentativi = 36) { // max 6 minuti
     let tentativi = 0;
     const check = setInterval(async () => {
       tentativi++;
-      const s = await LanguageModel.availability().catch(() => 'unavailable');
+      const aiOptions = { expectedOutputs: [{ type: 'text', languages: ['en'] }] };
+      const s = await LanguageModel.availability(aiOptions).catch(() => 'unavailable');
       if (s === 'available' || s === 'readily' || tentativi >= maxTentativi) {
         clearInterval(check);
         resolve();
@@ -397,7 +398,8 @@ async function verificaSupportoAI() {
       alert('LanguageModel API non disponibile. Verifica che i flag siano impostati e Chrome riavviato.');
       return;
     }
-    const status = await LanguageModel.availability();
+    const aiOptions = { expectedOutputs: [{ type: 'text', languages: ['en'] }] };
+    const status = await LanguageModel.availability(aiOptions);
     const messages = {
       'available':    '✅ AI pronta all\'uso',
       'downloadable': '⏳ Modello da scaricare al primo uso',
