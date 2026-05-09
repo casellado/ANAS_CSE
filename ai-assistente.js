@@ -334,7 +334,27 @@ window.addEventListener('beforeunload', distruggiSessioneAI);
 // ─────────────────────────────────────────────
 // 14. Guida all'Attivazione AI locale
 // ─────────────────────────────────────────────
+async function verificaSupportoAI() {
+  try {
+    if (typeof LanguageModel === 'undefined') {
+      alert('LanguageModel API non disponibile. Verifica che i flag siano impostati e Chrome riavviato.');
+      return;
+    }
+    const status = await LanguageModel.availability();
+    const messages = {
+      'available':    '✅ AI pronta all\'uso',
+      'downloadable': '⏳ Modello da scaricare al primo uso',
+      'downloading':  '📥 Download del modello in corso',
+      'unavailable':  '❌ AI non disponibile su questo dispositivo'
+    };
+    alert(messages[status] || 'Stato AI: ' + status);
+  } catch (err) {
+    alert('Errore verifica AI: ' + err.message);
+  }
+}
+
 function mostraGuidaAttivazioneAI() {
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|webOS/i.test(navigator.userAgent);
   const existing = document.getElementById('modal-guida-ai');
   if (existing) existing.remove();
 
@@ -344,50 +364,99 @@ function mostraGuidaAttivazioneAI() {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
 
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-      <div class="bg-violet-700 text-white px-6 py-4 flex justify-between items-center">
-        <h2 class="font-bold text-lg">🤖 Attivazione AI Locale</h2>
-        <button onclick="document.getElementById('modal-guida-ai').remove()" class="text-violet-100 hover:text-white text-2xl leading-none">✕</button>
-      </div>
-
-      <div class="p-6 space-y-4">
-        <p class="text-sm text-slate-600 leading-relaxed">
-          SafeHub integra <strong>Gemini Nano</strong>, l'intelligenza artificiale locale di Google. Per motivi di sicurezza e privacy, l'AI deve essere abilitata manualmente nel tuo browser Chrome (v138+).
-        </p>
-
-        <div class="space-y-3">
-          <div class="flex gap-3">
-            <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">1</div>
-            <div class="text-xs">Apri una nuova scheda e incolla: <br><code>chrome://flags/#prompt-api-for-gemini-nano</code> <br>Imposta su <strong>Enabled</strong>.</div>
-          </div>
-          <div class="flex gap-3">
-            <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">2</div>
-            <div class="text-xs">Incolla anche: <br><code>chrome://flags/#optimization-guide-on-device-model</code> <br>Imposta su <strong>Enabled BypassPerfRequirement</strong>.</div>
-          </div>
-          <div class="flex gap-3">
-            <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">3</div>
-            <div class="text-xs">Riavvia Chrome. L'app inizierà a scaricare il modello locale (circa 1.5GB) e il badge diventerà verde.</div>
-          </div>
+  if (isMobile) {
+    modal.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div class="bg-slate-800 text-white px-6 py-4 flex items-center gap-3">
+          <span class="text-xl">📱</span>
+          <h2 class="font-bold text-base text-white">AI non disponibile su mobile</h2>
         </div>
-
-        <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg">
-          <p class="text-[10px] text-amber-800 leading-tight">
-            <strong>Nota:</strong> Questa procedura è necessaria solo una volta. L'AI locale garantisce che nessun dato sensibile del cantiere venga inviato a server esterni.
+        <div class="p-6 space-y-4">
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Gemini Nano richiede Chrome desktop su Windows, macOS o Linux. Su tablet e telefoni l'API non è ancora supportata da Google.
           </p>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Per usare l'assistente AI, apri SafeHub da PC con Chrome o Edge desktop (versione 138 o sup.)
+          </p>
+          <p class="text-xs text-slate-400 italic">
+            Le altre funzionalità di SafeHub continuano a funzionare normalmente sul tuo dispositivo.
+          </p>
+          <button onclick="document.getElementById('modal-guida-ai').remove()"
+                  class="w-full bg-slate-800 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-slate-900 transition">
+            Ho capito
+          </button>
+        </div>
+      </div>
+    `;
+  } else {
+    modal.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-violet-700 text-white px-6 py-4 flex justify-between items-center">
+          <h2 class="font-bold text-lg text-white">🤖 Attivazione AI Locale</h2>
+          <button onclick="document.getElementById('modal-guida-ai').remove()" class="text-violet-100 hover:text-white text-2xl leading-none">✕</button>
         </div>
 
-        <button onclick="document.getElementById('modal-guida-ai').remove()"
-                class="w-full bg-violet-700 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-violet-800 transition">
-          Ho capito
-        </button>
+        <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+          <p class="text-sm text-slate-600 leading-relaxed">
+            SafeHub integra <strong>Gemini Nano</strong>, l'intelligenza artificiale locale di Google. Segui i passaggi per abilitarla nel tuo browser Chrome (v138+).
+          </p>
+
+          <!-- Sezione PREREQUISITI -->
+          <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-amber-600">⚠️</span>
+              <span class="text-xs font-bold text-amber-800 uppercase tracking-wide">Prima di attivare l'AI verifica i requisiti:</span>
+            </div>
+            <ul class="text-[11px] text-amber-900 space-y-1 list-disc ml-4">
+              <li><strong>Sistema operativo:</strong> Windows 10/11, macOS 13+ (Ventura), Linux o ChromeOS Plus (su desktop)</li>
+              <li><strong>Spazio disco libero:</strong> almeno 22 GB sul disco contenente il profilo Chrome</li>
+              <li><strong>Hardware:</strong> GPU dedicata con > 4 GB VRAM, OPPURE CPU con 16+ GB RAM e 4+ core processore</li>
+              <li><strong>Connessione internet illimitata:</strong> (no piano dati mobile)</li>
+            </ul>
+            <p class="text-[10px] text-amber-700 mt-2 italic">Se il tuo PC non rispetta questi requisiti, l'AI non si attiverà anche se i flag sono impostati correttamente.</p>
+          </div>
+
+          <div class="space-y-4 pt-2">
+            <div class="flex gap-3">
+              <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">1</div>
+              <div class="text-xs">Apri una nuova scheda e incolla: <br><code class="bg-slate-100 px-1 py-0.5 rounded border">chrome://flags/#prompt-api-for-gemini-nano</code> <br>Imposta su <strong>Enabled</strong>.</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">2</div>
+              <div class="text-xs">Incolla anche: <br><code class="bg-slate-100 px-1 py-0.5 rounded border">chrome://flags/#optimization-guide-on-device-model</code> <br>Imposta su <strong>Enabled BypassPerfRequirement</strong>.</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="bg-violet-100 text-violet-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs">3</div>
+              <div class="text-xs">Riavvia Chrome. L'app inizierà a scaricare il modello locale (<strong>circa 2-2.5 GB</strong>) e il badge diventerà verde.</div>
+            </div>
+          </div>
+
+          <div class="pt-4 space-y-3">
+            <button onclick="verificaSupportoAI()"
+                    class="w-full bg-white border-2 border-violet-700 text-violet-700 py-2 rounded-xl font-bold text-sm hover:bg-violet-50 transition flex items-center justify-center gap-2">
+              🔍 Verifica supporto AI sul tuo dispositivo
+            </button>
+            
+            <button onclick="document.getElementById('modal-guida-ai').remove()"
+                    class="w-full bg-violet-700 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-violet-800 transition">
+              Ho capito
+            </button>
+          </div>
+
+          <div class="text-center pt-2 border-t border-slate-100">
+            <p class="text-[10px] text-slate-400">
+              ℹ️ Procedura ufficiale Google. Se hai dubbi consulta la documentazione:<br>
+              <a href="https://developer.chrome.com/docs/ai/get-started" target="_blank" class="text-violet-500 hover:underline">developer.chrome.com/docs/ai/get-started</a>
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  // Escape handler
+  
   const escHandler = (e) => {
     if (e.key === 'Escape') {
       modal.remove();
