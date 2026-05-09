@@ -1597,7 +1597,7 @@ function mostraManualeUso() {
           <li><strong>4. Riassunto Verbale:</strong> Analizza e riassume in punti chiave i testi di un verbale esistente.</li>
         </ul>
         <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 italic">
-          Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, la cui visione ha permesso la sperimentazione di questo strumento sui cantieri del 3° Mega Lotto Jonica.
+          Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, la cui visione ha permesso la sperimentazione e l'adozione di questo strumento.
         </div>
       </div>
 

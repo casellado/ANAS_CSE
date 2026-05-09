@@ -127,7 +127,7 @@ Nei vari moduli (Verbali, NC) sono presenti i pulsanti `🤖 Suggerisci con AI` 
 
 ---
 ### 🤝 Ringraziamenti
-Si ringrazia per il supporto e la fase di collaudo il **Geom. Antonio Perrone**, la cui visione ha permesso la sperimentazione di questo strumento sui cantieri del 3° Mega Lotto Jonica.
+Si ringrazia per il supporto e la fase di collaudo il **Geom. Antonio Perrone**, la cui visione ha permesso la sperimentazione e l'adozione di questo strumento.
 
 ---
 *Manuale ufficiale aggiornato — SafeHub 2026*
