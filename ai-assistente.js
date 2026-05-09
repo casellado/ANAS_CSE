@@ -11,6 +11,7 @@ window.SAFEHUB_AI = {
   stato:        'verifica', // 'verifica' | 'pronto' | 'download' | 'non-supportato'
   progresso:    0,      // percentuale download (0-100)
   scaricatiMB:  0,      // MB scaricati effettivamente
+  attesaGesto:  false,  // true se Chrome richiede un click per avviare download
   sessione:     null,   // sessione LanguageModel attiva
   _onReadyCbs:  []
 };
@@ -94,6 +95,7 @@ Quando descrivi una NC o una prescrizione, cita sempre il livello di urgenza e l
 
     ai.disponibile = true;
     ai.stato       = 'pronto';
+    ai.attesaGesto = false;
     _aggiornaIndicatoreAI();
 
     // Notifica tutti i callback in attesa
@@ -103,9 +105,16 @@ Quando descrivi una NC o una prescrizione, cita sempre il livello di urgenza e l
     console.info('[SafeHub AI] Gemini Nano pronto.');
 
   } catch (err) {
-    console.warn('[SafeHub AI] Impossibile inizializzare:', err.message);
-    ai.stato = 'non-supportato';
-    _aggiornaIndicatoreAI();
+    if (err.message.includes('user gesture')) {
+      console.warn('[SafeHub AI] Richiesto intervento utente per avviare download.');
+      ai.attesaGesto = true;
+      ai.stato       = 'download';
+      _aggiornaIndicatoreAI();
+    } else {
+      console.warn('[SafeHub AI] Impossibile inizializzare:', err.message);
+      ai.stato = 'non-supportato';
+      _aggiornaIndicatoreAI();
+    }
   }
 }
 
@@ -136,12 +145,16 @@ function _aggiornaIndicatoreAI() {
   const stati = {
     'pronto':         { testo: '🤖 AI Pronta',     cls: 'bg-green-100 text-green-800 border-green-300' },
     'download':       { 
-      testo: window.SAFEHUB_AI.progresso > 0 
-        ? `⏳ AI Download ${window.SAFEHUB_AI.progresso}%` 
-        : (window.SAFEHUB_AI.scaricatiMB > 0 
-            ? `⏳ AI Download ${window.SAFEHUB_AI.scaricatiMB} MB…` 
-            : '⏳ AI Avvio Download…'),  
-      cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+      testo: window.SAFEHUB_AI.attesaGesto 
+        ? '🤖 Clicca per attivare AI'
+        : (window.SAFEHUB_AI.progresso > 0 
+            ? `⏳ AI Download ${window.SAFEHUB_AI.progresso}%` 
+            : (window.SAFEHUB_AI.scaricatiMB > 0 
+                ? `⏳ AI Download ${window.SAFEHUB_AI.scaricatiMB} MB…` 
+                : '⏳ AI Avvio Download…')),  
+      cls: window.SAFEHUB_AI.attesaGesto 
+        ? 'bg-violet-100 text-violet-800 border-violet-300 animate-pulse cursor-pointer'
+        : 'bg-yellow-100 text-yellow-800 border-yellow-300' 
     },
     'verifica':       { testo: '🔍 AI Verifica…',  cls: 'bg-slate-100 text-slate-500 border-slate-300' },
     'non-supportato': { testo: '— AI N/D',          cls: 'bg-slate-100 text-slate-400 border-slate-200' }
@@ -360,12 +373,20 @@ function distruggiSessioneAI() {
 }
 
 // ─────────────────────────────────────────────
-// 13. Init automatico + cleanup
+// 13. Init automatico + cleanup + User Gesture handler
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Avvia in background — non blocca il caricamento dell'app
+  // Avvia in background — se serve un gesto, inizializzaAI lo rileverà
   inizializzaAI().catch(() => {});
 });
+
+// Listener globale per sbloccare il download dell'AI (User Gesture)
+document.addEventListener('click', () => {
+  if (window.SAFEHUB_AI.attesaGesto) {
+    window.SAFEHUB_AI.attesaGesto = false;
+    inizializzaAI().catch(() => {});
+  }
+}, { capture: true });
 
 window.addEventListener('beforeunload', distruggiSessioneAI);
 
