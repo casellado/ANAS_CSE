@@ -7,12 +7,12 @@
 // 1. Stato AI globale
 // ─────────────────────────────────────────────
 window.SAFEHUB_AI = {
-  disponibile:  false,  // true solo se LanguageModel è pronto
-  stato:        'verifica', // 'verifica' | 'pronto' | 'download' | 'non-supportato'
-  progresso:    0,      // percentuale download (0-100)
-  scaricatiMB:  0,      // MB scaricati effettivamente
-  attesaGesto:  false,  // true se Chrome richiede un click per avviare download
-  sessione:     null,   // sessione LanguageModel attiva
+  disponibile:  false,
+  stato:        'spento', // 'spento' | 'verifica' | 'pronto' | 'download' | 'non-supportato'
+  progresso:    0,
+  scaricatiMB:  0,
+  attesaGesto:  false,
+  sessione:     null,
   _onReadyCbs:  []
 };
 
@@ -114,8 +114,6 @@ RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
     ai.attesaGesto = false;
     _aggiornaIndicatoreAI();
 
-    ai._onReadyCbs.forEach(cb => cb());
-    ai._onReadyCbs = [];
     console.info('[SafeHub AI] Gemini Nano pronto.');
 
   } catch (err) {
@@ -162,17 +160,14 @@ function _aggiornaIndicatoreAI() {
 
   const stati = {
     'pronto':         { testo: '🤖 AI Pronta',     cls: 'bg-green-100 text-green-800 border-green-300' },
+    'spento':         { testo: '🤖 Attiva AI',      cls: 'bg-violet-100 text-violet-800 border-violet-300 cursor-pointer animate-pulse' },
     'download':       { 
-      testo: window.SAFEHUB_AI.attesaGesto 
-        ? '🤖 Clicca per attivare AI'
-        : (window.SAFEHUB_AI.progresso > 0 
-            ? `⏳ AI Download ${window.SAFEHUB_AI.progresso}%` 
-            : (window.SAFEHUB_AI.scaricatiMB > 0 
-                ? `⏳ AI Download ${window.SAFEHUB_AI.scaricatiMB} MB…` 
-                : '⏳ AI Avvio Download…')),  
-      cls: window.SAFEHUB_AI.attesaGesto 
-        ? 'bg-violet-100 text-violet-800 border-violet-300 animate-pulse cursor-pointer'
-        : 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+      testo: (ai.progresso > 0 
+            ? `⏳ AI Download ${ai.progresso}%` 
+            : (ai.scaricatiMB > 0 
+                ? `⏳ AI Download ${ai.scaricatiMB} MB…` 
+                : '⏳ AI Inizializzazione…')),  
+      cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' 
     },
     'verifica':       { testo: '🔍 AI Verifica…',  cls: 'bg-slate-100 text-slate-500 border-slate-300' },
     'non-supportato': { testo: '— AI N/D',          cls: 'bg-slate-100 text-slate-400 border-slate-200' }
@@ -392,20 +387,22 @@ function distruggiSessioneAI() {
 
 // Funzione di sblocco manuale chiamata dal modal o dal badge
 window.sbloccaAI = function() {
-  if (window.SAFEHUB_AI.attesaGesto) {
-    console.info('[SafeHub AI] Gesto rilevato. Avvio download...');
-    window.SAFEHUB_AI.attesaGesto = false;
-    inizializzaAI({ forzaDownload: true }).catch(() => {});
-  }
+  const ai = window.SAFEHUB_AI;
+  if (ai.disponibile) return; // Già pronto
+
+  console.info('[SafeHub AI] Attivazione on-demand...');
+  ai.stato = 'verifica';
+  _aggiornaIndicatoreAI();
+  
+  inizializzaAI({ forzaDownload: true }).catch(() => {});
 };
 
 // 13. Init automatico + cleanup
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Ritardiamo l'init di 1 secondo per evitare crash durante la navigazione rapida
-  setTimeout(() => {
-    inizializzaAI().catch(() => {});
-  }, 1000);
+  // L'AI non viene più inizializzata all'avvio per evitare crash durante la navigazione.
+  // Verrà attivata solo al click dell'utente sul badge o su una funzione AI.
+  _aggiornaIndicatoreAI();
 });
 
 window.addEventListener('beforeunload', distruggiSessioneAI);
