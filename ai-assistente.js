@@ -58,6 +58,7 @@ async function inizializzaAI(options = {}) {
       // Tentativo di creazione (con monitor) per innescare il download
       try {
         await LanguageModel.create({
+          expectedInputLanguages: ['it'], // Specifica lingua anche qui (risolve warning)
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
@@ -365,21 +366,20 @@ function distruggiSessioneAI() {
   }
 }
 
-// ─────────────────────────────────────────────
-// 13. Init automatico + cleanup + User Gesture handler
-// ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // Avvia in background — se serve un gesto, inizializzaAI lo rileverà
-  inizializzaAI().catch(() => {});
-});
-
-// Listener globale per sbloccare il download dell'AI (User Gesture)
-document.addEventListener('click', () => {
+// Funzione di sblocco manuale chiamata dal modal o dal badge
+window.sbloccaAI = function() {
   if (window.SAFEHUB_AI.attesaGesto) {
+    console.info('[SafeHub AI] Gesto rilevato. Avvio download...');
     window.SAFEHUB_AI.attesaGesto = false;
     inizializzaAI({ forzaDownload: true }).catch(() => {});
   }
-}, { capture: true });
+};
+
+// 13. Init automatico + cleanup
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  inizializzaAI().catch(() => {});
+});
 
 window.addEventListener('beforeunload', distruggiSessioneAI);
 
@@ -406,6 +406,11 @@ async function verificaSupportoAI() {
 }
 
 function mostraGuidaAttivazioneAI() {
+  // Se siamo in attesa di gesto, questo click è il gesto stesso! Sblocchiamo subito.
+  if (window.SAFEHUB_AI.attesaGesto) {
+    window.sbloccaAI();
+  }
+
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|webOS/i.test(navigator.userAgent);
   const existing = document.getElementById('modal-guida-ai');
   if (existing) existing.remove();
