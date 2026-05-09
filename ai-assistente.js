@@ -29,8 +29,13 @@ async function inizializzaAI(options = {}) {
     return;
   }
 
+  const aiOptions = {
+    expectedInputs:  [{ type: 'text', languages: ['it'] }],
+    expectedOutputs: [{ type: 'text', languages: ['en'] }] // 'en' per silenziatore warning Chrome
+  };
+
   try {
-    const status = await LanguageModel.availability();
+    const status = await LanguageModel.availability(aiOptions);
 
     if (status === 'unavailable') {
       ai.stato = 'non-supportato';
@@ -58,7 +63,7 @@ async function inizializzaAI(options = {}) {
       // Tentativo di creazione (con monitor) per innescare il download
       try {
         await LanguageModel.create({
-          expectedOutputs: [{ type: 'text', languages: ['en'] }], // Standard richiesto per silenziatore il warning
+          ...aiOptions,
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               ai.scaricatiMB = Math.round(e.loaded / 1024 / 1024);
@@ -78,7 +83,7 @@ async function inizializzaAI(options = {}) {
 
     // Creazione sessione finale
     ai.sessione = await LanguageModel.create({
-      expectedOutputs: [{ type: 'text', languages: ['en'] }], // Standard richiesto per silenziatore il warning
+      ...aiOptions,
       systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
 Conosci perfettamente:
 - D.Lgs 81/2008 (Testo Unico Sicurezza)
