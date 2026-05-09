@@ -38,23 +38,30 @@ async function inizializzaAI() {
 
     if (status === 'downloading' || status === 'downloadable') {
       ai.stato = 'download';
+      ai.progresso = 0;
       _aggiornaIndicatoreAI();
-      showToast('🤖 AI in download (2.4 GB) — monitora il progresso nel badge.', 'info');
       
-      // Tentativo di monitoraggio progresso (API sperimentale Chrome)
+      console.info('[SafeHub AI] Modello mancante o in scaricamento. Avvio sessione per forzare download...');
+
+      // Il download effettivo in Chrome parte spesso solo quando si tenta di creare una sessione
       try {
         await LanguageModel.create({
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               if (e.total > 0) {
-                ai.progresso = Math.round((e.loaded / e.total) * 100);
-                _aggiornaIndicatoreAI();
+                const p = Math.round((e.loaded / e.total) * 100);
+                if (p > ai.progresso) {
+                  ai.progresso = p;
+                  _aggiornaIndicatoreAI();
+                }
               }
             });
           }
         });
-      } catch (e) {
-        // Fallback al polling se il monitoraggio fallisce o non supportato
+      } catch (err) {
+        console.warn('[SafeHub AI] Creazione fallita durante download:', err.message);
+        // Spesso fallisce con "model not available" se è ancora in download, è normale
+        // Continuiamo col polling per monitorare lo stato generale
         await _aspettaDownload();
       }
     }
@@ -124,7 +131,12 @@ function _aggiornaIndicatoreAI() {
 
   const stati = {
     'pronto':         { testo: '🤖 AI Pronta',     cls: 'bg-green-100 text-green-800 border-green-300' },
-    'download':       { testo: `⏳ AI Download ${window.SAFEHUB_AI.progresso}%`,  cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    'download':       { 
+      testo: window.SAFEHUB_AI.progresso > 0 
+        ? `⏳ AI Download ${window.SAFEHUB_AI.progresso}%` 
+        : '⏳ AI Avvio Download…',  
+      cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+    },
     'verifica':       { testo: '🔍 AI Verifica…',  cls: 'bg-slate-100 text-slate-500 border-slate-300' },
     'non-supportato': { testo: '— AI N/D',          cls: 'bg-slate-100 text-slate-400 border-slate-200' }
   };
@@ -456,6 +468,14 @@ function mostraGuidaAttivazioneAI() {
                     class="w-full bg-white border-2 border-violet-700 text-violet-700 py-2 rounded-xl font-bold text-sm hover:bg-violet-50 transition flex items-center justify-center gap-2">
               🔍 Verifica supporto AI sul tuo dispositivo
             </button>
+
+            <!-- Sezione RISOLUZIONE PROBLEMI -->
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg">
+              <p class="text-[11px] font-bold text-slate-700 mb-1">🆘 Il download è bloccato allo 0%?</p>
+              <p class="text-[10px] text-slate-600 leading-tight">
+                A volte Chrome ha bisogno di una spinta: vai su <code>chrome://components</code>, cerca <strong>"Optimization Guide On Device Model"</strong> e clicca su <strong>"Check for update"</strong>.
+              </p>
+            </div>
             
             <button onclick="document.getElementById('modal-guida-ai').remove()"
                     class="w-full bg-violet-700 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-violet-800 transition">
