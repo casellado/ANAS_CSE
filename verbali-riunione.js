@@ -65,6 +65,7 @@ async function salvaRiunione(event) {
     firma:           window._firmaCorrente?.png || null,
     firmaTimestamp:  window._firmaCorrente?.timestamp || null,
     firmante:        window.appState._firmaNome || 'Geom. Dogano Casella',
+    presenti:        typeof _raccogliPresentiRiunione === 'function' ? _raccogliPresentiRiunione() : [],
     createdAt:       new Date().toISOString()
   };
   
@@ -79,6 +80,7 @@ async function salvaRiunione(event) {
   showToast('Riunione di Coordinamento salvata ✓', 'success');
   if (typeof showCheckmark === 'function') showCheckmark();
   document.getElementById('form-riunione')?.reset();
+  if (typeof _resetPresentiRiunione === 'function') _resetPresentiRiunione();
   if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
 }
 
@@ -113,6 +115,9 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
   const decVal      = r?.decisioni       || document.getElementById('riunione-decisioni')?.value        || '';
   // BUG-2 FIX: Note motivazionali
   const noteDecVal  = r?.noteDecisione   || document.getElementById('riunione-note-decisione')?.value   || '';
+
+  // Presenti con firma (FLUSSO 1)
+  const presentiFirmati = r?.presenti || (typeof _raccogliPresentiRiunione === 'function' ? _raccogliPresentiRiunione() : []);
 
   const cantiere = window.appState?.currentProject || '______';
   const nomeCant = window.appState?.projectName    || '';
@@ -291,6 +296,33 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
         </tr>
       </table>
 
+      ${(presentiFirmati && presentiFirmati.length > 0) ? `
+      <!-- 10.5) PRESENTI CON FIRMA INDIVIDUALE -->
+      <table style="width:100%; border-collapse:collapse; margin-bottom:5mm;">
+        <tr style="background:#f1f5f9;">
+          <th style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;" colspan="4">
+            Ulteriori Presenti alla Riunione (Presa Visione)
+          </th>
+        </tr>
+        <tr style="background:#f8fafc;">
+          <th style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:center; width:30pt;">N.</th>
+          <th style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left;">Nome e Cognome</th>
+          <th style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left; width:100pt;">Ruolo</th>
+          <th style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:center; width:150pt;">Firma</th>
+        </tr>
+        ${presentiFirmati.map((p, i) => `
+        <tr>
+          <td style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:center; vertical-align:middle;">${i + 1}</td>
+          <td style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left; vertical-align:middle;">${escapeHtml(p.nome || '–')}</td>
+          <td style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left; vertical-align:middle;">${escapeHtml(p.ruolo || '–')}</td>
+          <td style="border:0.5pt solid #000; padding:4pt 6pt; text-align:center; vertical-align:middle;">
+            ${p.firmaBase64
+              ? \`<img src="\${p.firmaBase64}" style="max-width:120pt; max-height:35pt; object-fit:contain;">\`
+              : '<div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8; margin-top:5pt;"></div>'}
+          </td>
+        </tr>`).join('')}
+      </table>` : ''}
+
       <!-- 11) FIRMA FINALE -->
       <table style="width:100%; border-collapse:collapse; margin-top:8mm; border-top:1pt solid #cbd5e1; padding-top:4mm;">
         <tr>
@@ -406,4 +438,222 @@ function apriSalvataggioRiunione(riunioneId) {
   } else {
     exportRiunioneWord(id);
   }
+}
+
+// ─────────────────────────────────────────────
+// 6. FLUSSO 1 — Presenti alla Riunione con firma individuale
+// ─────────────────────────────────────────────
+
+window._presentiRiunioneCount = 0;
+window._firmePresentiRiunione = [];
+
+function aggiungiPresenteRiunione() {
+  const MAX_PRESENTI = 15;
+  if (window._presentiRiunioneCount >= MAX_PRESENTI) {
+    if (typeof showToast === 'function') showToast(`Massimo ${MAX_PRESENTI} presenti raggiunto.`, 'warning');
+    return;
+  }
+
+  const list = document.getElementById('presenti-riunione-list');
+  if (!list) return;
+
+  const idx = window._presentiRiunioneCount;
+  window._presentiRiunioneCount++;
+
+  if (!window._firmePresentiRiunione[idx]) window._firmePresentiRiunione[idx] = null;
+
+  const RUOLI_PRESENTI = [
+    { value: 'RL',           label: 'R.L. (Responsabile dei Lavori)' },
+    { value: 'DL',           label: 'D.L. (Direttore dei Lavori)' },
+    { value: 'Capocantiere', label: 'Capo cantiere' },
+    { value: 'Preposto',     label: 'Preposto' },
+    { value: 'RLS',          label: 'R.L.S. (Rappresentante Lavoratori)' },
+    { value: 'Operaio',      label: 'Operaio' },
+    { value: 'Tecnico',      label: 'Tecnico di cantiere' },
+    { value: 'Rappresentante', label: 'Rappresentante Impresa' },
+    { value: 'Altro',        label: 'Altro' }
+  ];
+  const ruoliOpts = RUOLI_PRESENTI.map(r => \`<option value="\${r.value}">\${r.label}</option>\`).join('');
+
+  const row = document.createElement('div');
+  row.id = \`presente-riu-row-\${idx}\`;
+  row.className = 'bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2';
+  row.innerHTML = \`
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-xs font-bold text-slate-500 uppercase">#\${idx + 1}</span>
+      <button type="button" onclick="rimuoviPresenteRiunione(\${idx})"
+              class="text-xs text-red-500 hover:text-red-700 font-semibold focus:outline-none"
+              aria-label="Rimuovi presente \${idx + 1}">✕ Rimuovi</button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div class="sm:col-span-2">
+        <input id="presente-riu-nome-\${idx}" type="text" placeholder="Nome e Cognome"
+               class="w-full border border-slate-300 rounded-lg p-2 text-sm
+                      focus:ring-2 focus:ring-blue-400 focus:outline-none">
+      </div>
+      <div>
+        <select id="presente-riu-ruolo-\${idx}"
+                class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white
+                       focus:ring-2 focus:ring-blue-400 focus:outline-none">
+          <option value="">— Ruolo —</option>
+          \${ruoliOpts}
+        </select>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button type="button" onclick="apriCanvasFirmaPresenteRiunione(\${idx})"
+              class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold
+                     hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+        ✍️ Firma
+      </button>
+      <span id="presente-riu-firma-stato-\${idx}" class="text-xs text-slate-400">Non firmato</span>
+    </div>
+  \`;
+
+  list.appendChild(row);
+  _aggiornaContatorePresentiRiunione();
+}
+
+function rimuoviPresenteRiunione(idx) {
+  const row = document.getElementById(\`presente-riu-row-\${idx}\`);
+  if (row) row.remove();
+  window._firmePresentiRiunione[idx] = null;
+  _aggiornaContatorePresentiRiunione();
+}
+
+function _aggiornaContatorePresentiRiunione() {
+  const countEl = document.getElementById('presenti-riunione-count');
+  if (!countEl) return;
+  const righePresenti = document.querySelectorAll('[id^="presente-riu-row-"]').length;
+  countEl.textContent = \`\${righePresenti}/15 presenti\`;
+  countEl.classList.toggle('hidden', righePresenti === 0);
+}
+
+function apriCanvasFirmaPresenteRiunione(idx) {
+  const nome = document.getElementById(\`presente-riu-nome-\${idx}\`)?.value || \`Presente #\${idx + 1}\`;
+
+  const old = document.getElementById('modal-firma-presente-riu');
+  if (old) old.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-firma-presente-riu';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+  
+  const canvasId = \`firma-presente-riu-canvas-\${idx}\`;
+
+  modal.innerHTML = \`
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-800">✍️ Firma di \${escapeHtml(nome)}</h3>
+        <button onclick="document.getElementById('modal-firma-presente-riu').remove()"
+                class="text-slate-400 hover:text-slate-700 text-lg font-bold focus:outline-none">&times;</button>
+      </div>
+
+      <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <div class="relative bg-white">
+          <canvas id="\${canvasId}"
+                  width="600" height="180"
+                  class="w-full touch-none cursor-crosshair block"
+                  style="max-height:180px;">
+          </canvas>
+          <div class="absolute bottom-8 left-8 right-8 h-px bg-slate-200 pointer-events-none"></div>
+          <div class="absolute bottom-2 left-8 text-[10px] text-slate-300 pointer-events-none select-none">
+            Firma qui — \${escapeHtml(nome)}
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <button type="button" onclick="_firmaClearPresenteRiunione('\${canvasId}')"
+                class="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none">
+          🗑 Cancella
+        </button>
+        <button type="button" onclick="_firmaConfermaPresenteModalRiunione(\${idx}, '\${canvasId}')"
+                class="text-xs px-4 py-1.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+          ✅ Conferma Firma
+        </button>
+      </div>
+    </div>
+  \`;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  setTimeout(() => {
+    if (typeof _initCanvasPresente === 'function') {
+      _initCanvasPresente(canvasId);
+    } else {
+      // Fallback in caso verbali.js non sia stato caricato
+      const canvas = document.getElementById(canvasId);
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.lineWidth=2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#1e293b';
+      let drawing=false; let lx=0, ly=0;
+      const getPos = (e) => {
+        const r=canvas.getBoundingClientRect();
+        return {
+          x:( (e.touches ? e.touches[0].clientX : e.clientX) - r.left ) * (canvas.width/r.width),
+          y:( (e.touches ? e.touches[0].clientY : e.clientY) - r.top ) * (canvas.height/r.height)
+        };
+      };
+      const start = (e) => { e.preventDefault(); drawing=true; const p=getPos(e); lx=p.x; ly=p.y; };
+      const draw = (e) => { if(!drawing)return; e.preventDefault(); const p=getPos(e); ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y); ctx.stroke(); lx=p.x; ly=p.y; };
+      const stop = () => { drawing=false; };
+      canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',draw);
+      canvas.addEventListener('mouseup',stop); canvas.addEventListener('mouseleave',stop);
+      canvas.addEventListener('touchstart',start,{passive:false}); canvas.addEventListener('touchmove',draw,{passive:false}); canvas.addEventListener('touchend',stop);
+    }
+  }, 100);
+}
+
+function _firmaClearPresenteRiunione(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function _firmaConfermaPresenteModalRiunione(idx, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const dataURL = canvas.toDataURL('image/png');
+  const nome = document.getElementById(\`presente-riu-nome-\${idx}\`)?.value || \`Presente #\${idx + 1}\`;
+
+  window._firmePresentiRiunione[idx] = {
+    png: dataURL,
+    timestamp: new Date().toISOString(),
+    firmante: nome
+  };
+
+  const statoEl = document.getElementById(\`presente-riu-firma-stato-\${idx}\`);
+  if (statoEl) statoEl.innerHTML = \`<span class="text-green-600 font-semibold">✅ Firmato</span>\`;
+
+  document.getElementById('modal-firma-presente-riu')?.remove();
+  if (typeof showToast === 'function') showToast(\`Firma di \${nome} acquisita ✓\`, 'success');
+}
+
+function _raccogliPresentiRiunione() {
+  const presenti = [];
+  for (let i = 0; i < window._presentiRiunioneCount; i++) {
+    const row = document.getElementById(\`presente-riu-row-\${i}\`);
+    if (!row) continue;
+    const nome = (document.getElementById(\`presente-riu-nome-\${i}\`)?.value || '').trim();
+    if (!nome) continue;
+    const ruolo = document.getElementById(\`presente-riu-ruolo-\${i}\`)?.value || '';
+    const firma = window._firmePresentiRiunione[i];
+    presenti.push({
+      nome,
+      ruolo,
+      firmaBase64: firma ? firma.png : null,
+      timestampFirma: firma ? firma.timestamp : null
+    });
+  }
+  return presenti;
+}
+
+function _resetPresentiRiunione() {
+  const list = document.getElementById('presenti-riunione-list');
+  if (list) list.innerHTML = '';
+  window._presentiRiunioneCount = 0;
+  window._firmePresentiRiunione = [];
+  _aggiornaContatorePresentiRiunione();
 }
