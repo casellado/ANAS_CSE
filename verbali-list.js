@@ -319,6 +319,25 @@ async function renderDettaglioVerbale(containerId) {
         <div class="bg-slate-50 p-3 rounded-lg sm:col-span-2">
           <div class="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Referenti / Preposti presenti</div>
           <div class="text-slate-700 whitespace-pre-wrap">${escapeHtml(v.referenti) || '–'}</div>
+          ${(v.presenti && v.presenti.length > 0) ? `
+          <div class="mt-3">
+            <div class="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wide">Presenti con firma (${v.presenti.length})</div>
+            <div class="space-y-2">
+              ${v.presenti.map(p => `
+                <div class="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-3 py-2">
+                  <div>
+                    <div class="text-sm font-semibold text-slate-800">${escapeHtml(p.nome || '—')}</div>
+                    <div class="text-xs text-slate-500">${escapeHtml(p.ruolo || '')}</div>
+                  </div>
+                  <div class="shrink-0">
+                    ${p.firmaBase64
+                      ? `<img src="${p.firmaBase64}" class="max-h-10 max-w-[120px] border border-slate-200 rounded bg-white p-0.5" alt="Firma ${escapeHtml(p.nome)}">`
+                      : `<span class="text-[10px] text-slate-400 italic">Firma assente</span>`}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>` : ''}
         </div>
 
         <div class="bg-slate-50 p-3 rounded-lg sm:col-span-2">
