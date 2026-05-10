@@ -449,8 +449,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
 
     <!-- FIRMA -->
     <table style="margin-top:20pt; width:100%;">
-      <tr>
-        <td style="width:50%; vertical-align:top; border:none; padding-right:16pt;">
+        <td colspan="2" style="width:100%; vertical-align:top; border:none;">
           <div class="label">Firma del CSE${v.delegaCSE ? ' (delegato)' : ''}</div>
           ${firmaImg}
           <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(v.delegaCSE ? v.delegaCSE.nome : (imp.firmaNome || v.firmante || 'Geom. Dogano Casella — CSE ANAS SpA'))}</div>
@@ -458,11 +457,6 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
           ${!v.delegaCSE && imp.firmaAlbo && !imp.firmaAlbo.includes('Albo Geometri') ? `<div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo)}</div>` : ''}
           ${v.firmaTimestamp ? `<div style="font-size:9pt; color:#94a3b8;">Firmato il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}</div>` : ''}
         </td>
-        <td style="width:50%; vertical-align:top; border:none; padding-left:16pt;">
-          <div class="label">Timbro / Per ricevuta</div>
-          <div class="firma-box" style="width:100%; height:45pt;"></div>
-        </td>
-      </tr>
     </table>
 
     ${v.allegaMezzi ? await _generaTabellaMezziHTML(v.projectId) : ''}
