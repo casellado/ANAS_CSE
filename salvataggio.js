@@ -315,11 +315,11 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     : '–';
 
   const logoSxHtml = imp.logoSinistro
-    ? `<img src="${imp.logoSinistro}" style="max-height:60pt; max-width:140pt; object-fit:contain;">`
+    ? `<img src="${imp.logoSinistro}" style="max-height:80pt; max-width:180pt; object-fit:contain;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.studioNome || ''}</div>`;
 
   const logoDxHtml = imp.logoDestro
-    ? `<img src="${imp.logoDestro}" style="max-height:60pt; max-width:140pt; object-fit:contain;">`
+    ? `<img src="${imp.logoDestro}" style="max-height:80pt; max-width:180pt; object-fit:contain;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.committenteNome || 'ANAS SpA'}</div>`;
 
   const firmaImg = v.firma
@@ -337,14 +337,14 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
       <table style="border:none; width:100%;">
         <tr>
           <td style="border:none; width:25%; vertical-align:middle; text-align:left;">
-            ${logoSxHtml}
+            ${logoDxHtml}
           </td>
           <td style="border:none; width:50%; vertical-align:middle; text-align:center;">
             <h1 style="margin:0;">VERBALE DI SOPRALLUOGO CSE</h1>
             <div style="font-size:10pt; color:#64748b;">${normativaClean}</div>
           </td>
           <td style="border:none; width:25%; vertical-align:middle; text-align:right;">
-            ${logoDxHtml}
+            ${logoSxHtml}
           </td>
         </tr>
       </table>
