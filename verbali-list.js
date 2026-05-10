@@ -106,6 +106,26 @@ async function renderVerbaliList(containerId) {
            </button>`
         : '';
 
+      // Bottone Esporta per Riunione Coordinamento
+      const btnExportRiunione = tipo === 'riunione-coordinamento'
+        ? `<button onclick="if(typeof apriSalvataggioRiunione === 'function') apriSalvataggioRiunione('${v.id}')"
+                   class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg
+                          hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                   aria-label="Esporta riunione del ${dataLabel}">
+             Esporta 🖨️
+           </button>`
+        : '';
+
+      // Bottone Esporta per Verifica POS
+      const btnExportPOS = tipo === 'verifica-pos'
+        ? `<button onclick="if(typeof apriSalvataggioVerificaPOS === 'function') apriSalvataggioVerificaPOS('${v.id}')"
+                   class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg
+                          hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                   aria-label="Esporta POS del ${dataLabel}">
+             Esporta 🖨️
+           </button>`
+        : '';
+
       // Bottone cancella — disponibile per tutti i tipi
       const btnCancella = `<button onclick="confermaEliminaVerbale('${v.id}', '${info.label}', '${dataLabel}')"
                    class="bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg
@@ -137,6 +157,8 @@ async function renderVerbaliList(containerId) {
               ${btnCancella}
               ${btnEmail}
               ${btnApri}
+              ${btnExportRiunione}
+              ${btnExportPOS}
             </div>
           </div>
         </div>
