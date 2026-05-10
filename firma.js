@@ -5,9 +5,18 @@
 // 1. Render componente firma in un container
 //    Uso: renderFirmaCanvas('id-container', onSaveCallback)
 // ─────────────────────────────────────────────
-function renderFirmaCanvas(containerId, onSave) {
+async function renderFirmaCanvas(containerId, onSave) {
   const container = document.getElementById(containerId);
   if (!container) return;
+
+  // Legge il nome CSE dinamicamente dalle impostazioni
+  let nomeCse = 'CSE';
+  try {
+    if (typeof caricaImpostazioni === 'function') {
+      const imp = await caricaImpostazioni();
+      nomeCse = imp.firmaNome || 'CSE';
+    }
+  } catch(_) {}
 
   const firmaId = containerId + '-canvas';
   const timestampNow = new Date().toLocaleString('it-IT', {
@@ -25,7 +34,7 @@ function renderFirmaCanvas(containerId, onSave) {
           <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">
             ✍️ Firma CSE
           </span>
-          <span class="text-xs text-slate-400 ml-2">Geom. Dogano Casella</span>
+          <span class="text-xs text-slate-400 ml-2">${nomeCse}</span>
         </div>
         <div class="flex items-center gap-2">
           <span id="${firmaId}-ts"
@@ -222,7 +231,7 @@ function _firmaClear(firmaId) {
 // ─────────────────────────────────────────────
 // 5. Conferma firma → genera PNG + timestamp
 // ─────────────────────────────────────────────
-function _firmaConferma(firmaId, containerId) {
+async function _firmaConferma(firmaId, containerId) {
   const canvas = document.getElementById(firmaId);
   if (!canvas) return;
 
@@ -250,7 +259,15 @@ function _firmaConferma(firmaId, containerId) {
   // BUG-1 FIX: usa coordinate CSS (non Retina) poiché ctx.scale(ratio) è già applicato
   const cssW = canvas._cssWidth  || (canvas.width  / (window.devicePixelRatio || 1));
   const cssH = canvas._cssHeight || (canvas.height / (window.devicePixelRatio || 1));
-  ctx.fillText('CSE: Geom. Dogano Casella — ' + tsLabel, cssW - 8, cssH - 6);
+  // Legge il nome CSE aggiornato dalle impostazioni al momento della conferma
+  let _nomeCseConferma = 'CSE';
+  try {
+    if (typeof caricaImpostazioni === 'function') {
+      const _imp = await caricaImpostazioni();
+      _nomeCseConferma = _imp.firmaNome || 'CSE';
+    }
+  } catch(_) {}
+  ctx.fillText(_nomeCseConferma + ' — ' + tsLabel, cssW - 8, cssH - 6);
   ctx.restore();
 
   // Genera PNG
@@ -278,7 +295,7 @@ function _firmaConferma(firmaId, containerId) {
     png: dataURL,
     timestamp: tsISO,
     label: tsLabel,
-    firmante: 'Geom. Dogano Casella — CSE'
+    firmante: _nomeCseConferma
   };
 
   if (typeof canvas._firmaOnSave === 'function') {
