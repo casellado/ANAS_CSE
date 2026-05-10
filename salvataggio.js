@@ -452,8 +452,8 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         <td colspan="2" style="width:100%; vertical-align:top; border:none;">
           <div class="label">Firma del CSE${v.delegaCSE ? ' (delegato)' : ''}</div>
           ${firmaImg}
-          <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(v.delegaCSE ? v.delegaCSE.nome : (imp.firmaNome || v.firmante || 'Geom. Dogano Casella — CSE ANAS SpA'))}</div>
-          <div style="font-size:9pt; color:#64748b;">${escapeHtml(v.delegaCSE ? 'Delegato CSE' : (imp.firmaQualifica || 'CSE'))}</div>
+          <div style="margin-top:6pt; font-weight:bold;">${escapeHtml(v.delegaCSE ? v.delegaCSE.nome : (imp.firmaNome || v.firmante || 'Geom. Dogano Casella'))}</div>
+          <div style="font-size:9pt; color:#64748b;">${escapeHtml(v.delegaCSE ? 'Delegato CSE' : (imp.firmaQualifica || 'Coordinatore Sicurezza (CSE)'))}</div>
           ${!v.delegaCSE && imp.firmaAlbo && !imp.firmaAlbo.includes('Albo Geometri') ? `<div style="font-size:9pt; color:#64748b;">${escapeHtml(imp.firmaAlbo)}</div>` : ''}
           ${v.firmaTimestamp ? `<div style="font-size:9pt; color:#94a3b8;">Firmato il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}</div>` : ''}
         </td>

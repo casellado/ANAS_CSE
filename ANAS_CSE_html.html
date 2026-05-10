@@ -2007,10 +2007,11 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
                 if (firmaPers && typeof caricaFirmaSuCanvas === 'function') {
                   caricaFirmaSuCanvas('firma-verbale-container', firmaPers);
                   // Setta anche la firma corrente in memoria, così il form la salva
+                  const imp = await caricaImpostazioni().catch(() => ({}));
                   window._firmaCorrente = {
                     png: firmaPers,
                     timestamp: new Date().toISOString(),
-                    firmante: 'Geom. Dogano Casella — CSE'
+                    firmante: imp.firmaNome || 'Geom. Dogano Casella'
                   };
                 }
               }
@@ -2036,10 +2037,11 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
                 const firmaPers = await getFirmaPersistente();
                 if (firmaPers && typeof caricaFirmaSuCanvas === 'function') {
                   caricaFirmaSuCanvas('firma-riunione-container', firmaPers);
+                  const imp = await caricaImpostazioni().catch(() => ({}));
                   window._firmaCorrenteRiunione = {
                     png: firmaPers,
                     timestamp: new Date().toISOString(),
-                    firmante: 'Geom. Dogano Casella — CSE'
+                    firmante: imp.firmaNome || 'Geom. Dogano Casella'
                   };
                 }
               }

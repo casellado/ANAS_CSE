@@ -73,7 +73,7 @@ async function salvaVerbale(event) {
     presenti:        firmeExtra,   // FLUSSO 1: array [{nome, ruolo, firmaBase64, timestampFirma}]
     delegaCSE,                     // FLUSSO 1: {nome, qualifica, attoDelega} o null
     firmaTimestamp:  firmaData ? firmaData.timestamp : null,
-    firmante:        firmaData ? firmaData.firmante  : 'Geom. Dogano Casella — CSE',
+    firmante:        firmaData ? firmaData.firmante  : (window.appState?._firmaNome || 'Geom. Dogano Casella'),
     createdAt:       new Date().toISOString()
   };
 

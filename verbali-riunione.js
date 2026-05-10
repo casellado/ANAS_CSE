@@ -64,7 +64,7 @@ async function salvaRiunione(event) {
     noteDecisione:   (document.getElementById('riunione-note-decisione')?.value || '').trim(),
     firma:           window._firmaCorrenteRiunione?.png || null,
     firmaTimestamp:  window._firmaCorrenteRiunione?.timestamp || null,
-    firmante:        window.appState._firmaNome || 'Geom. Dogano Casella',
+    firmante:        (await caricaImpostazioni().catch(()=>({}))).firmaNome || 'Geom. Dogano Casella',
     presenti:        typeof _raccogliPresentiRiunione === 'function' ? _raccogliPresentiRiunione() : [],
     createdAt:       new Date().toISOString()
   };
