@@ -141,13 +141,21 @@ async function exportVerbalePDF(id) {
     return;
   }
 
-  // Fallback base
+  // Fallback base (usato solo se impostazioni.js non caricato)
   const _e = typeof escapeHtml === 'function' ? escapeHtml : (s) => (s || '');
+  // P2-FIX: legge nome CSE dinamicamente invece di usarlo hardcoded
+  let _nomeCseFallback = v.firmante || 'CSE';
+  try {
+    if (typeof caricaImpostazioni === 'function') {
+      const _impFb = await caricaImpostazioni();
+      _nomeCseFallback = v.firmante || _impFb.firmaNome || 'CSE';
+    }
+  } catch(_) {}
   const firmaHtml = v.firma
     ? `<div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px;">
          <div class="label">Firma CSE</div>
          <img src="${v.firma}" style="max-width:300px; max-height:100px; border:1px solid #e2e8f0; border-radius:6px; margin-top:6px;" alt="Firma CSE">
-         <div class="label" style="margin-top:4px;">${_e(v.firmante) || 'Geom. Dogano Casella — CSE'}</div>
+         <div class="label" style="margin-top:4px;">${_e(_nomeCseFallback)}</div>
          <div style="font-size:11px; color:#94a3b8;">
            Firmato il: ${v.firmaTimestamp ? new Date(v.firmaTimestamp).toLocaleString('it-IT') : '–'}
          </div>
@@ -156,7 +164,7 @@ async function exportVerbalePDF(id) {
          <div class="label">Firma CSE</div>
          <div style="width:300px;height:80px;border:1px solid #cbd5e1;border-radius:6px;
                      display:flex;align-items:flex-end;padding:8px;margin-top:6px;">
-           <div style="font-size:11px;color:#94a3b8;">Geom. Dogano Casella — CSE</div>
+           <div style="font-size:11px;color:#94a3b8;">${_e(_nomeCseFallback)}</div>
          </div>
        </div>`;
 
@@ -363,7 +371,7 @@ async function generaVerbalePDFBlob(v) {
       
       cursor += 25;
       doc.setFontSize(9);
-      doc.text(v.firmante || "Geom. Dogano Casella", margin, cursor);
+      doc.text(v.firmante || imp.firmaNome || 'CSE', margin, cursor);
       if (v.firmaTimestamp) {
         doc.setFontSize(7);
         doc.text(`Acquisita il: ${new Date(v.firmaTimestamp).toLocaleString('it-IT')}`, margin, cursor + 4);
@@ -372,14 +380,14 @@ async function generaVerbalePDFBlob(v) {
       console.error("[Export PDF] Errore inserimento firma:", e);
       cursor += 10;
       doc.setFontSize(10);
-      doc.text("Firma CSE: " + (v.firmante || "Geom. Dogano Casella"), margin, cursor);
+      doc.text("Firma CSE: " + (v.firmante || imp.firmaNome || 'CSE'), margin, cursor);
     }
   } else {
     console.warn("[Export PDF] Nessuna firma trovata per il verbale", v.id);
     cursor += 15;
     doc.setFontSize(10);
     doc.text("Firma CSE: __________________________", margin, cursor);
-    doc.text(v.firmante || "Geom. Dogano Casella", margin, cursor + 5);
+    doc.text(v.firmante || imp.firmaNome || 'CSE', margin, cursor + 5);
   }
 
   return doc.output('blob');
@@ -430,7 +438,7 @@ async function generaVerificaPOSPDFBlob(v) {
     const ext = firmaFinale.includes('png') ? 'PNG' : 'JPEG';
     doc.addImage(firmaFinale, ext, margin, cursor + 2, 60, 20, undefined, 'FAST');
     cursor += 25;
-    doc.text(v.cse || imp.firmaNome || "Geom. Dogano Casella", margin, cursor);
+    doc.text(v.cse || imp.firmaNome || 'CSE', margin, cursor);
   }
   
   return doc.output('blob');
@@ -476,7 +484,7 @@ async function generaODSPDFBlob(v) {
     const ext = firmaFinale.includes('png') ? 'PNG' : 'JPEG';
     doc.addImage(firmaFinale, ext, margin, cursor + 2, 60, 20, undefined, 'FAST');
     cursor += 25;
-    doc.text(imp.firmaNome || "Geom. Dogano Casella", margin, cursor);
+    doc.text(imp.firmaNome || 'CSE', margin, cursor);
   }
   
   return doc.output('blob');

@@ -80,6 +80,10 @@ async function _generaEInviaVerbaleMezzi(projectId, dataVerbale, note) {
     const mezzi = await getMezziByProject(projectId);
     const mezziPresenti = mezzi.filter(m => m.presenteInCantiere);
 
+    // P2-FIX: legge il nome CSE dalle impostazioni invece di usarlo hardcoded
+    const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
+    const nomeCse = imp.firmaNome || 'Coordinatore per l\'Esecuzione (CSE)';
+
     // Usa l'anagrafica per recuperare i nomi delle imprese
     const impreseMap = {};
     const tutteImprese = await getAll('imprese');
@@ -204,7 +208,7 @@ async function _generaEInviaVerbaleMezzi(projectId, dataVerbale, note) {
         <div style="width: 100%; margin-top: 40px;">
           <div style="float: right; width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">
             Il Coordinatore per l'Esecuzione<br>
-            <i>(Geom. Dogano Casella)</i>
+            <i>(${escapeHtml(nomeCse)})</i>
           </div>
           <div style="clear: both;"></div>
         </div>
