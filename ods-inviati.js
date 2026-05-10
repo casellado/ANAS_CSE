@@ -404,7 +404,7 @@ function _buildODSHtml(ods, cantiere, imp) {
     day: '2-digit', month: 'long', year: 'numeric'
   });
 
-  const cseNome      = imp.firmaNome      || 'Geom. Dogano Casella';
+  const cseNome      = imp.firmaNome      || 'Coordinatore per l\'Esecuzione';
   const cseQualifica = imp.firmaQualifica || 'Coordinatore per la Sicurezza in Esecuzione (CSE)';
   const cseAlbo      = imp.firmaAlbo      || '';
   const firmaImg     = imp.firmaImmagine

@@ -1617,10 +1617,10 @@ function mostraManualeUso() {
         <p>Si ringrazia per il supporto e la fase di collaudo il <strong>Geom. Antonio Perrone</strong>, il cui contributo ha permesso la sperimentazione sul campo dello strumento.</p>
 
         <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500">
-          <strong>Geom. Dogano Casella</strong><br>
+          <strong>Autore della Suite</strong><br>
           Ispettore di cantiere — assistente al Coordinatore della Sicurezza in Esecuzione<br>
           ANAS S.p.A. — Struttura Territoriale Calabria<br><br>
-          <em>ANAS SafeHub · by Geom. Dogano Casella · ANAS S.p.A.</em>
+          <em>ANAS SafeHub · Professional Suite for CSE · ANAS S.p.A.</em>
         </div>
       </div>
 

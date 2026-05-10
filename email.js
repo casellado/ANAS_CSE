@@ -54,7 +54,7 @@ ${v.note ? `Prescrizioni CSE:\n${v.note}\n` : ''}
 Si prega di firmare il documento e restituirlo al CSE.
 
 Cordiali saluti,
-${imp.firmaNome || 'Geom. Dogano Casella'}
+${imp.firmaNome || 'Coordinatore per l\'Esecuzione'}
 ${imp.firmaQualifica || 'Coordinatore Sicurezza in Esecuzione (CSE)'}
 ${imp.studioNome || ''}
 ${imp.studioPEC ? 'PEC: ' + imp.studioPEC : ''}
@@ -145,7 +145,7 @@ Si richiede sospensione immediata delle lavorazioni interessate.
 ` : ''}
 Si richiede immediato adeguamento entro i termini indicati.
 
-${imp.firmaNome || 'Geom. Dogano Casella'}
+${imp.firmaNome || 'Coordinatore per l\'Esecuzione'}
 ${imp.firmaQualifica || 'CSE'}
 ${imp.studioPEC ? 'PEC: ' + imp.studioPEC : ''}
 `);
@@ -177,7 +177,7 @@ ${v.note ? '\nPrescrizioni CSE:\n' + v.note : ''}
 
 Si prega di firmare il documento e restituirlo al CSE.
 
-${imp.firmaNome || 'Geom. Dogano Casella'}
+${imp.firmaNome || 'Coordinatore per l\'Esecuzione'}
 ${imp.firmaQualifica || 'CSE'}`;
 
   const modal = document.createElement('div');

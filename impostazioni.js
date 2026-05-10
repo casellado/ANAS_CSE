@@ -21,7 +21,7 @@ const IMPOSTAZIONI_DEFAULT = {
   normativa: 'D.Lgs 81/2008 · D.I. 22/01/2019',
 
   // Footer PDF
-  footerSinistro: 'Geom. Dogano Casella — Coordinatore Sicurezza in Esecuzione (CSE)',
+  footerSinistro: 'Coordinatore per l\'Esecuzione — CSE',
   footerDestro: 'Documento riservato — uso interno ANAS SpA',
 
   // Loghi (base64 PNG/JPG) — null se non caricati
@@ -29,7 +29,7 @@ const IMPOSTAZIONI_DEFAULT = {
   logoDestro: null,   // logo ANAS o committente
 
   // Firma pre-impostata (nome stampato sotto la firma canvas)
-  firmaNome: 'Geom. Dogano Casella',
+  firmaNome: '',
   firmaQualifica: 'Coordinatore per la Sicurezza in Esecuzione (CSE)',
   firmaAlbo: '',
 

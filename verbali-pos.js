@@ -38,7 +38,7 @@ async function salvaVerificaPOS(event) {
     esito,        // 'idoneo' | 'idoneo-con-integrazioni' | 'non-idoneo'
     integrazioni: (document.getElementById('pos-integrazioni')?.value || '').trim(),
     noteCSE,      // MOD-2: Motivazione decisione CSE
-    cse:          (document.getElementById('pos-cse')?.value || '').trim() || 'Geom. Dogano Casella',
+    cse:          (document.getElementById('pos-cse')?.value || '').trim() || (imp.posTecnicoNome || imp.firmaNome || 'Coordinatore per l\'Esecuzione'),
     firma:        firmaData ? firmaData.png : (imp.firmaImmagine || null),
     firmaTimestamp: firmaData ? firmaData.timestamp : null,
     protocolloANAS:   (document.getElementById('pos-protocollo-anas')?.value || '').trim(),
@@ -101,7 +101,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
   const esito       = p?.esito       || document.querySelector('input[name="pos-esito"]:checked')?.value || '';
   const integrazioni= p?.integrazioni|| (document.getElementById('pos-integrazioni')?.value || '').trim();
   const noteCSE     = p?.noteCSE      || (document.getElementById('pos-note')?.value || '').trim();
-  const cse         = p?.cse         || imp.posTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella';
+  const cse         = p?.cse         || imp.posTecnicoNome || imp.firmaNome || 'Coordinatore per l\'Esecuzione';
   const testoVisto  = p?.testoVisto  || (document.getElementById('pos-visto')?.value || 'il Piano Operativo di Sicurezza inoltrato da codesta Impresa Affidataria e verificata la congruenza dello stesso a quanto previsto dal D.Lgs 81/08,').trim();
 
   const data = p?.data

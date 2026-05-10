@@ -168,7 +168,7 @@ async function generaLetteraSegnalazione(ncId) {
 function _buildLetteraSegnalazioneHtml(d) {
   const { protocollo, dataLabel, cantiere, nc, motivazione, imp } = d;
 
-  const cseNome      = imp.firmaNome      || 'Geom. Dogano Casella';
+  const cseNome      = imp.firmaNome      || 'Coordinatore per l\'Esecuzione';
   const cseQualifica = imp.firmaQualifica || 'Coordinatore Sicurezza in Esecuzione (CSE)';
   const cseAlbo      = imp.firmaAlbo      || '';
   const firmaImg     = imp.firmaImmagine

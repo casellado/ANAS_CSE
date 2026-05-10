@@ -287,7 +287,7 @@ async function _buildReportHtml(dataYMD) {
   const riunioni     = verbaliOggi.filter(v => v.tipo === 'riunione-coordinamento');
   const verifichePOS = verbaliOggi.filter(v => v.tipo === 'verifica-pos');
 
-  const cseNome      = imp.firmaNome      || 'Geom. Dogano Casella';
+  const cseNome      = imp.firmaNome      || 'Coordinatore per l\'Esecuzione';
   const cseQualifica = imp.firmaQualifica || 'Coordinatore per la Sicurezza in Esecuzione (CSE)';
   const cseAlbo      = imp.firmaAlbo      || '';
   const firmaImg     = imp.firmaImmagine
