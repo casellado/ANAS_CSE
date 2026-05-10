@@ -1182,6 +1182,14 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
             </div>
           </div>
 
+          <!-- ── FIRMA CSE ── -->
+          <div>
+            <div class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
+              ✍️ Firma del CSE
+            </div>
+            <div id="firma-riunione-container"></div>
+          </div>
+
           <!-- BOTTONI -->
           <div class="flex flex-wrap gap-3 pt-2">
             <button type="submit" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm
@@ -2011,14 +2019,30 @@ Traffico regolamentato con semaforo mobile. Segnaletica conforme al D.I. 22/01/2
           break;
 
         case 'riunione-coordinamento':
-          // Pre-popola data odierna e campo CSE
+          // Pre-popola data odierna e inizializza firma
           (async () => {
             const dataInput = document.getElementById('riunione-data');
             if (dataInput && !dataInput.value) {
               dataInput.value = new Date().toISOString().slice(0, 10);
             }
-            if (typeof caricaImpostazioni === 'function') {
-              const imp = await caricaImpostazioni().catch(() => ({}));
+            // Inizializza firma canvas CSE per Riunione
+            if (typeof renderFirmaCanvas === 'function') {
+              window._firmaCorrenteRiunione = null;
+              renderFirmaCanvas('firma-riunione-container', (firmaData) => {
+                window._firmaCorrenteRiunione = firmaData;
+              });
+              // Pre-compila con firma persistente se disponibile
+              if (typeof getFirmaPersistente === 'function') {
+                const firmaPers = await getFirmaPersistente();
+                if (firmaPers && typeof caricaFirmaSuCanvas === 'function') {
+                  caricaFirmaSuCanvas('firma-riunione-container', firmaPers);
+                  window._firmaCorrenteRiunione = {
+                    png: firmaPers,
+                    timestamp: new Date().toISOString(),
+                    firmante: 'Geom. Dogano Casella — CSE'
+                  };
+                }
+              }
             }
             // P3: popola multi-select imprese del cantiere corrente
             if (typeof _popolaImpreseRiunione === 'function') {

@@ -62,8 +62,8 @@ async function salvaRiunione(event) {
     decisioni,
     // BUG-2 FIX: campo Note motivazionali (sempre presente per tutti gli esiti)
     noteDecisione:   (document.getElementById('riunione-note-decisione')?.value || '').trim(),
-    firma:           window._firmaCorrente?.png || null,
-    firmaTimestamp:  window._firmaCorrente?.timestamp || null,
+    firma:           window._firmaCorrenteRiunione?.png || null,
+    firmaTimestamp:  window._firmaCorrenteRiunione?.timestamp || null,
     firmante:        window.appState._firmaNome || 'Geom. Dogano Casella',
     presenti:        typeof _raccogliPresentiRiunione === 'function' ? _raccogliPresentiRiunione() : [],
     createdAt:       new Date().toISOString()
@@ -80,6 +80,12 @@ async function salvaRiunione(event) {
   showToast('Riunione di Coordinamento salvata ✓', 'success');
   if (typeof showCheckmark === 'function') showCheckmark();
   document.getElementById('form-riunione')?.reset();
+  window._firmaCorrenteRiunione = null;
+  if (typeof renderFirmaCanvas === 'function') {
+    renderFirmaCanvas('firma-riunione-container', (firmaData) => {
+      window._firmaCorrenteRiunione = firmaData;
+    });
+  }
   if (typeof _resetPresentiRiunione === 'function') _resetPresentiRiunione();
   if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
 }
@@ -333,7 +339,7 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
             </div>
             ${(function() {
               // Priorità: 1. Firma salvata nel record, 2. Firma appena fatta (sessione), 3. Firma persistente
-              const f = r?.firma || window._firmaCorrente?.png || imp.firmaImmagine || null;
+              const f = r?.firma || window._firmaCorrenteRiunione?.png || imp.firmaImmagine || null;
               if (f) return `
                 <div style="padding:4pt; display:inline-block; margin-bottom:2mm;">
                   <img src="${f}" style="display:block; max-height:40pt; max-width:140pt; width:auto; height:auto; object-fit:contain;" alt="Firma CSE">
