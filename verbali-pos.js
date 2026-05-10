@@ -23,6 +23,9 @@ async function salvaVerificaPOS(event) {
   const imp = (typeof caricaImpostazioni === 'function') ? await caricaImpostazioni() : {};
   const firmaData = window._firmaCorrente || null;
 
+  // P1-FIX: dichiarazione esplicita di 'esito' (era undefined — BUG CRITICO)
+  const esito = document.querySelector('input[name="pos-esito"]:checked')?.value || '';
+
   const verificaPOS = {
     id:           'pos_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
     tipo:         'verifica-pos',

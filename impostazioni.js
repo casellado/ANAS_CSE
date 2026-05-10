@@ -86,10 +86,14 @@ async function _getCondiviseMemorizzate() {
 // ─────────────────────────────────────────────
 async function caricaImpostazioni(skipCondivise = false) {
   let locali = { ...IMPOSTAZIONI_DEFAULT };
+  // Traccia quali campi sono stati salvati esplicitamente dall'utente in IndexedDB
+  let campiLocaliSalvati = new Set();
   try {
     const item = await getItem('impostazioni', IMPOSTAZIONI_KEY);
     if (item && item.data) {
       locali = { ...IMPOSTAZIONI_DEFAULT, ...item.data };
+      // Registra tutti i campi presenti nel salvataggio locale
+      campiLocaliSalvati = new Set(Object.keys(item.data));
     }
   } catch (_) { }
 
@@ -102,11 +106,12 @@ async function caricaImpostazioni(skipCondivise = false) {
   try {
     const condivise = await _getCondiviseMemorizzate();
     if (condivise && typeof condivise === 'object') {
-      // Le condivise fanno da base, le locali sovrascrivono
       for (const [key, value] of Object.entries(condivise)) {
         if (key === 'aggiornatoAt' || key === 'aggiornatoDa') continue;
-        // Se il locale non ha un valore proprio per questo campo, eredita il condiviso
-        if (!locali[key] || locali[key] === IMPOSTAZIONI_DEFAULT[key]) {
+        // P1-FIX: le impostazioni locali esplicitamente salvate dall'utente
+        // hanno SEMPRE la precedenza assoluta — OneDrive integra SOLO i campi
+        // mai toccati localmente (non presenti in item.data).
+        if (!campiLocaliSalvati.has(key)) {
           locali[key] = value;
         }
       }
