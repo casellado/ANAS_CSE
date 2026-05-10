@@ -45,7 +45,14 @@ async function inizializzaAI(options = {}) {
     };
 
     // 3. Verifica stato modello
-    const status = await LanguageModel.availability(aiOptions);
+    let status;
+    try {
+      status = await LanguageModel.availability(aiOptions);
+    } catch (_) {
+      ai.stato = 'non-supportato';
+      _aggiornaIndicatoreAI();
+      return;
+    }
 
     if (status === 'unavailable') {
       ai.stato = 'non-supportato';
@@ -55,7 +62,7 @@ async function inizializzaAI(options = {}) {
 
     // 4. Gestione Download
     if ((status === 'downloading' || status === 'downloadable') && !forzaDownload) {
-      console.info('[SafeHub AI] Modello da scaricare. In attesa di interazione utente.');
+      console.debug('[SafeHub AI] Modello da scaricare. In attesa di interazione utente.');
       ai.stato = 'download';
       ai.attesaGesto = true;
       _aggiornaIndicatoreAI();
@@ -67,7 +74,7 @@ async function inizializzaAI(options = {}) {
       ai.attesaGesto = false;
       _aggiornaIndicatoreAI();
       
-      console.info('[SafeHub AI] Avvio download assistito...');
+      console.debug('[SafeHub AI] Avvio download assistito...');
 
       try {
         ai.sessione = await LanguageModel.create({
@@ -83,8 +90,8 @@ async function inizializzaAI(options = {}) {
             });
           }
         });
-      } catch (err) {
-        console.warn('[SafeHub AI] Download in corso, polling attivo...');
+      } catch (_dlErr) {
+        console.debug('[SafeHub AI] Download in corso, polling attivo...');
         await _aspettaDownload();
       }
     }
@@ -110,16 +117,14 @@ RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
     ai.attesaGesto = false;
     _aggiornaIndicatoreAI();
 
-    console.info('[SafeHub AI] Gemini Nano pronto.');
+    console.debug('[SafeHub AI] Gemini Nano pronto.');
 
   } catch (err) {
-    console.error('[SafeHub AI] Errore inizializzazione:', err.message);
-    if (err.message.includes('user gesture')) {
+    const msg = (err && err.message) || '';
+    console.debug('[SafeHub AI] Init non riuscita:', msg);
+    if (msg.includes('user gesture')) {
       ai.attesaGesto = true;
       ai.stato = 'download';
-    } else if (err.message.includes('crashed')) {
-      ai.stato = 'non-supportato';
-      console.warn('[SafeHub AI] Il processo di background di Chrome è crashato.');
     } else {
       ai.stato = 'non-supportato';
     }
@@ -203,7 +208,7 @@ async function promptAI(testo, opzioni = {}) {
     }
     return await ai.sessione.prompt(testo);
   } catch (err) {
-    console.warn('[SafeHub AI] Errore prompt:', err.message);
+    console.debug('[SafeHub AI] Errore prompt:', (err && err.message) || '');
     return null;
   }
 }
@@ -386,17 +391,19 @@ function distruggiSessioneAI() {
 // Funzione di sblocco manuale chiamata dal modal o dal badge
 window.sbloccaAI = function() {
   const ai = window.SAFEHUB_AI;
-  if (ai.disponibile && ai.sessione) {
-    console.info('[SafeHub AI] AI già attiva e pronta.');
-    return;
-  }
+  if (ai.disponibile && ai.sessione) return;
 
-  console.info('[SafeHub AI] Richiesta attivazione on-demand ricevuta.');
+  console.debug('[SafeHub AI] Attivazione on-demand...');
   ai.stato = 'verifica';
   _aggiornaIndicatoreAI();
   
-  inizializzaAI({ forzaDownload: true }).catch(err => {
-    console.error('[SafeHub AI] Errore durante lo sblocco manuale:', err);
+  inizializzaAI({ forzaDownload: true }).then(() => {
+    if (ai.stato === 'non-supportato' && typeof showToast === 'function') {
+      showToast('AI non disponibile. Verifica i requisiti nella guida.', 'info');
+    }
+  }).catch(() => {
+    ai.stato = 'non-supportato';
+    _aggiornaIndicatoreAI();
   });
 };
 

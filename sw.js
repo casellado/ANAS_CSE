@@ -1,8 +1,8 @@
-// sw.js — Service Worker ANAS SafeHub v2.2.16
+// sw.js — Service Worker ANAS SafeHub v2.2.17
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Dogano Casella · ANAS SpA
 
-const CACHE_NAME = 'anas-safehub-v2.2.16';
+const CACHE_NAME = 'anas-safehub-v2.2.17';
 
 const CACHE_STATIC = [
   './',
