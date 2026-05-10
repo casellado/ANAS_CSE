@@ -135,16 +135,12 @@ async function exportPOSWord(posId, tipoExport = 'word') {
             ${logoAnasHtml}
           </td>
           <td style="width:50%; height:15mm; vertical-align:middle; text-align:center; padding:0; border:none;">
-            <div style="font-size:12pt; font-weight:bold; text-transform:uppercase;">
-              Verifica Piano Operativo di Sicurezza
+            <h1 style="margin:0; font-size:12pt; text-transform:uppercase;">VERIFICA PIANO OPERATIVO DI SICUREZZA</h1>
+            <div style="font-size:9pt; color:#475569; margin-top:3pt;">
+              Mod. RE. 01-5 · Vers. 3.0 del 22/01/2024 · Ai sensi dell'art. 92 c.1 lett. b) D.Lgs 81/08
             </div>
           </td>
           <td style="width:25%; height:15mm; vertical-align:middle; text-align:right; padding:0; border:none;">
-            <div style="font-size:9pt; color:#475569; line-height:1.3;">
-              <strong>Mod. RE. 01-5</strong><br>
-              Vers. 3.0 del 22/01/2024<br>
-              <span style="font-size:8pt; font-style:italic;">Ai sensi dell'art. 92 c.1 lett. b) D.Lgs 81/08</span>
-            </div>
           </td>
         </tr>
       </table>
