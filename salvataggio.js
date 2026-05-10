@@ -404,13 +404,31 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         <td style="text-align:center;">${i + 1}</td>
         <td>${escapeHtml(p.nome || '–')}</td>
         <td>${escapeHtml(p.ruolo || '–')}</td>
-        <td style="text-align:center;">
+        <td style="text-align:center; vertical-align:middle;">
           ${p.firmaBase64
             ? `<img src="${p.firmaBase64}" style="max-width:140pt; max-height:50pt; object-fit:contain;">`
-            : '<span style="color:#94a3b8;">Non firmato</span>'}
+            : '<div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8; margin-top:10pt;"></div>'}
         </td>
       </tr>`).join('')}
-    </table>` : ''}
+    </table>` : `
+    <!-- FLUSSO 2: REFERENTI TESTUALI (SPAZIO FIRMA MANUALE) -->
+    ${v.referenti ? `
+    <h2>Firme per Presa Visione (Presenti)</h2>
+    <table>
+      <tr>
+        <th>Nominativo / Qualifica</th>
+        <th style="width:180pt;">Firma</th>
+      </tr>
+      ${v.referenti.split(/[\n,;·]+/).map(r => r.trim()).filter(r => r).map(r => `
+      <tr>
+        <td style="padding:10pt 8pt;">${escapeHtml(r)}</td>
+        <td style="text-align:center; vertical-align:middle;">
+          <div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8;"></div>
+        </td>
+      </tr>
+      `).join('')}
+    </table>
+    ` : ''}`}
 
     ${v.delegaCSE ? `
     <!-- FLUSSO 1: DELEGA CSE -->
