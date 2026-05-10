@@ -302,6 +302,8 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
       projectId: window.appState?.currentProject,
       allegaMezzi: document.getElementById('verbale-allega-mezzi')?.checked || false,
       firmante: imp.firmaNome || 'Geom. Dogano Casella',
+      firma: window._firmaCorrente ? window._firmaCorrente.png : null,
+      firmaTimestamp: window._firmaCorrente ? window._firmaCorrente.timestamp : null,
       presenti: typeof _raccogliPresenti === 'function' ? _raccogliPresenti() : [],
       delegaCSE: typeof _raccogliDelegaCSE === 'function' ? _raccogliDelegaCSE() : null
     };
@@ -410,10 +412,11 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
             : '<div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8; margin-top:10pt;"></div>'}
         </td>
       </tr>`).join('')}
-    </table>` : `
+    </table>` : ''}
+
     <!-- FLUSSO 2: REFERENTI TESTUALI (SPAZIO FIRMA MANUALE) -->
     ${v.referenti ? `
-    <h2>Firme per Presa Visione (Presenti)</h2>
+    <h2>Firme per Presa Visione (Referenti)</h2>
     <table>
       <tr>
         <th>Nominativo / Qualifica</th>
@@ -428,7 +431,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
       </tr>
       `).join('')}
     </table>
-    ` : ''}`}
+    ` : ''}
 
     ${v.delegaCSE ? `
     <!-- FLUSSO 1: DELEGA CSE -->
