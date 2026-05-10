@@ -315,11 +315,11 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     : '–';
 
   const logoSxHtml = imp.logoSinistro
-    ? `<img src="${imp.logoSinistro}" style="max-height:100pt; max-width:300pt;">`
+    ? `<img src="${imp.logoSinistro}" style="max-height:60pt; max-width:140pt; object-fit:contain;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.studioNome || ''}</div>`;
 
   const logoDxHtml = imp.logoDestro
-    ? `<img src="${imp.logoDestro}" style="max-height:100pt; max-width:300pt;">`
+    ? `<img src="${imp.logoDestro}" style="max-height:60pt; max-width:140pt; object-fit:contain;">`
     : `<div style="font-size:10pt; color:#64748b;">${imp.committenteNome || 'ANAS SpA'}</div>`;
 
   const firmaImg = v.firma
@@ -336,13 +336,15 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     <div class="intestazione">
       <table style="border:none; width:100%;">
         <tr>
-          <td style="border:none; width:50%; vertical-align:middle;">${logoSxHtml}</td>
-          <td style="border:none; width:50%; vertical-align:middle; text-align:right;">${logoDxHtml}</td>
-        </tr>
-        <tr>
-          <td colspan="2" style="border:none; text-align:center; padding-top:8pt;">
+          <td style="border:none; width:25%; vertical-align:middle; text-align:left;">
+            ${logoSxHtml}
+          </td>
+          <td style="border:none; width:50%; vertical-align:middle; text-align:center;">
             <h1 style="margin:0;">VERBALE DI SOPRALLUOGO CSE</h1>
             <div style="font-size:10pt; color:#64748b;">${normativaClean}</div>
+          </td>
+          <td style="border:none; width:25%; vertical-align:middle; text-align:right;">
+            ${logoDxHtml}
           </td>
         </tr>
       </table>
