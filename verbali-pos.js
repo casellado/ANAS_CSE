@@ -279,36 +279,36 @@ async function exportPOSWord(posId, tipoExport = 'word') {
       <!-- 9) FIRME -->
       <table style="width:100%; border-collapse:collapse; margin-top:8mm; border-top:1pt solid #e2e8f0; padding-top:4mm;">
         <tr>
-          <td style="width:33%; border:none; padding:0 6mm 0 0; text-align:left; vertical-align:bottom;">
+          <td style="width:33.3%; border:none; padding:0 2mm; text-align:center; vertical-align:bottom;">
             <!-- Blocco firma CSE -->
             <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
               Il Coordinatore per la Sicurezza (CSE)
             </div>
             ${firmaImg ? `
-            <div style="padding:4pt; display:inline-block; margin-bottom:2mm;">
+            <div style="height:40pt; margin:0 auto 2mm auto; text-align:center;">
               <img src="${firmaImg}"
-                   style="display:block; max-height:40pt; max-width:140pt; width:auto; height:auto; object-fit:contain;"
+                   style="display:inline-block; max-height:40pt; max-width:140pt; width:auto; height:auto; object-fit:contain;"
                    alt="Firma CSE">
             </div>
             ` : `
-            <div style="height:40pt; border-bottom:1px dashed #94a3b8; width:140pt; margin-bottom:2mm;"></div>
+            <div style="height:40pt; border-bottom:1pt solid #000; width:140pt; margin:0 auto 2mm auto;"></div>
             `}
             <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(cse)}</div>
             ${imp.posTecnicoQualifica ? `<div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.posTecnicoQualifica)}</div>` : ''}
           </td>
-          <td style="width:33%; border:none; padding:0 3mm; text-align:center; vertical-align:bottom;">
+          <td style="width:33.3%; border:none; padding:0 2mm; text-align:center; vertical-align:bottom;">
             <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
               Responsabile dei Lavori
             </div>
-            <div style="height:22mm; border-bottom:1pt solid #000; width:100%; margin-bottom:2mm;"></div>
-            <div style="font-size:8pt; color:#94a3b8;">${escapeHtml(imp.posRup || '___________________________')}</div>
+            <div style="height:40pt; border-bottom:1pt solid #000; width:140pt; margin:0 auto 2mm auto;"></div>
+            <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(imp.posRup || '___________________________')}</div>
           </td>
-          <td style="width:33%; border:none; padding:0 0 0 6mm; text-align:right; vertical-align:bottom;">
+          <td style="width:33.3%; border:none; padding:0 2mm; text-align:center; vertical-align:bottom;">
             <div style="margin-bottom:2mm; font-size:8pt; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em;">
               Responsabile Struttura
             </div>
-            <div style="height:22mm; border-bottom:1pt solid #000; width:100%; margin-bottom:2mm;"></div>
-            <div style="font-size:8pt; color:#94a3b8;">___________________________</div>
+            <div style="height:40pt; border-bottom:1pt solid #000; width:140pt; margin:0 auto 2mm auto;"></div>
+            <div style="font-size:9pt; font-weight:700; color:#0f172a;">___________________________</div>
           </td>
         </tr>
       </table>
