@@ -196,19 +196,55 @@ async function promptAI(testo, opzioni = {}) {
 
   const { streaming = false, onChunk = null } = opzioni;
 
+  // Tentativo 1: prompt diretto
   try {
     if (streaming && onChunk) {
       const stream = ai.sessione.promptStreaming(testo);
       let risposta = '';
       for await (const chunk of stream) {
-        risposta = chunk; // promptStreaming restituisce il testo cumulativo
+        risposta = chunk;
         onChunk(chunk);
       }
       return risposta;
     }
     return await ai.sessione.prompt(testo);
   } catch (err) {
-    console.debug('[SafeHub AI] Errore prompt:', (err && err.message) || '');
+    const msg = (err && err.message) || '';
+    console.debug('[SafeHub AI] Prompt fallito:', msg);
+
+    // Se la sessione è crashata, tentiamo il recovery una volta
+    if (msg.includes('crashed') || msg.includes('destroy') || msg.includes('aborted') || msg.includes('invalidated')) {
+      console.debug('[SafeHub AI] Sessione invalidata, tentativo di recovery...');
+      try {
+        distruggiSessioneAI();
+        const aiOptions = {
+          expectedInputs:  [{ type: 'text', languages: ['en'] }],
+          expectedOutputs: [{ type: 'text', languages: ['en'] }]
+        };
+        ai.sessione = await LanguageModel.create({
+          ...aiOptions,
+          systemPrompt: `Sei un assistente esperto di sicurezza nei cantieri stradali ANAS SpA.
+Conosci perfettamente il D.Lgs 81/2008 e le procedure ANAS.
+RISPONDI RIGOROSAMENTE SOLO IN LINGUA ITALIANA, in modo tecnico e conciso.`,
+          temperature: 0.4,
+          topK: 32
+        });
+        ai.disponibile = true;
+        ai.stato = 'pronto';
+        _aggiornaIndicatoreAI();
+
+        // Tentativo 2: riprova il prompt con la nuova sessione
+        return await ai.sessione.prompt(testo);
+      } catch (_retryErr) {
+        console.debug('[SafeHub AI] Recovery fallito:', (_retryErr && _retryErr.message) || '');
+        ai.disponibile = false;
+        ai.stato = 'non-supportato';
+        ai.sessione = null;
+        _aggiornaIndicatoreAI();
+        return null;
+      }
+    }
+
     return null;
   }
 }
@@ -366,12 +402,17 @@ async function attivaAI(targetId, tipo, contesto = {}) {
       showToast('✅ Testo generato dall\'AI — verifica e adatta.', 'success');
     } else {
       target.value = valoreOriginale;
-      showToast('AI non ha prodotto una risposta. Riprova.', 'warning');
+      // Controlla se l'AI si è disattivata durante il prompt (crash)
+      if (!window.SAFEHUB_AI.disponibile) {
+        showToast('Il motore AI si è arrestato. Riavvia Chrome e riprova.', 'warning');
+      } else {
+        showToast('AI non ha prodotto una risposta. Riprova.', 'warning');
+      }
     }
 
   } catch (err) {
     target.value = valoreOriginale;
-    showToast('Errore AI: ' + err.message, 'error');
+    showToast('Errore AI: ' + ((err && err.message) || 'sconosciuto'), 'error');
   } finally {
     target.disabled = false;
   }
