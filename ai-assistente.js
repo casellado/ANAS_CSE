@@ -450,10 +450,44 @@ window.sbloccaAI = function() {
 
 // 13. Init automatico + cleanup
 // ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // L'AI non viene più inizializzata all'avvio per evitare crash durante la navigazione.
-  // Verrà attivata solo al click dell'utente sul badge o su una funzione AI.
-  _aggiornaIndicatoreAI();
+document.addEventListener('DOMContentLoaded', async () => {
+  const badge = document.getElementById('ai-status-badge');
+
+  // Rilevazione rapida: se l'API non esiste, nascondi tutto silenziosamente
+  if (typeof LanguageModel === 'undefined') {
+    window.SAFEHUB_AI.stato = 'non-supportato';
+    if (badge) badge.style.display = 'none';
+    document.querySelectorAll('.ai-btn').forEach(b => b.style.display = 'none');
+    return;
+  }
+
+  // Verifica silenziosa dello stato del modello
+  try {
+    const aiOptions = { expectedOutputs: [{ type: 'text', languages: ['en'] }] };
+    const status = await LanguageModel.availability(aiOptions);
+
+    if (status === 'unavailable') {
+      window.SAFEHUB_AI.stato = 'non-supportato';
+      if (badge) badge.style.display = 'none';
+      document.querySelectorAll('.ai-btn').forEach(b => b.style.display = 'none');
+      return;
+    }
+
+    // Modello disponibile o scaricabile — mostra il badge di attivazione
+    if (status === 'available' || status === 'readily') {
+      window.SAFEHUB_AI.stato = 'spento';
+    } else {
+      window.SAFEHUB_AI.stato = 'spento';
+      window.SAFEHUB_AI.attesaGesto = true;
+    }
+    _aggiornaIndicatoreAI();
+
+  } catch (_) {
+    // Qualsiasi errore (crash, API rotta) → nascondi silenziosamente
+    window.SAFEHUB_AI.stato = 'non-supportato';
+    if (badge) badge.style.display = 'none';
+    document.querySelectorAll('.ai-btn').forEach(b => b.style.display = 'none');
+  }
 });
 
 window.addEventListener('beforeunload', distruggiSessioneAI);
