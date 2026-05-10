@@ -317,7 +317,7 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
           <td style="border:0.5pt solid #000; padding:4pt 6pt; font-size:9pt; text-align:left; vertical-align:middle;">${escapeHtml(p.ruolo || '–')}</td>
           <td style="border:0.5pt solid #000; padding:4pt 6pt; text-align:center; vertical-align:middle;">
             ${p.firmaBase64
-              ? \`<img src="\${p.firmaBase64}" style="max-width:120pt; max-height:35pt; object-fit:contain;">\`
+              ? `<img src="${p.firmaBase64}" style="max-width:120pt; max-height:35pt; object-fit:contain;">`
               : '<div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8; margin-top:5pt;"></div>'}
           </td>
         </tr>`).join('')}
@@ -473,49 +473,49 @@ function aggiungiPresenteRiunione() {
     { value: 'Rappresentante', label: 'Rappresentante Impresa' },
     { value: 'Altro',        label: 'Altro' }
   ];
-  const ruoliOpts = RUOLI_PRESENTI.map(r => \`<option value="\${r.value}">\${r.label}</option>\`).join('');
+  const ruoliOpts = RUOLI_PRESENTI.map(r => `<option value="${r.value}">${r.label}</option>`).join('');
 
   const row = document.createElement('div');
-  row.id = \`presente-riu-row-\${idx}\`;
+  row.id = `presente-riu-row-${idx}`;
   row.className = 'bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2';
-  row.innerHTML = \`
+  row.innerHTML = `
     <div class="flex items-center justify-between gap-2">
-      <span class="text-xs font-bold text-slate-500 uppercase">#\${idx + 1}</span>
-      <button type="button" onclick="rimuoviPresenteRiunione(\${idx})"
+      <span class="text-xs font-bold text-slate-500 uppercase">#${idx + 1}</span>
+      <button type="button" onclick="rimuoviPresenteRiunione(${idx})"
               class="text-xs text-red-500 hover:text-red-700 font-semibold focus:outline-none"
-              aria-label="Rimuovi presente \${idx + 1}">✕ Rimuovi</button>
+              aria-label="Rimuovi presente ${idx + 1}">✕ Rimuovi</button>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
       <div class="sm:col-span-2">
-        <input id="presente-riu-nome-\${idx}" type="text" placeholder="Nome e Cognome"
+        <input id="presente-riu-nome-${idx}" type="text" placeholder="Nome e Cognome"
                class="w-full border border-slate-300 rounded-lg p-2 text-sm
                       focus:ring-2 focus:ring-blue-400 focus:outline-none">
       </div>
       <div>
-        <select id="presente-riu-ruolo-\${idx}"
+        <select id="presente-riu-ruolo-${idx}"
                 class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white
                        focus:ring-2 focus:ring-blue-400 focus:outline-none">
           <option value="">— Ruolo —</option>
-          \${ruoliOpts}
+          ${ruoliOpts}
         </select>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <button type="button" onclick="apriCanvasFirmaPresenteRiunione(\${idx})"
+      <button type="button" onclick="apriCanvasFirmaPresenteRiunione(${idx})"
               class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold
                      hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
         ✍️ Firma
       </button>
-      <span id="presente-riu-firma-stato-\${idx}" class="text-xs text-slate-400">Non firmato</span>
+      <span id="presente-riu-firma-stato-${idx}" class="text-xs text-slate-400">Non firmato</span>
     </div>
-  \`;
+  `;
 
   list.appendChild(row);
   _aggiornaContatorePresentiRiunione();
 }
 
 function rimuoviPresenteRiunione(idx) {
-  const row = document.getElementById(\`presente-riu-row-\${idx}\`);
+  const row = document.getElementById(`presente-riu-row-${idx}`);
   if (row) row.remove();
   window._firmePresentiRiunione[idx] = null;
   _aggiornaContatorePresentiRiunione();
@@ -525,12 +525,12 @@ function _aggiornaContatorePresentiRiunione() {
   const countEl = document.getElementById('presenti-riunione-count');
   if (!countEl) return;
   const righePresenti = document.querySelectorAll('[id^="presente-riu-row-"]').length;
-  countEl.textContent = \`\${righePresenti}/15 presenti\`;
+  countEl.textContent = `${righePresenti}/15 presenti`;
   countEl.classList.toggle('hidden', righePresenti === 0);
 }
 
 function apriCanvasFirmaPresenteRiunione(idx) {
-  const nome = document.getElementById(\`presente-riu-nome-\${idx}\`)?.value || \`Presente #\${idx + 1}\`;
+  const nome = document.getElementById(`presente-riu-nome-${idx}`)?.value || `Presente #${idx + 1}`;
 
   const old = document.getElementById('modal-firma-presente-riu');
   if (old) old.remove();
@@ -539,42 +539,42 @@ function apriCanvasFirmaPresenteRiunione(idx) {
   modal.id = 'modal-firma-presente-riu';
   modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
   
-  const canvasId = \`firma-presente-riu-canvas-\${idx}\`;
+  const canvasId = `firma-presente-riu-canvas-${idx}`;
 
-  modal.innerHTML = \`
+  modal.innerHTML = `
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-bold text-slate-800">✍️ Firma di \${escapeHtml(nome)}</h3>
+        <h3 class="text-sm font-bold text-slate-800">✍️ Firma di ${escapeHtml(nome)}</h3>
         <button onclick="document.getElementById('modal-firma-presente-riu').remove()"
                 class="text-slate-400 hover:text-slate-700 text-lg font-bold focus:outline-none">&times;</button>
       </div>
 
       <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
         <div class="relative bg-white">
-          <canvas id="\${canvasId}"
+          <canvas id="${canvasId}"
                   width="600" height="180"
                   class="w-full touch-none cursor-crosshair block"
                   style="max-height:180px;">
           </canvas>
           <div class="absolute bottom-8 left-8 right-8 h-px bg-slate-200 pointer-events-none"></div>
           <div class="absolute bottom-2 left-8 text-[10px] text-slate-300 pointer-events-none select-none">
-            Firma qui — \${escapeHtml(nome)}
+            Firma qui — ${escapeHtml(nome)}
           </div>
         </div>
       </div>
 
       <div class="flex items-center justify-between">
-        <button type="button" onclick="_firmaClearPresenteRiunione('\${canvasId}')"
+        <button type="button" onclick="_firmaClearPresenteRiunione('${canvasId}')"
                 class="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none">
           🗑 Cancella
         </button>
-        <button type="button" onclick="_firmaConfermaPresenteModalRiunione(\${idx}, '\${canvasId}')"
+        <button type="button" onclick="_firmaConfermaPresenteModalRiunione(${idx}, '${canvasId}')"
                 class="text-xs px-4 py-1.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
           ✅ Conferma Firma
         </button>
       </div>
     </div>
-  \`;
+  `;
 
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
@@ -616,7 +616,7 @@ function _firmaConfermaPresenteModalRiunione(idx, canvasId) {
   if (!canvas) return;
 
   const dataURL = canvas.toDataURL('image/png');
-  const nome = document.getElementById(\`presente-riu-nome-\${idx}\`)?.value || \`Presente #\${idx + 1}\`;
+  const nome = document.getElementById(`presente-riu-nome-${idx}`)?.value || `Presente #${idx + 1}`;
 
   window._firmePresentiRiunione[idx] = {
     png: dataURL,
@@ -624,21 +624,21 @@ function _firmaConfermaPresenteModalRiunione(idx, canvasId) {
     firmante: nome
   };
 
-  const statoEl = document.getElementById(\`presente-riu-firma-stato-\${idx}\`);
-  if (statoEl) statoEl.innerHTML = \`<span class="text-green-600 font-semibold">✅ Firmato</span>\`;
+  const statoEl = document.getElementById(`presente-riu-firma-stato-${idx}`);
+  if (statoEl) statoEl.innerHTML = `<span class="text-green-600 font-semibold">✅ Firmato</span>`;
 
   document.getElementById('modal-firma-presente-riu')?.remove();
-  if (typeof showToast === 'function') showToast(\`Firma di \${nome} acquisita ✓\`, 'success');
+  if (typeof showToast === 'function') showToast(`Firma di ${nome} acquisita ✓`, 'success');
 }
 
 function _raccogliPresentiRiunione() {
   const presenti = [];
   for (let i = 0; i < window._presentiRiunioneCount; i++) {
-    const row = document.getElementById(\`presente-riu-row-\${i}\`);
+    const row = document.getElementById(`presente-riu-row-${i}`);
     if (!row) continue;
-    const nome = (document.getElementById(\`presente-riu-nome-\${i}\`)?.value || '').trim();
+    const nome = (document.getElementById(`presente-riu-nome-${i}`)?.value || '').trim();
     if (!nome) continue;
-    const ruolo = document.getElementById(\`presente-riu-ruolo-\${i}\`)?.value || '';
+    const ruolo = document.getElementById(`presente-riu-ruolo-${i}`)?.value || '';
     const firma = window._firmePresentiRiunione[i];
     presenti.push({
       nome,
