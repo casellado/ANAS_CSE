@@ -118,7 +118,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
 
   const logoAnas = imp.logoDestro || imp.logoSinistro;
   const logoAnasHtml = logoAnas
-    ? `<img src="${logoAnas}" style="max-height:30mm; max-width:50mm; object-fit:contain;">`
+    ? `<img src="${logoAnas}" style="max-height:80pt; max-width:180pt; object-fit:contain;">`
     : `<div style="font-size:14pt; font-weight:bold; color:#0369a1;">ANAS</div>`;
 
   // Priorità: 1. Firma salvata nel record, 2. Firma appena fatta (sessione), 3. Firma persistente
@@ -131,15 +131,15 @@ async function exportPOSWord(posId, tipoExport = 'word') {
       <!-- 3) HEADER COMPLETO -->
       <table style="width:100%; border-collapse:collapse; margin-bottom:5mm; border-bottom:1.5pt solid #0f172a;">
         <tr>
-          <td style="width:25mm; height:15mm; vertical-align:middle; text-align:left; padding:0; border:none;">
+          <td style="width:25%; height:15mm; vertical-align:middle; text-align:left; padding:0; border:none;">
             ${logoAnasHtml}
           </td>
-          <td style="width:95mm; height:15mm; vertical-align:middle; text-align:center; padding:0; border:none;">
+          <td style="width:50%; height:15mm; vertical-align:middle; text-align:center; padding:0; border:none;">
             <div style="font-size:12pt; font-weight:bold; text-transform:uppercase;">
               Verifica Piano Operativo di Sicurezza
             </div>
           </td>
-          <td style="width:60mm; height:15mm; vertical-align:middle; text-align:right; padding:0; border:none;">
+          <td style="width:25%; height:15mm; vertical-align:middle; text-align:right; padding:0; border:none;">
             <div style="font-size:9pt; color:#475569; line-height:1.3;">
               <strong>Mod. RE. 01-5</strong><br>
               Vers. 3.0 del 22/01/2024<br>
@@ -285,13 +285,13 @@ async function exportPOSWord(posId, tipoExport = 'word') {
               Il Coordinatore per la Sicurezza (CSE)
             </div>
             ${firmaImg ? `
-            <div style="border:1pt solid #e2e8f0; border-radius:4pt; background:#fff; padding:4pt; display:inline-block; margin-bottom:2mm;">
+            <div style="padding:4pt; display:inline-block; margin-bottom:2mm;">
               <img src="${firmaImg}"
-                   style="display:block; max-height:22mm; max-width:70mm; width:auto; height:auto; object-fit:contain;"
+                   style="display:block; max-height:40pt; max-width:140pt; width:auto; height:auto; object-fit:contain;"
                    alt="Firma CSE">
             </div>
             ` : `
-            <div style="height:22mm; border-bottom:1pt solid #000; width:70mm; margin-bottom:2mm;"></div>
+            <div style="height:40pt; border-bottom:1px dashed #94a3b8; width:140pt; margin-bottom:2mm;"></div>
             `}
             <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(cse)}</div>
             ${imp.posTecnicoQualifica ? `<div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.posTecnicoQualifica)}</div>` : ''}
