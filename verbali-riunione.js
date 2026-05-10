@@ -64,7 +64,7 @@ async function salvaRiunione(event) {
     noteDecisione:   (document.getElementById('riunione-note-decisione')?.value || '').trim(),
     firma:           window._firmaCorrenteRiunione?.png || null,
     firmaTimestamp:  window._firmaCorrenteRiunione?.timestamp || null,
-    firmante:        (await caricaImpostazioni().catch(()=>({}))).firmaNome || 'Geom. Dogano Casella',
+    firmante:        (function(i){ return i.riuTecnicoNome || i.firmaNome || 'Geom. Dogano Casella'; })(await caricaImpostazioni().catch(()=>({}))),
     presenti:        typeof _raccogliPresentiRiunione === 'function' ? _raccogliPresentiRiunione() : [],
     createdAt:       new Date().toISOString()
   };
@@ -346,8 +346,8 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
                 </div>`;
               return '<div style="height:40pt; border-bottom:1px dashed #94a3b8; width:140pt; margin-bottom:2mm;"></div>';
             })()}
-            <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(imp.firmaNome || 'Geom. Dogano Casella')}</div>
-            <div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.firmaQualifica || 'Coordinatore Sicurezza (CSE)')}</div>
+            <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</div>
+            <div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.riuTecnicoQualifica || imp.firmaQualifica || 'Coordinatore Sicurezza (CSE)')}</div>
           </td>
           <td style="width:50%; border:none; padding:0 0 0 8mm; text-align:right; vertical-align:bottom;">
             &nbsp;
