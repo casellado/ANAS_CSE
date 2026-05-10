@@ -40,6 +40,7 @@ async function salvaVerificaPOS(event) {
     firmaTimestamp: firmaData ? firmaData.timestamp : null,
     protocolloANAS:   (document.getElementById('pos-protocollo-anas')?.value || '').trim(),
     dataProtocollo:   (document.getElementById('pos-data-protocollo')?.value || '').trim(),
+    testoVisto:   (document.getElementById('pos-visto')?.value || 'il Piano Operativo di Sicurezza inoltrato da codesta Impresa Affidataria e verificata la congruenza dello stesso a quanto previsto dal D.Lgs 81/08,').trim(),
     createdAt:    new Date().toISOString()
   };
   
@@ -98,6 +99,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
   const integrazioni= p?.integrazioni|| (document.getElementById('pos-integrazioni')?.value || '').trim();
   const noteCSE     = p?.noteCSE      || (document.getElementById('pos-note')?.value || '').trim();
   const cse         = p?.cse         || imp.posTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella';
+  const testoVisto  = p?.testoVisto  || (document.getElementById('pos-visto')?.value || 'il Piano Operativo di Sicurezza inoltrato da codesta Impresa Affidataria e verificata la congruenza dello stesso a quanto previsto dal D.Lgs 81/08,').trim();
 
   const data = p?.data
     ? new Date(p.data).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'})
@@ -229,7 +231,7 @@ async function exportPOSWord(posId, tipoExport = 'word') {
         </p>
         <div style="text-align:center; font-weight:bold; margin-bottom:3mm; font-size:11pt;">VISTO</div>
         <p style="margin-bottom:3mm;">
-          il Piano Operativo di Sicurezza inoltrato da codesta Impresa Affidataria e verificata la congruenza dello stesso a quanto previsto dal D.Lgs 81/08,
+          ${escapeHtml(testoVisto)}
         </p>
         <div style="text-align:center; font-weight:bold; margin-bottom:3mm; font-size:11pt;">DICHIARA</div>
       </div>
