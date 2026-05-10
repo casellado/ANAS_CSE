@@ -262,7 +262,7 @@ function _buildLetteraHtml(d) {
   const cseQualifica = imp.firmaQualifica || 'Coordinatore per la Sicurezza in Esecuzione (CSE)';
   const cseAlbo      = imp.firmaAlbo      || '';
   const firmaImg     = imp.firmaImmagine
-    ? `<img src="${imp.firmaImmagine}" style="max-height:60px; max-width:200px" alt="Firma CSE" />`
+    ? `<img src="${imp.firmaImmagine}" style="max-height:40pt; max-width:140pt; object-fit:contain;" alt="Firma CSE" />`
     : '';
 
   return `

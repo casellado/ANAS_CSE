@@ -303,10 +303,10 @@ async function exportRiunioneWord(riunioneId, tipoExport = 'word') {
               // Priorità: 1. Firma salvata nel record, 2. Firma appena fatta (sessione), 3. Firma persistente
               const f = r?.firma || window._firmaCorrente?.png || imp.firmaImmagine || null;
               if (f) return `
-                <div style="border:1pt solid #e2e8f0; border-radius:4pt; background:#fff; padding:4pt; display:inline-block; margin-bottom:2mm;">
-                  <img src="${f}" style="display:block; max-height:22mm; max-width:70mm; width:auto; height:auto; object-fit:contain;" alt="Firma CSE">
+                <div style="padding:4pt; display:inline-block; margin-bottom:2mm;">
+                  <img src="${f}" style="display:block; max-height:40pt; max-width:140pt; width:auto; height:auto; object-fit:contain;" alt="Firma CSE">
                 </div>`;
-              return '<div style="height:22mm; border-bottom:1pt solid #000; width:70mm; margin-bottom:2mm;"></div>';
+              return '<div style="height:40pt; border-bottom:1px dashed #94a3b8; width:140pt; margin-bottom:2mm;"></div>';
             })()}
             <div style="font-size:9pt; font-weight:700; color:#0f172a;">${escapeHtml(imp.riuTecnicoNome || imp.firmaNome || 'Geom. Dogano Casella')}</div>
             ${imp.riuTecnicoQualifica ? `<div style="font-size:8pt; color:#64748b;">${escapeHtml(imp.riuTecnicoQualifica)}</div>` : ''}

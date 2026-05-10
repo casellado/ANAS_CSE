@@ -233,8 +233,8 @@ function scaricaComeWord(htmlContenuto, nomeFile = 'documento') {
         .label { font-size: 9pt; font-weight: bold; text-transform: uppercase;
                  letter-spacing: 0.05em; color: #64748b; }
         .valore { font-size: 11pt; margin-top: 1pt; }
-        .firma-box { width: 200pt; height: 60pt; border: 1px solid #94a3b8;
-                     margin-top: 4pt; border-radius: 3pt; }
+        .firma-box { width: 140pt; height: 35pt; border-bottom: 1px dashed #94a3b8;
+                     margin-top: 4pt; }
         .footer-word { font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0;
                        padding-top: 4pt; margin-top: 16pt; text-align: center; }
         .highlight { background: #fefce8; padding: 4pt 8pt; border-left: 3px solid #ca8a04; }
@@ -323,7 +323,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
     : `<div style="font-size:10pt; color:#64748b;">${imp.committenteNome || 'ANAS SpA'}</div>`;
 
   const firmaImg = v.firma
-    ? `<img src="${v.firma}" style="max-width:180pt; max-height:70pt; border:1px solid #e2e8f0;">`
+    ? `<img src="${v.firma}" style="max-width:140pt; max-height:45pt; object-fit:contain;">`
     : `<div class="firma-box"></div>`;
 
   let normativaClean = imp.normativa || 'D.Lgs 81/08 · D.I. 22/01/2019';
@@ -408,8 +408,8 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         <td>${escapeHtml(p.ruolo || '–')}</td>
         <td style="text-align:center; vertical-align:middle;">
           ${p.firmaBase64
-            ? `<img src="${p.firmaBase64}" style="max-width:140pt; max-height:50pt; object-fit:contain;">`
-            : '<div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8; margin-top:10pt;"></div>'}
+            ? `<img src="${p.firmaBase64}" style="max-width:120pt; max-height:35pt; object-fit:contain;">`
+            : '<div style="height:35pt; width:100%; border-bottom:1pt dotted #94a3b8; margin-top:5pt;"></div>'}
         </td>
       </tr>`).join('')}
     </table>` : ''}
@@ -458,7 +458,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
         </td>
         <td style="width:50%; vertical-align:top; border:none; padding-left:16pt;">
           <div class="label">Timbro / Per ricevuta</div>
-          <div class="firma-box" style="width:100%; height:80pt;"></div>
+          <div class="firma-box" style="width:100%; height:45pt;"></div>
         </td>
       </tr>
     </table>
