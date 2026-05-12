@@ -1,584 +1,130 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description"
-    content="ANAS SafeHub - Pannello CSE per la gestione della sicurezza nei cantieri ANAS SpA" />
   <title>ANAS SafeHub · Hub Cantieri CSE</title>
   <link rel="icon" type="image/png" href="icon-192.png" />
-  <meta name="google" content="notranslate" />
-  <script>
-    // Sopprimi l'avviso di Tailwind CDN in produzione per mantenere pulita la console
-    (function() {
-      var _tw = 'cdn.tailwindcss.com should not be used in production';
-      ['warn','log'].forEach(function(m) {
-        var orig = console[m];
-        console[m] = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].indexOf(_tw) !== -1) return;
-          return orig.apply(console, arguments);
-        };
-      });
-    })();
-  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
-
+  
   <style>
-    body {
-      font-family: Inter, system-ui, -apple-system, sans-serif;
-    }
-
-    .page-hidden {
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-    }
-
-    .page-transition {
-      transition: opacity .2s ease, transform .2s ease;
-    }
-
-    [aria-hidden="true"] {
-      display: none;
-    }
+    body { font-family: 'Inter', sans-serif; }
+    .page-hidden { display: none !important; }
   </style>
 
-  <!-- Core -->
-  <script defer src="./db.js?v=2.2.13"></script>
-  <script defer src="./storage.js?v=2.2.13"></script>
-  <!-- UI (showToast usato anche da storage) -->
-  <script defer src="./ui.js?v=2.2.13"></script>
-  <!-- Bootstrap -->
-  <script defer src="./app.js?v=2.2.13"></script>
-  <!-- Navigation (sovrascrive enterProject di ui.js) -->
-  <script defer src="./navigation.js?v=2.2.13"></script>
-  <!-- Foto (senza apertura DB extra) -->
-  <script defer src="./foto.js"></script>
-  <!-- ── OneDrive e Moduli Comuni ── -->
-  <script defer src="./impostazioni.js?v=2.2.13"></script>
-  <script defer src="./storage-onedrive.js?v=2.2.13"></script>
-  <script defer src="./onedrive-ui.js?v=2.2.13"></script>
-  <script defer src="./migrazione-onedrive.js?v=2.2.13"></script>
-  <script defer src="./salvataggio.js?v=2.2.13"></script>
-  <script defer src="./export.js?v=2.2.13"></script>
-  <script defer src="./settings-sync.js?v=2.2.13"></script>
-  <script defer src="./emergenza.js?v=2.2.13"></script>
-  <script defer src="./ai-assistente.js"></script>
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="SafeHub CSE" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
-  <!-- firma.js -->
-  <script defer src="./firma.js"></script>
-  <script defer src="./ricerca-normativa.js"></script>
-  <script defer src="./smart-memory.js"></script>
-  <style>
-    input,
-    textarea,
-    select {
-      font-size: max(16px, 0.875rem) !important;
-    }
-
-    button,
-    [role="button"] {
-      min-height: 44px;
-    }
-
-    [role="tablist"] {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      flex-wrap: nowrap !important;
-    }
-
-    [role="tablist"]::-webkit-scrollbar {
-      display: none;
-    }
-  </style>
-  <link rel="stylesheet" href="./animazioni.css" />
-  <link rel="stylesheet" href="./mobile.css" />
-  <!-- Librerie Export Localizzate (Resilienza PWA) -->
-  <script src="./lib/jszip.min.js"></script>
-  <script src="./lib/jspdf.umd.min.js"></script>
-  <script src="./lib/html2canvas.min.js"></script>
+  <!-- Script Architettura v3 -->
+  <script defer src="./db.js"></script>
+  <script defer src="./app.js"></script>
+  
+  <!-- File legacy lasciati temporaneamente per non rimuoverli brutalmente (gestiti in fasi future) -->
+  <script defer src="./ui.js"></script>
 </head>
 
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-  <div class="min-h-screen flex">
-
-    <!-- ───── OVERLAY SIDEBAR MOBILE ───── -->
-    <div id="sidebar-overlay"
-      class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity" aria-hidden="true"
-      onclick="toggleSidebar()"></div>
-
-    <!-- ───── SIDEBAR ───── -->
-    <aside id="main-sidebar"
-      class="w-64 bg-slate-900 text-white flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 shadow-2xl lg:shadow-none"
-      role="navigation" aria-label="Menu principale">
-
-      <!-- Brand -->
-      <div class="p-4 border-b border-slate-800">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl" aria-hidden="true">🚧</span>
-          <div>
-            <div class="font-extrabold text-base leading-tight">ANAS SafeHub</div>
-            <div class="text-xs text-slate-400 leading-tight">Pannello CSE · Offline-first</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Nav links -->
-      <nav class="flex-1 p-3 space-y-1" aria-label="Sezioni">
-        <button id="btn-hub" data-view-btn="hub-view" class="w-full text-left px-3 py-2.5 rounded-xl bg-slate-800 font-semibold
-                       hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2" aria-pressed="true" aria-controls="hub-view">
-          <span aria-hidden="true">📂</span> Hub Cantieri
-        </button>
-
-        <button id="btn-anagrafica" data-view-btn="anagrafica-view" class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
-                       hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2" aria-pressed="false"
-          aria-controls="anagrafica-view">
-          <span aria-hidden="true">👥</span> Anagrafiche
-        </button>
-
-        <button onclick="window.location.href='ANAS_CSE_html.html'" class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
-                       hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2 text-blue-400" aria-label="Apri Suite CSE completa">
-          <span aria-hidden="true">🚀</span> Suite CSE Completa
-        </button>
-
-        <button id="btn-sync" data-view-btn="sync-view" class="w-full text-left px-3 py-2.5 rounded-xl font-semibold
-                       hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500
-                       transition text-sm flex items-center gap-2" aria-pressed="false" aria-controls="sync-view">
-          <span aria-hidden="true">⚙️</span> Gestione Dati
-        </button>
-      </nav>
-
-      <!-- Footer info -->
-      <div class="p-4 border-t border-slate-800 text-xs text-slate-500 space-y-1">
-        <div>Versione 1.2 · USB Mode</div>
-        <div>Master: <code class="text-slate-400">data/database.json</code></div>
-        <div class="mt-2 text-slate-600">
-          D.Lgs 81/08 · D.I. 22/01/2019<br>
-          Coord. Sicurezza in Esecuzione
-        </div>
-      </div>
-    </aside>
-
-    <!-- ───── MAIN ───── -->
-    <main class="flex-1 flex flex-col overflow-hidden">
-
-      <!-- HEADER GLOBALE TOPBAR -->
-      <header class="bg-white border-b flex items-center justify-between px-3 py-2 shrink-0 relative z-40"
-        style="border-color:var(--color-border)">
-        <div class="flex items-center gap-2 min-w-0">
-          <button id="btn-hamburger" onclick="toggleSidebar()"
-            class="lg:hidden topbar-btn text-slate-500"
-            aria-label="Menu">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <h2 id="topbar-title" class="text-lg font-bold text-slate-800 hide-on-mobile truncate">
-            ANAS SafeHub · Hub Cantieri (CSE)
-          </h2>
-        </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-          <!-- Stato AI -->
-          <span id="ai-status-badge"
-                onclick="mostraGuidaAttivazioneAI()"
-                class="text-[10px] px-2 py-1 rounded-full border font-bold uppercase tracking-tight
-                       bg-slate-100 text-slate-400 border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors"
-                aria-label="Stato AI locale (clicca per guida)">
-            — AI N/D
-          </span>
-          <!-- Pulsante OneDrive -->
-          <button id="btn-onedrive-status" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
-                       bg-slate-700 text-slate-200 hover:bg-slate-600 px-3 py-1.5 rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-slate-400 transition"
-            aria-label="Gestisci archivio OneDrive">
-            <span id="onedrive-status-icon" aria-hidden="true">🔗</span>
-            <span id="onedrive-status-label" class="hide-on-mobile">OneDrive</span>
-          </button>
-          <!-- Pulsante Numeri di Emergenza -->
-          <button onclick="apriNumeriEmergenza()" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold
-                       bg-red-700 text-white hover:bg-red-800 px-3 py-1.5 rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-red-400 transition"
-            aria-label="Numeri di emergenza cantiere">
-            <span aria-hidden="true">🚨</span>
-            <span class="hide-on-mobile">Emergenza</span>
-          </button>
-          <!-- Normativa AI -->
-          <button onclick="apriPannelloRicerca()" class="topbar-btn topbar-btn-indigo" aria-label="Apri ricerca normativa AI">
-            <span aria-hidden="true">🔍</span>
-            <span class="hide-on-mobile">Normativa AI</span>
-          </button>
-          <!-- Manuale d'Uso -->
-          <button onclick="mostraManualeUso()" class="topbar-btn flex items-center gap-1.5 text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 px-3 py-1.5 rounded-lg focus:outline-none transition" aria-label="Manuale d'Uso">
-            <span aria-hidden="true">📖</span>
-            <span class="hide-on-mobile">Manuale</span>
-          </button>
-          <!-- Salva dati unificato -->
-          <button id="btn-topbar-salvadati" class="topbar-btn topbar-btn-dark"
-            aria-label="Salva database locale">
-            <span aria-hidden="true">💾</span>
-            <span class="hide-on-mobile">Salva dati</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- CONTENT AREA -->
-      <div class="flex-1 overflow-auto p-6 space-y-6">
-
-        <!-- ── HUB VIEW ── -->
-        <section id="hub-view" class="page-transition" role="region" aria-label="Hub Cantieri" aria-live="polite">
-
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-base font-semibold text-slate-700">Seleziona o crea un cantiere</h2>
-            <button id="btn-new-project" class="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2
-                           rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              aria-label="Crea un nuovo cantiere">
-              <span aria-hidden="true">+</span> Nuovo Cantiere
-            </button>
-          </div>
-
-          <!-- P5: Alert globale NC scadenza (nascosto se nulla da segnalare) -->
-          <div id="hub-nc-alert" class="hidden" role="region" aria-label="Alert non conformità"></div>
-
-          <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
-            style="grid-auto-rows: 1fr;" role="list" aria-label="Lista cantieri"></div>
-
-          <div id="empty-state" class="empty-state hidden" aria-live="polite">
-            <div class="empty-state-icon">🚧</div>
-            <h3 class="empty-state-title">Nessun cantiere presente</h3>
-            <p class="empty-state-desc">
-              Non hai ancora configurato alcun cantiere in questo hub. Crea il tuo primo cantiere per iniziare.
-            </p>
-            <div class="flex justify-center gap-3 mt-4">
-              <!-- Pulsante USB rimosso (Solo OneDrive) -->
-              <!-- 
-              <button id="btn-import-usb" onclick="document.getElementById('file-import').click()"
-                      class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition border border-slate-200 text-sm font-semibold">
-                <span>📂</span>
-                <span class="hidden sm:inline">Carica da USB</span>
-              </button>
-              -->
-              <button onclick="document.getElementById('btn-new-project').click()"
-                class="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none transition">
-                + Crea Primo Cantiere
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── ANAGRAFICA VIEW ── -->
-        <section id="anagrafica-view" class="page-transition" role="region" aria-label="Gestione Anagrafiche"
-          aria-hidden="true">
-
-          <h2 class="text-base font-semibold text-slate-700 mb-4">
-            Anagrafica Soggetti (Imprese, D.L., RUP…)
-          </h2>
-
-          <form id="form-anagrafica" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200
-                       grid grid-cols-1 md:grid-cols-2 gap-4" novalidate aria-label="Form anagrafica soggetto"
-            onsubmit="return false">
-
-            <div class="md:col-span-2">
-              <label for="tipo_soggetto" class="text-xs font-semibold text-slate-600 block mb-1">
-                Tipo soggetto
-              </label>
-              <select id="tipo_soggetto" name="tipo_soggetto" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
-                             focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                <option value="affidataria">Impresa Affidataria</option>
-                <option value="esecutrice">Impresa Esecutrice / Subappalto / Fornitore</option>
-                <option value="rl">Responsabile Lavori (R.L.)</option>
-                <option value="rup">R.U.P.</option>
-                <option value="dl">Direzione Lavori (D.L.) / D.O.</option>
-                <option value="cse">C.S.E. / C.S.P.</option>
-                <option value="committente">Committente (ANAS SpA)</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="ragione_sociale" class="text-xs font-semibold text-slate-600 block mb-1">
-                Ragione Sociale / Nome <span class="text-red-500">*</span>
-              </label>
-              <input id="ragione_sociale" name="ragione_sociale" type="text" placeholder="Es. Costruzioni Rossi S.r.l."
-                autocomplete="organization" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-required="true" />
-            </div>
-
-            <div>
-              <label for="partita_iva" class="text-xs font-semibold text-slate-600 block mb-1">
-                P.IVA / Codice Fiscale
-              </label>
-              <input id="partita_iva" name="partita_iva" type="text" placeholder="Es. 01234567890" maxlength="16" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-describedby="piva-hint" />
-              <div id="piva-hint" class="text-xs text-slate-400 mt-1">
-                11 cifre per P.IVA · 16 caratteri per Codice Fiscale
-              </div>
-            </div>
-
-            <div>
-              <label for="referente" class="text-xs font-semibold text-slate-600 block mb-1">
-                Referente / Preposto
-              </label>
-              <input id="referente" name="referente" type="text" placeholder="Es. Ing. Mario Rossi (Direttore Tecnico)"
-                class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-            </div>
-
-            <div>
-              <label for="contatto" class="text-xs font-semibold text-slate-600 block mb-1">
-                PEC / Email / Telefono
-              </label>
-              <input id="contatto" name="contatto" type="text"
-                placeholder="Es. info@costruzionirossi.it · +39 06 1234567" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-            </div>
-
-            <div>
-              <label for="scadenza_durc" class="text-xs font-semibold text-slate-600 block mb-1">
-                Data Scadenza DURC
-              </label>
-              <input id="scadenza_durc" name="scadenza_durc" type="date" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-            </div>
-
-            <!-- Campo assegnazione cantiere — opzionale -->
-            <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <label for="assegna-cantiere" class="text-xs font-semibold text-blue-800 block mb-1">
-                📍 Assegna subito a un cantiere
-                <span class="font-normal text-blue-600">(opzionale)</span>
-              </label>
-              <select id="assegna-cantiere" class="w-full border border-blue-300 rounded-lg p-2.5 text-sm bg-white
-                             focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                <option value="">— Solo registro globale (senza cantiere) —</option>
-              </select>
-              <div class="text-xs text-blue-600 mt-1.5">
-                Se selezioni un cantiere, l'impresa viene associata automaticamente
-                al momento del salvataggio.
-              </div>
-            </div>
-
-            <div class="md:col-span-2 flex justify-end">
-              <button id="btn-save-anagrafica" type="button" class="bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold
-                             hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-                aria-label="Salva anagrafica soggetto">
-                ✅ Salva Anagrafica
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <!-- ── SYNC VIEW ── -->
-        <section id="sync-view" data-usb-only class="page-transition" role="region" aria-label="Gestione dati locale" aria-hidden="true">
-
-          <h2 class="text-base font-semibold text-slate-700 mb-4">Gestione Dati Locale</h2>
-
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-5 max-w-2xl">
-
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-              <strong>Come funziona:</strong> Il file <code>database.json</code>
-              contiene tutti i dati dell'app. Usa i pulsanti qui sotto per importare
-              ed esportare i dati manualmente.<br><br>
-              <strong>Nota:</strong> Se usi OneDrive, questa sezione è disabilitata poiché il salvataggio è in tempo reale.
-            </div>
-
-            <div class="space-y-3">
-              <!-- Pulsante USB rimosso (Solo OneDrive) -->
-              <!-- 
-              <button id="btn-export-usb" onclick="exportDatabaseToFile()"
-                      class="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition shadow-sm text-sm font-semibold">
-                <span>💾</span>
-                <span class="hidden sm:inline">Salva su USB</span>
-              </button>
-              -->
-              <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <span class="text-2xl" aria-hidden="true">📂</span>
-                <div>
-                  <div class="font-semibold text-slate-800 text-sm">Carica database da backup</div>
-                  <div class="text-xs text-slate-500 mb-3">
-                    Seleziona un file <code>database.json</code> salvato in precedenza.
-                    I dati verranno uniti a quelli già presenti.
-                  </div>
-                  <button id="btn-load-usb-2" class="bg-slate-800 text-white text-xs px-4 py-2 rounded-lg
-                                 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                    onclick="document.getElementById('btn-load-usb').click()" aria-label="Carica database da file JSON">
-                    Scegli file JSON…
-                  </button>
-                </div>
-              </div>
-
-              <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <span class="text-2xl" aria-hidden="true">💾</span>
-                <div>
-                  <div class="font-semibold text-slate-800 text-sm">Salva database come backup</div>
-                  <div class="text-xs text-slate-500 mb-3">
-                    Esporta lo stato corrente in un file <code>database.json</code> da conservare
-                    come backup.
-                  </div>
-                  <button class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg
-                                 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
-                    onclick="exportDatabaseToFile()" aria-label="Scarica database come file JSON">
-                    Scarica database.json
-                  </button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-      </div><!-- /content area -->
-    </main>
-  </div>
-
-
-  <!-- ═══════════ FOOTER ═══════════ -->
-  <footer class="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
-    <div class="flex items-end justify-between px-4 py-2 pointer-events-auto">
-
-      <!-- Firma autore — sinistra -->
-      <div class="text-[11px] text-slate-400 select-none">
-        by <strong class="text-slate-500">Geom. Dogano Casella</strong> · ISP ANAS SpA
-      </div>
-
-      <!-- Pulsante installa PWA — destra -->
-      <button id="btn-pwa-install" class="hidden items-center gap-2 bg-blue-600 text-white text-xs font-semibold
-                     px-3 py-2 rounded-xl shadow-lg hover:bg-blue-700
-                     focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-        aria-label="Installa ANAS SafeHub come app">
-        <span aria-hidden="true">📲</span> Installa App
+  <!-- TOPBAR -->
+  <header class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl" aria-hidden="true">🚧</span>
+      <h1 class="text-xl font-bold tracking-tight">ANAS SafeHub</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="btn-onedrive" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
+        <span>☁️</span> <span class="hidden sm:inline">OneDrive</span>
       </button>
+      <button id="btn-settings" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition" aria-label="Impostazioni">
+        <span>⚙️</span>
+      </button>
+    </div>
+  </header>
 
+  <!-- VISTA HOME: I MIEI CANTIERI -->
+  <main id="home-view" class="flex-1 p-6 max-w-6xl mx-auto w-full space-y-10">
+    
+    <!-- Sezione Cantieri -->
+    <section>
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-slate-200 pb-3 gap-4">
+        <h2 class="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+          <span>📂</span> I MIEI CANTIERI
+        </h2>
+        <button onclick="apriModalNuovoCantiere()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 shrink-0">
+          <span>+</span> Nuovo Cantiere
+        </button>
+      </div>
+      
+      <!-- Grid dei cantieri -->
+      <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Renderizzato da app.js -->
+      </div>
+    </section>
+
+    <hr class="border-slate-300" />
+
+    <!-- Sezione Strumenti Globali -->
+    <section>
+      <h2 class="text-lg font-bold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+        <span>🛠️</span> STRUMENTI GLOBALI
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <button class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50 transition flex flex-col items-center gap-2 text-slate-700 font-semibold" onclick="alert('Manuale (FASE 3+)')">
+          <span class="text-2xl">📖</span> Manuale
+        </button>
+        <button class="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-red-100 transition flex flex-col items-center gap-2 text-red-700 font-semibold" onclick="alert('Emergenze (FASE 3+)')">
+          <span class="text-2xl">☎️</span> Emergenze
+        </button>
+        <button class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-indigo-100 transition flex flex-col items-center gap-2 text-indigo-700 font-semibold" onclick="alert('Normativa AI (FASE 3+)')">
+          <span class="text-2xl">🤖</span> Normativa AI
+        </button>
+        <button class="bg-green-50 border border-green-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-green-100 transition flex flex-col items-center gap-2 text-green-700 font-semibold" onclick="alert('Backup (FASE 3+)')">
+          <span class="text-2xl">💾</span> Backup
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- VISTA CANTIERE (Placeholder per FASE 3) -->
+  <main id="cantiere-view" class="page-hidden flex-1 p-6 max-w-6xl mx-auto w-full">
+    <button onclick="tornaHome()" class="text-blue-600 hover:text-blue-800 font-bold mb-6 flex items-center gap-1 transition">
+      ← Torna a I Miei Cantieri
+    </button>
+    <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200">
+      <h2 id="cantiere-title" class="text-2xl font-bold text-slate-800 mb-2">Contesto Cantiere SPA</h2>
+      <p class="text-slate-500">La navigazione e i moduli cantiere saranno implementati nella FASE 3.</p>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 border-t border-slate-800 p-4 text-center shrink-0 mt-auto">
+    <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
+      by Geom. Dogano Casella · ANAS S.p.A.
     </div>
   </footer>
 
-  <!-- ═══════════ PWA + SW REGISTRATION E TOPBAR WIRING ═══════════ -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // BUG-5 FIX: Inizializza il pannello OneDrive nell'Hub
-      if (typeof initOneDriveUI === 'function') initOneDriveUI();
-      
-      // Wiring Salva Dati
-      document.getElementById('btn-topbar-salvadati')?.addEventListener('click', () => {
-        if (typeof mostraPannelloSalvataggio === 'function') {
-          mostraPannelloSalvataggio({
-            titolo: 'Backup Hub Cantieri',
-            onJSON: () => { if (typeof exportDatabaseToFile === 'function') exportDatabaseToFile(); },
-            nascondWord: true
-          });
-        } else if (typeof exportDatabaseToFile === 'function') {
-          exportDatabaseToFile();
-        }
-      });
-      
-      // Pulsante Ricarica OneDrive (MOD-4)
-      document.getElementById('btn-onedrive-ricarica')?.addEventListener('click', async () => {
-        if (typeof invalidaCacheOneDrive === 'function') invalidaCacheOneDrive();
-        if (typeof refreshProjectsGrid === 'function') await refreshProjectsGrid();
-        if (typeof showToast === 'function') showToast('Dati aggiornati da OneDrive ✓', 'success');
-      });
-    });
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => {
-            console.log('[PWA] SW registrato:', reg.scope);
-            
-            // Gestione aggiornamenti (MOD-25)
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // Nuovo SW pronto, mostra notifica
-                  showUpdateBanner();
-                }
-              });
-            });
+  <!-- MODAL NUOVO CANTIERE -->
+  <div id="modal-new-project" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="bg-blue-600 p-4 text-white">
+        <h3 class="font-bold text-lg">Crea Nuovo Cantiere</h3>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Codice Cantiere (Univoco)</label>
+          <input type="text" id="new-project-id" placeholder="Es. CZ399" class="w-full border border-slate-300 rounded-lg p-2.5 font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+          <p class="text-[10px] text-slate-400 mt-1">Ammessi solo A-Z, 0-9, trattino, underscore.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nome Cantiere / Intervento</label>
+          <input type="text" id="new-project-name" placeholder="Es. Viadotto S. Giorgio - S.S. 106" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+        </div>
+      </div>
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end gap-3">
+        <button onclick="chiudiModalNuovoCantiere()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+        <button onclick="salvaNuovoCantiere()" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Crea Cantiere</button>
+      </div>
+    </div>
+  </div>
 
-            if (typeof avviaSyncImpostazioni === 'function') {
-              avviaSyncImpostazioni();
-            }
-          })
-          .catch(err => console.warn('[PWA] SW fallito:', err));
-      });
-      
-      // Funzione per forzare l'aggiornamento
-      function showUpdateBanner() {
-        const banner = document.createElement('div');
-        banner.className = 'fixed bottom-4 left-4 right-4 bg-blue-600 text-white p-4 rounded-2xl shadow-2xl z-[100] flex items-center justify-between animate-bounce';
-        banner.innerHTML = `
-          <div class="flex items-center gap-3">
-            <span class="text-xl">🚀</span>
-            <div>
-              <div class="font-bold text-sm">Aggiornamento Disponibile (v2.2.13)</div>
-              <div class="text-[10px] opacity-90">Nuove funzionalità e correzioni pronte.</div>
-            </div>
-          </div>
-          <button onclick="window.location.reload()" class="bg-white text-blue-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-50 transition">
-            Aggiorna Ora
-          </button>
-        `;
-        document.body.appendChild(banner);
-      }
-    }
-
-    // Install prompt
-    let _deferredPrompt = null;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      _deferredPrompt = e;
-      const btn = document.getElementById('btn-pwa-install');
-      if (btn) btn.classList.remove('hidden');
-      if (btn) btn.classList.add('flex');
-    });
-
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-pwa-install') && _deferredPrompt) {
-        _deferredPrompt.prompt();
-        _deferredPrompt.userChoice.then(choice => {
-          if (choice.outcome === 'accepted') {
-            const btn = document.getElementById('btn-pwa-install');
-            if (btn) btn.classList.add('hidden');
-          }
-          _deferredPrompt = null;
-        });
-      }
-    });
-
-    // Nasconde il pulsante se già installata
-    window.addEventListener('appinstalled', () => {
-      const btn = document.getElementById('btn-pwa-install');
-      if (btn) btn.classList.add('hidden');
-    });
-  </script>
-
-  <script>
-    function toggleSidebar() {
-      const sidebar = document.getElementById('main-sidebar');
-      const overlay = document.getElementById('sidebar-overlay');
-      if (sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.remove('-translate-x-full');
-        overlay.classList.remove('hidden');
-      } else {
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-      }
-    }
-  </script>
 </body>
-
 </html>
