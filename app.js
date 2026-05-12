@@ -45,7 +45,7 @@ async function renderHome() {
     // Recupera numero NC aperte
     let ncAperte = 0;
     try {
-      const ncList = await getAllByIndex('nc', 'projectId', p.id);
+      const ncList = await getByIndex('nc', 'projectId', p.id);
       ncAperte = ncList.filter(nc => nc.stato !== 'chiusa').length;
     } catch (e) {
       // Ignore if store not fully ready
@@ -236,13 +236,13 @@ async function generaDashboardKPI(projectId) {
     const [
       ncs, verbali, odsInv, imprese, lavs, mezzi, docF
     ] = await Promise.all([
-      getAllByIndex('nc', 'projectId', projectId).catch(() => []),
-      getAllByIndex('verbali', 'projectId', projectId).catch(() => []),
-      getAllByIndex('ods_inviati', 'projectId', projectId).catch(() => []),
-      getAllByIndex('imprese', 'projectId', projectId).catch(() => []),
-      getAllByIndex('lavoratori', 'projectId', projectId).catch(() => []),
-      getAllByIndex('mezzi', 'projectId', projectId).catch(() => []),
-      getAllByIndex('doc_fondamentali', 'projectId', projectId).catch(() => [])
+      getByIndex('nc', 'projectId', projectId).catch(() => []),
+      getByIndex('verbali', 'projectId', projectId).catch(() => []),
+      getByIndex('ods_inviati', 'projectId', projectId).catch(() => []),
+      getByIndex('imprese', 'projectId', projectId).catch(() => []),
+      getByIndex('lavoratori', 'projectId', projectId).catch(() => []),
+      getByIndex('mezzi', 'projectId', projectId).catch(() => []),
+      getByIndex('doc_fondamentali', 'projectId', projectId).catch(() => [])
     ]);
 
     // Calcoli NC
