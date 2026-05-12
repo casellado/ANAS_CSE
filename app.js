@@ -161,9 +161,12 @@ async function caricaContestoCantiere(projectId) {
       return tornaHome();
     }
     
+    // Mostra topbar cantiere, nascondi topbar home
+    document.getElementById('home-topbar').classList.add('page-hidden');
+    document.getElementById('cantiere-topbar').classList.remove('page-hidden');
+    
     // Aggiorna intestazione
-    document.getElementById('cantiere-title').textContent = project.nome;
-    document.getElementById('cantiere-subtitle').textContent = "ID: " + project.id + (project.loc ? " · " + project.loc : "");
+    document.getElementById('topbar-cantiere-title').textContent = "Cantiere: " + project.id + " - " + project.nome;
     
     // Passa alla view
     document.getElementById('home-view').classList.add('page-hidden');
@@ -179,7 +182,7 @@ async function caricaContestoCantiere(projectId) {
   }
 }
 
-async function mostraViewCantiere(viewName) {
+async function mostraViewCantiere(viewName, faseAttesa = null) {
   const projectId = sessionStorage.getItem('currentProjectId');
   if (!projectId) return tornaHome();
   
@@ -210,14 +213,23 @@ async function mostraViewCantiere(viewName) {
     placeholder.classList.remove('page-hidden');
     
     // Titolo formattato (es. ods_inviati -> ODS Inviati)
-    const title = viewName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const title = viewName.toUpperCase().replace('_', ' ');
     document.getElementById('placeholder-title').textContent = title;
+    
+    // Update FASE
+    if (faseAttesa) {
+      document.getElementById('placeholder-fase').textContent = "Implementazione prevista in FASE " + faseAttesa;
+    } else {
+      document.getElementById('placeholder-fase').textContent = "Sezione in refactoring";
+    }
   }
 }
 
 async function generaDashboardKPI(projectId) {
   const grid = document.getElementById('kpi-grid');
+  const alertsContainer = document.getElementById('kpi-alerts-container');
   grid.innerHTML = '<div class="col-span-full text-center text-slate-400 py-8">Caricamento indicatori...</div>';
+  alertsContainer.innerHTML = '';
   
   try {
     // Fetch asincrono parallelo dai vari store FASE 1
@@ -234,28 +246,63 @@ async function generaDashboardKPI(projectId) {
     ]);
 
     // Calcoli NC
-    const ncAperte = ncs.filter(n => n.stato !== 'chiusa');
-    const ncScadute = ncAperte.filter(n => n.scadenza && new Date(n.scadenza) < new Date()).length;
+    const ncAperteList = ncs.filter(n => n.stato !== 'chiusa');
+    const ncAperte = ncAperteList.length;
+    const ncScadute = ncAperteList.filter(n => n.scadenza && new Date(n.scadenza) < new Date()).length;
+    const ncChiuse = ncs.length - ncAperte;
     
     // Calcoli temporali (mese corrente)
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const verbaliMese = verbali.filter(v => {
+      // Verbali di sopralluogo del mese
+      if (v.tipo !== 'sopralluogo' && !v.tipo) return true; // assumiamo default sopralluogo per ora
       if (!v.data) return false;
       const d = new Date(v.data);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).length;
+    
+    // Mezzi in cantiere
+    const mezziPresenti = mezzi.filter(m => m.presenteInCantiere === true || m.presenteInCantiere === 'true' || m.presenteInCantiere === 1).length;
+
+    // Doc fondamentali
+    const docValidi = docF.filter(d => d.stato === 'valido').length;
+    const docScadutiList = docF.filter(d => d.scadenza && new Date(d.scadenza) < new Date() && d.stato !== 'valido');
 
     // Rendering KPI Cards
     grid.innerHTML = `
-      ${createKPICard('NC Aperte / Scadute', `${ncAperte.length} / ${ncScadute}`, ncScadute > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white')}
-      ${createKPICard('Verbali questo mese', verbaliMese, 'bg-white')}
-      ${createKPICard('ODS Inviati totali', odsInv.length, 'bg-white')}
-      ${createKPICard('Imprese operative', imprese.length, 'bg-white')}
-      ${createKPICard('Lavoratori autorizzati', lavs.length, 'bg-white')}
-      ${createKPICard('Mezzi di cantiere', mezzi.length, 'bg-white')}
-      ${createKPICard('Doc. Fondamentali', `${docF.filter(d=>d.stato==='valido').length} ok / ${docF.length} tot`, 'bg-white')}
+      ${createKPICard('Non Conformità', `${ncAperte} aperte / ${ncScadute} scad. / ${ncChiuse} chiuse`, ncScadute > 0 ? 'bg-red-50 border-red-200 text-red-700' : (ncAperte > 0 ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-white'))}
+      ${createKPICard('Verbali (mese)', verbaliMese, 'bg-white')}
+      ${createKPICard('Imprese', imprese.length, 'bg-white')}
+      ${createKPICard('Lavoratori', lavs.length, 'bg-white')}
+      ${createKPICard('Mezzi', mezziPresenti, 'bg-white')}
+      ${createKPICard('Doc. Fondamentali', `${docValidi} validi / ${docF.length} totali`, docValidi < docF.length ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-green-50 border-green-200 text-green-700')}
     `;
+    
+    // Rendering Alerts
+    if (ncScadute > 0) {
+      alertsContainer.innerHTML += `
+        <div class="bg-red-100 border border-red-300 text-red-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
+          <span class="text-2xl">🚨</span>
+          <div>
+            <div class="font-bold">Attenzione: NC in Scadenza</div>
+            <div class="text-sm">Ci sono ${ncScadute} Non Conformità scadute e non ancora chiuse.</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    if (docScadutiList.length > 0) {
+      alertsContainer.innerHTML += `
+        <div class="bg-orange-100 border border-orange-300 text-orange-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
+          <span class="text-2xl">⚠️</span>
+          <div>
+            <div class="font-bold">Attenzione: Documenti in Scadenza</div>
+            <div class="text-sm">Ci sono ${docScadutiList.length} documenti fondamentali scaduti o in scadenza imminente.</div>
+          </div>
+        </div>
+      `;
+    }
     
   } catch (err) {
     console.error("Errore generazione KPI:", err);
@@ -266,8 +313,8 @@ async function generaDashboardKPI(projectId) {
 function createKPICard(label, value, colorClass = "bg-white") {
   return \`
     <div class="border border-slate-200 rounded-xl p-4 shadow-sm \${colorClass}">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">\${label}</div>
-      <div class="text-3xl font-extrabold text-slate-800">\${value}</div>
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">\${label}</div>
+      <div class="text-2xl font-extrabold text-slate-800">\${value}</div>
     </div>
   \`;
 }
@@ -276,6 +323,8 @@ function tornaHome() {
   sessionStorage.removeItem('currentProjectId');
   document.getElementById('cantiere-view').classList.add('page-hidden');
   document.getElementById('home-view').classList.remove('page-hidden');
+  document.getElementById('cantiere-topbar').classList.add('page-hidden');
+  document.getElementById('home-topbar').classList.remove('page-hidden');
   renderHome();
 }
 

@@ -23,17 +23,35 @@
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-  <!-- TOPBAR -->
-  <header class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10">
+  <!-- TOPBAR HOME -->
+  <header id="home-topbar" class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 transition-all duration-300">
     <div class="flex items-center gap-3">
       <span class="text-2xl" aria-hidden="true">🚧</span>
       <h1 class="text-xl font-bold tracking-tight">ANAS SafeHub</h1>
     </div>
     <div class="flex items-center gap-3">
-      <button id="btn-onedrive" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
+      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
         <span>☁️</span> <span class="hidden sm:inline">OneDrive</span>
       </button>
-      <button id="btn-settings" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition" aria-label="Impostazioni">
+      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition" aria-label="Impostazioni">
+        <span>⚙️</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- TOPBAR CANTIERE (Nascosta di default) -->
+  <header id="cantiere-topbar" class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 page-hidden transition-all duration-300">
+    <div class="flex items-center gap-4">
+      <button onclick="tornaHome()" class="text-slate-300 hover:text-white font-bold bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded transition flex items-center gap-2 text-sm">
+        <span>←</span> <span class="hidden md:inline">Torna a I Miei Cantieri</span>
+      </button>
+      <h1 id="topbar-cantiere-title" class="text-lg md:text-xl font-bold tracking-tight truncate max-w-xs md:max-w-lg">Cantiere: ...</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
+        <span>☁️</span>
+      </button>
+      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition" aria-label="Impostazioni">
         <span>⚙️</span>
       </button>
     </div>
@@ -89,15 +107,7 @@
     
     <!-- Sidebar Cantiere -->
     <aside class="w-64 bg-slate-800 text-slate-300 flex flex-col shrink-0 overflow-y-auto hidden md:flex border-r border-slate-700 shadow-xl">
-      <div class="p-4 border-b border-slate-700 sticky top-0 bg-slate-800 z-10 shadow-sm">
-        <button onclick="tornaHome()" class="text-blue-400 hover:text-blue-300 font-semibold text-sm mb-3 flex items-center gap-1 transition">
-          ← I Miei Cantieri
-        </button>
-        <h2 id="cantiere-title" class="text-lg font-bold text-white leading-tight break-all">Cantiere</h2>
-        <div id="cantiere-subtitle" class="text-xs text-slate-400 mt-1 truncate"></div>
-      </div>
-      
-      <nav class="flex-1 p-3 space-y-6">
+      <nav class="flex-1 p-3 space-y-6 mt-4">
         
         <div>
           <button onclick="mostraViewCantiere('dashboard')" class="nav-btn w-full text-left px-3 py-2 rounded-lg font-semibold hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-white bg-slate-700 shadow-inner" data-view="dashboard">
@@ -108,32 +118,32 @@
         <div>
           <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">👷 Anagrafiche</div>
           <div class="space-y-1">
-            <button onclick="mostraViewCantiere('imprese')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="imprese"><span>🏢</span> Imprese</button>
-            <button onclick="mostraViewCantiere('anas')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="anas"><span>👤</span> ANAS</button>
-            <button onclick="mostraViewCantiere('terzi')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="terzi"><span>👮</span> Terzi</button>
-            <button onclick="mostraViewCantiere('lavoratori')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="lavoratori"><span>👷</span> Lavoratori</button>
-            <button onclick="mostraViewCantiere('mezzi')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="mezzi"><span>🚜</span> Mezzi</button>
+            <button onclick="mostraViewCantiere('imprese', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="imprese"><span>🏢</span> Imprese</button>
+            <button onclick="mostraViewCantiere('anas', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="anas"><span>👤</span> ANAS</button>
+            <button onclick="mostraViewCantiere('terzi', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="terzi"><span>👮</span> Terzi</button>
+            <button onclick="mostraViewCantiere('lavoratori', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="lavoratori"><span>👷</span> Lavoratori</button>
+            <button onclick="mostraViewCantiere('mezzi', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="mezzi"><span>🚜</span> Mezzi</button>
           </div>
         </div>
 
         <div>
           <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📋 Operatività</div>
           <div class="space-y-1">
-            <button onclick="mostraViewCantiere('verbali')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verbali"><span>📝</span> Verbali</button>
-            <button onclick="mostraViewCantiere('verifiche_pos')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verifiche_pos"><span>🛡️</span> Verifica POS</button>
-            <button onclick="mostraViewCantiere('nc')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="nc"><span>⚠️</span> Non Conformità (NC)</button>
-            <button onclick="mostraViewCantiere('ods_inviati')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_inviati"><span>📤</span> ODS Inviati</button>
-            <button onclick="mostraViewCantiere('ods_ricevuti')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_ricevuti"><span>📥</span> ODS Ricevuti</button>
-            <button onclick="mostraViewCantiere('sospensioni')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-red-400 hover:text-red-300" data-view="sospensioni"><span>🛑</span> Sospensioni</button>
-            <button onclick="mostraViewCantiere('diario_cse')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="diario_cse"><span>📓</span> Diario CSE</button>
+            <button onclick="mostraViewCantiere('verbali', 5)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verbali"><span>📝</span> Verbali</button>
+            <button onclick="mostraViewCantiere('verifiche_pos', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verifiche_pos"><span>🛡️</span> Verifica POS</button>
+            <button onclick="mostraViewCantiere('nc', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="nc"><span>⚠️</span> NC</button>
+            <button onclick="mostraViewCantiere('ods_inviati', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_inviati"><span>📤</span> ODS Inviati</button>
+            <button onclick="mostraViewCantiere('ods_ricevuti', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_ricevuti"><span>📥</span> ODS Ricevuti</button>
+            <button onclick="mostraViewCantiere('sospensioni', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-red-400 hover:text-red-300" data-view="sospensioni"><span>🛑</span> Sospensioni</button>
+            <button onclick="mostraViewCantiere('diario_cse', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="diario_cse"><span>📓</span> Diario CSE</button>
           </div>
         </div>
         
         <div>
           <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📁 Documentale</div>
           <div class="space-y-1">
-            <button onclick="mostraViewCantiere('doc_fondamentali')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="doc_fondamentali"><span>📑</span> Doc. Fondamentali</button>
-            <button onclick="mostraViewCantiere('archivio')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="archivio"><span>🗄️</span> Archivio File</button>
+            <button onclick="mostraViewCantiere('doc_fondamentali', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="doc_fondamentali"><span>📑</span> Doc. Fondamentali</button>
+            <button onclick="mostraViewCantiere('archivio', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="archivio"><span>🗄️</span> Archivio File</button>
           </div>
         </div>
 
@@ -153,14 +163,20 @@
         <div id="kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- KPI generati da JS -->
         </div>
+        <div id="kpi-alerts-container" class="mt-8 space-y-4">
+          <!-- Alerts generati da JS -->
+        </div>
       </div>
 
-      <!-- Placeholder generico per le altre view in arrivo nelle prossime FASI -->
+      <!-- Placeholder generico per le altre view -->
       <div id="view-placeholder" class="cantiere-subview page-hidden">
         <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200 mt-10 max-w-2xl mx-auto">
           <div class="text-5xl mb-4">🚧</div>
           <h2 id="placeholder-title" class="text-2xl font-bold text-slate-800 mb-2">Sezione in Costruzione</h2>
-          <p class="text-slate-500">Questa funzionalità verrà implementata nelle prossime FASI (4-7).</p>
+          <p class="text-slate-500 mb-4">Questa funzionalità è in fase di refactoring.</p>
+          <div class="inline-block bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-lg border border-blue-200" id="placeholder-fase">
+            Implementazione prevista in FASE X
+          </div>
         </div>
       </div>
 
