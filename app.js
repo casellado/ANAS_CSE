@@ -311,12 +311,12 @@ async function generaDashboardKPI(projectId) {
 }
 
 function createKPICard(label, value, colorClass = "bg-white") {
-  return \`
-    <div class="border border-slate-200 rounded-xl p-4 shadow-sm \${colorClass}">
-      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">\${label}</div>
-      <div class="text-2xl font-extrabold text-slate-800">\${value}</div>
+  return `
+    <div class="border border-slate-200 rounded-xl p-4 shadow-sm ${colorClass}">
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">${label}</div>
+      <div class="text-2xl font-extrabold text-slate-800">${value}</div>
     </div>
-  \`;
+  `;
 }
 
 function tornaHome() {
