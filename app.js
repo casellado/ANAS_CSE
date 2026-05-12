@@ -67,13 +67,18 @@ async function renderHome() {
     }
     
     const card = document.createElement('div');
-    card.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-lg transition flex flex-col h-full relative";
+    card.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-lg transition flex flex-col h-full relative group";
     card.innerHTML = `
-      <div class="absolute top-4 right-4 text-slate-300 hover:text-slate-600 cursor-pointer" onclick="event.stopPropagation(); alert('Menu contestuale (Modifica/Elimina cantiere)');">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+      <div class="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onclick="event.stopPropagation(); typeof apriModalModificaCantiere === 'function' ? apriModalModificaCantiere('${escapeHtml(p.id)}') : alert('Modal modifica non ancora migrato')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Modifica">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        </button>
+        <button onclick="event.stopPropagation(); if(confirm('Vuoi eliminare il cantiere ${escapeHtml(p.nome)}?')) { typeof eliminaCantiere === 'function' ? eliminaCantiere('${escapeHtml(p.id)}') : alert('Funzione eliminaCantiere non trovata'); if(typeof renderHome === 'function') setTimeout(renderHome, 500); }" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Elimina">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
       </div>
       <div class="font-mono text-xs font-bold text-slate-400 mb-1 tracking-wider">${escapeHtml(p.id)}</div>
-      <h3 class="font-extrabold text-lg leading-tight text-slate-800 mb-4 flex-1 pr-6">${escapeHtml(p.nome)}</h3>
+      <h3 class="font-extrabold text-lg leading-tight text-slate-800 mb-4 flex-1 pr-16">${escapeHtml(p.nome)}</h3>
       
       <div class="flex items-center gap-2 mb-6">
         <span class="inline-flex items-center gap-1 border px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest ${statColor}">
@@ -151,10 +156,7 @@ function entraCantiere(projectId) {
   // Mostra cantiere
   document.getElementById('cantiere-view').classList.remove('page-hidden');
   
-  document.getElementById('cantiere-title').textContent = "Cantiere: " + projectId;
-  
-  // Temporaneo alert come prova (per FASE 2 / FASE 3 in arrivo)
-  console.log("Entrato in", projectId);
+  document.getElementById('cantiere-title').textContent = "Contesto cantiere - in costruzione FASE 3 (" + projectId + ")";
 }
 
 function tornaHome() {
