@@ -84,14 +84,86 @@
 
   </main>
 
-  <!-- VISTA CANTIERE (Placeholder per FASE 3) -->
-  <main id="cantiere-view" class="page-hidden flex-1 p-6 max-w-6xl mx-auto w-full">
-    <button onclick="tornaHome()" class="text-blue-600 hover:text-blue-800 font-bold mb-6 flex items-center gap-1 transition">
-      ← Torna a I Miei Cantieri
-    </button>
-    <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200">
-      <h2 id="cantiere-title" class="text-2xl font-bold text-slate-800 mb-2">Contesto Cantiere SPA</h2>
-      <p class="text-slate-500">La navigazione e i moduli cantiere saranno implementati nella FASE 3.</p>
+  <!-- VISTA CANTIERE (FASE 3) -->
+  <main id="cantiere-view" class="page-hidden flex-1 flex overflow-hidden">
+    
+    <!-- Sidebar Cantiere -->
+    <aside class="w-64 bg-slate-800 text-slate-300 flex flex-col shrink-0 overflow-y-auto hidden md:flex border-r border-slate-700 shadow-xl">
+      <div class="p-4 border-b border-slate-700 sticky top-0 bg-slate-800 z-10 shadow-sm">
+        <button onclick="tornaHome()" class="text-blue-400 hover:text-blue-300 font-semibold text-sm mb-3 flex items-center gap-1 transition">
+          ← I Miei Cantieri
+        </button>
+        <h2 id="cantiere-title" class="text-lg font-bold text-white leading-tight break-all">Cantiere</h2>
+        <div id="cantiere-subtitle" class="text-xs text-slate-400 mt-1 truncate"></div>
+      </div>
+      
+      <nav class="flex-1 p-3 space-y-6">
+        
+        <div>
+          <button onclick="mostraViewCantiere('dashboard')" class="nav-btn w-full text-left px-3 py-2 rounded-lg font-semibold hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-white bg-slate-700 shadow-inner" data-view="dashboard">
+            <span>📊</span> Dashboard
+          </button>
+        </div>
+        
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">👷 Anagrafiche</div>
+          <div class="space-y-1">
+            <button onclick="mostraViewCantiere('imprese')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="imprese"><span>🏢</span> Imprese</button>
+            <button onclick="mostraViewCantiere('anas')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="anas"><span>👤</span> ANAS</button>
+            <button onclick="mostraViewCantiere('terzi')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="terzi"><span>👮</span> Terzi</button>
+            <button onclick="mostraViewCantiere('lavoratori')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="lavoratori"><span>👷</span> Lavoratori</button>
+            <button onclick="mostraViewCantiere('mezzi')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="mezzi"><span>🚜</span> Mezzi</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📋 Operatività</div>
+          <div class="space-y-1">
+            <button onclick="mostraViewCantiere('verbali')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verbali"><span>📝</span> Verbali</button>
+            <button onclick="mostraViewCantiere('verifiche_pos')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verifiche_pos"><span>🛡️</span> Verifica POS</button>
+            <button onclick="mostraViewCantiere('nc')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="nc"><span>⚠️</span> Non Conformità (NC)</button>
+            <button onclick="mostraViewCantiere('ods_inviati')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_inviati"><span>📤</span> ODS Inviati</button>
+            <button onclick="mostraViewCantiere('ods_ricevuti')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_ricevuti"><span>📥</span> ODS Ricevuti</button>
+            <button onclick="mostraViewCantiere('sospensioni')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-red-400 hover:text-red-300" data-view="sospensioni"><span>🛑</span> Sospensioni</button>
+            <button onclick="mostraViewCantiere('diario_cse')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="diario_cse"><span>📓</span> Diario CSE</button>
+          </div>
+        </div>
+        
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📁 Documentale</div>
+          <div class="space-y-1">
+            <button onclick="mostraViewCantiere('doc_fondamentali')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="doc_fondamentali"><span>📑</span> Doc. Fondamentali</button>
+            <button onclick="mostraViewCantiere('archivio')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="archivio"><span>🗄️</span> Archivio File</button>
+          </div>
+        </div>
+
+      </nav>
+    </aside>
+
+    <!-- Contenuto Cantiere -->
+    <div class="flex-1 bg-slate-50 overflow-y-auto p-4 md:p-8 relative">
+      <!-- Hamburger Mobile per Cantiere -->
+      <button class="md:hidden absolute top-4 left-4 bg-slate-800 text-white p-2 rounded-lg shadow z-10" onclick="alert('Menu mobile non implementato, allarga lo schermo per ora!')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+      
+      <!-- SUB-VIEWS CANTIERE -->
+      <div id="view-dashboard" class="cantiere-subview">
+        <h3 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><span>📊</span> Dashboard Cantiere</h3>
+        <div id="kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- KPI generati da JS -->
+        </div>
+      </div>
+
+      <!-- Placeholder generico per le altre view in arrivo nelle prossime FASI -->
+      <div id="view-placeholder" class="cantiere-subview page-hidden">
+        <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200 mt-10 max-w-2xl mx-auto">
+          <div class="text-5xl mb-4">🚧</div>
+          <h2 id="placeholder-title" class="text-2xl font-bold text-slate-800 mb-2">Sezione in Costruzione</h2>
+          <p class="text-slate-500">Questa funzionalità verrà implementata nelle prossime FASI (4-7).</p>
+        </div>
+      </div>
+
     </div>
   </main>
 

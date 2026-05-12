@@ -5,12 +5,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initDB();
     await renderHome();
     
-    // Mostra home se nessun progetto selezionato
+    // Ripristino contesto SPA
     const projId = sessionStorage.getItem('currentProjectId');
     if (projId) {
-      entraCantiere(projId); // Simulazione navigazione SPA (FASE 3)
+      await caricaContestoCantiere(projId);
     } else {
-      mostraHome();
+      // Home è visibile di default
     }
   } catch (err) {
     console.error("Errore inizializzazione DB", err);
@@ -145,26 +145,135 @@ async function salvaNuovoCantiere() {
 }
 
 // ─────────────────────────────────────────────
-// NAVIGAZIONE SPA BASE (FASE 3 - INCOMPLETA)
+// NAVIGAZIONE SPA CANTIERE (FASE 3)
 // ─────────────────────────────────────────────
 
-function entraCantiere(projectId) {
+async function entraCantiere(projectId) {
   sessionStorage.setItem('currentProjectId', projectId);
+  await caricaContestoCantiere(projectId);
+}
+
+async function caricaContestoCantiere(projectId) {
+  try {
+    const project = await getItem('projects', projectId);
+    if (!project) {
+      alert("Cantiere non trovato!");
+      return tornaHome();
+    }
+    
+    // Aggiorna intestazione
+    document.getElementById('cantiere-title').textContent = project.nome;
+    document.getElementById('cantiere-subtitle').textContent = "ID: " + project.id + (project.loc ? " · " + project.loc : "");
+    
+    // Passa alla view
+    document.getElementById('home-view').classList.add('page-hidden');
+    document.getElementById('cantiere-view').classList.remove('page-hidden');
+    
+    // Inizializza Dashboard
+    await mostraViewCantiere('dashboard');
+    
+  } catch (err) {
+    console.error(err);
+    alert("Errore nel caricamento del cantiere.");
+    tornaHome();
+  }
+}
+
+async function mostraViewCantiere(viewName) {
+  const projectId = sessionStorage.getItem('currentProjectId');
+  if (!projectId) return tornaHome();
   
-  // Nascondi home
-  document.getElementById('home-view').classList.add('page-hidden');
-  // Mostra cantiere
-  document.getElementById('cantiere-view').classList.remove('page-hidden');
+  // 1. Reset bottoni nav
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.remove('text-white', 'bg-slate-700', 'shadow-inner');
+    btn.classList.add('hover:bg-slate-700', 'hover:text-white');
+    if (btn.dataset.view === viewName) {
+      btn.classList.remove('hover:bg-slate-700', 'hover:text-white');
+      btn.classList.add('text-white', 'bg-slate-700', 'shadow-inner');
+    }
+  });
+
+  // 2. Nascondi tutte le sub-view
+  document.querySelectorAll('.cantiere-subview').forEach(v => v.classList.add('page-hidden'));
   
-  document.getElementById('cantiere-title').textContent = "Contesto cantiere - in costruzione FASE 3 (" + projectId + ")";
+  // 3. Mostra view richiesta o placeholder
+  const viewEl = document.getElementById('view-' + viewName);
+  if (viewEl) {
+    viewEl.classList.remove('page-hidden');
+    // Genera dati specifici
+    if (viewName === 'dashboard') {
+      await generaDashboardKPI(projectId);
+    }
+  } else {
+    // Fallback al placeholder per view non ancora implementate
+    const placeholder = document.getElementById('view-placeholder');
+    placeholder.classList.remove('page-hidden');
+    
+    // Titolo formattato (es. ods_inviati -> ODS Inviati)
+    const title = viewName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    document.getElementById('placeholder-title').textContent = title;
+  }
+}
+
+async function generaDashboardKPI(projectId) {
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = '<div class="col-span-full text-center text-slate-400 py-8">Caricamento indicatori...</div>';
+  
+  try {
+    // Fetch asincrono parallelo dai vari store FASE 1
+    const [
+      ncs, verbali, odsInv, imprese, lavs, mezzi, docF
+    ] = await Promise.all([
+      getAllByIndex('nc', 'projectId', projectId).catch(() => []),
+      getAllByIndex('verbali', 'projectId', projectId).catch(() => []),
+      getAllByIndex('ods_inviati', 'projectId', projectId).catch(() => []),
+      getAllByIndex('imprese', 'projectId', projectId).catch(() => []),
+      getAllByIndex('lavoratori', 'projectId', projectId).catch(() => []),
+      getAllByIndex('mezzi', 'projectId', projectId).catch(() => []),
+      getAllByIndex('doc_fondamentali', 'projectId', projectId).catch(() => [])
+    ]);
+
+    // Calcoli NC
+    const ncAperte = ncs.filter(n => n.stato !== 'chiusa');
+    const ncScadute = ncAperte.filter(n => n.scadenza && new Date(n.scadenza) < new Date()).length;
+    
+    // Calcoli temporali (mese corrente)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const verbaliMese = verbali.filter(v => {
+      if (!v.data) return false;
+      const d = new Date(v.data);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length;
+
+    // Rendering KPI Cards
+    grid.innerHTML = `
+      ${createKPICard('NC Aperte / Scadute', `${ncAperte.length} / ${ncScadute}`, ncScadute > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white')}
+      ${createKPICard('Verbali questo mese', verbaliMese, 'bg-white')}
+      ${createKPICard('ODS Inviati totali', odsInv.length, 'bg-white')}
+      ${createKPICard('Imprese operative', imprese.length, 'bg-white')}
+      ${createKPICard('Lavoratori autorizzati', lavs.length, 'bg-white')}
+      ${createKPICard('Mezzi di cantiere', mezzi.length, 'bg-white')}
+      ${createKPICard('Doc. Fondamentali', `${docF.filter(d=>d.stato==='valido').length} ok / ${docF.length} tot`, 'bg-white')}
+    `;
+    
+  } catch (err) {
+    console.error("Errore generazione KPI:", err);
+    grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-8">Errore caricamento indicatori.</div>';
+  }
+}
+
+function createKPICard(label, value, colorClass = "bg-white") {
+  return \`
+    <div class="border border-slate-200 rounded-xl p-4 shadow-sm \${colorClass}">
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">\${label}</div>
+      <div class="text-3xl font-extrabold text-slate-800">\${value}</div>
+    </div>
+  \`;
 }
 
 function tornaHome() {
   sessionStorage.removeItem('currentProjectId');
-  mostraHome();
-}
-
-function mostraHome() {
   document.getElementById('cantiere-view').classList.add('page-hidden');
   document.getElementById('home-view').classList.remove('page-hidden');
   renderHome();
