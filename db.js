@@ -1,8 +1,115 @@
-// db.js - Gestione IndexedDB per ANAS SafeHub
-// v7: store foto, imprese_cantieri, impostazioni
+// db.js - Gestione IndexedDB per ANAS SafeHub v3
 
-const DB_NAME    = 'ANAS_SafeHub_DB';
-const DB_VERSION = 14;          // v14: store 'persone_fisiche' (P9 — Anagrafiche RL, RUP, dirigenti)
+const DB_NAME = 'ANAS_CSE_DB';
+const DB_VERSION = 10;
+
+const STORES_CONFIG = {
+  // Globali
+  impostazioni: { keyPath: 'chiave' },
+  
+  // Cantiere-specifici (TUTTI con index su projectId)
+  projects: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'stato', keyPath: 'stato' }
+    ]
+  },
+  imprese: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'ruolo', keyPath: 'ruolo' },
+      { name: 'partitaIva', keyPath: 'partitaIva' }
+    ]
+  },
+  persone_anas: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'ruolo', keyPath: 'ruolo' }
+    ]
+  },
+  persone_terzi: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' }
+    ]
+  },
+  lavoratori: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'impresaId', keyPath: 'impresaId' }
+    ]
+  },
+  mezzi: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'impresaId', keyPath: 'impresaId' },
+      { name: 'tipologia', keyPath: 'tipologia' }
+    ]
+  },
+  verbali: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'tipo', keyPath: 'tipo' },
+      { name: 'data', keyPath: 'data' }
+    ]
+  },
+  verifiche_pos: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'impresaId', keyPath: 'impresaId' }
+    ]
+  },
+  nc: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'impresaId', keyPath: 'impresaId' },
+      { name: 'stato', keyPath: 'stato' },
+      { name: 'livello', keyPath: 'livello' }
+    ]
+  },
+  ods_inviati: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'impresaId', keyPath: 'impresaId' }
+    ]
+  },
+  ods_ricevuti: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'mittente', keyPath: 'mittente' }
+    ]
+  },
+  lettere_sospensione: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' }
+    ]
+  },
+  diario_cse: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'data', keyPath: 'data' }
+    ]
+  },
+  documenti: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'tipologia', keyPath: 'tipologia' },
+      { name: 'entitaCollegataId', keyPath: 'entitaCollegataId' }
+    ]
+  }
+};
 
 let db = null;
 
@@ -14,87 +121,18 @@ function initDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
     req.onupgradeneeded = (event) => {
-      const db = event.target.result;
-
-      // 1. Cantieri
-      if (!db.objectStoreNames.contains('projects')) {
-        const s = db.createObjectStore('projects', { keyPath: 'id' });
-        s.createIndex('nome', 'nome', { unique: false });
-      }
-
-      // 2. Verbali
-      if (!db.objectStoreNames.contains('verbali')) {
-        const s = db.createObjectStore('verbali', { keyPath: 'id' });
-        s.createIndex('projectId', 'projectId', { unique: false });
-      }
-
-      // 3. Non Conformità
-      if (!db.objectStoreNames.contains('nc')) {
-        const s = db.createObjectStore('nc', { keyPath: 'id' });
-        s.createIndex('projectId', 'projectId', { unique: false });
-        s.createIndex('stato',     'stato',     { unique: false });
-      }
-
-      // 4. Imprese (anagrafica globale)
-      if (!db.objectStoreNames.contains('imprese')) {
-        db.createObjectStore('imprese', { keyPath: 'id' });
-      }
-
-      // 5. Lavoratori
-      if (!db.objectStoreNames.contains('lavoratori')) {
-        const s = db.createObjectStore('lavoratori', { keyPath: 'id' });
-        s.createIndex('impresaId', 'impresaId', { unique: false });
-      }
-
-      // 6. Documenti (file blob + metadati)
-      if (!db.objectStoreNames.contains('documenti')) {
-        const s = db.createObjectStore('documenti', { keyPath: 'id' });
-        s.createIndex('nome', 'nome', { unique: false });
-        s.createIndex('tags', 'tags', { unique: false, multiEntry: true });
-      }
-
-      // 7. Collegamento Documenti ↔ Verbali / NC / Imprese / Lavoratori
-      if (!db.objectStoreNames.contains('doc_links')) {
-        const s = db.createObjectStore('doc_links', { keyPath: 'id' });
-        s.createIndex('by_riferimento', ['tipo', 'riferimentoId'], { unique: false });
-      }
-
-      // 8. Foto NC
-      if (!db.objectStoreNames.contains('foto')) {
-        const s = db.createObjectStore('foto', { keyPath: 'id' });
-        s.createIndex('ncId', 'ncId', { unique: false });
-      }
-
-      // 9. Assegnazione Imprese ↔ Cantieri
-      if (!db.objectStoreNames.contains('imprese_cantieri')) {
-        const s = db.createObjectStore('imprese_cantieri', { keyPath: 'id' });
-        s.createIndex('projectId',  'projectId',  { unique: false });
-        s.createIndex('impresaId',  'impresaId',  { unique: false });
-      }
-
-      // 10. Impostazioni personalizzazione verbale
-      if (!db.objectStoreNames.contains('impostazioni')) {
-        db.createObjectStore('impostazioni', { keyPath: 'id' });
-      }
-
-      // 11. Coda di sincronizzazione (MOD-24)
-      if (!db.objectStoreNames.contains('sync_queue')) {
-        const s = db.createObjectStore('sync_queue', { keyPath: 'id' });
-        s.createIndex('status', 'status', { unique: false });
-      }
-
-      // 12. Mezzi e Attrezzature (MOD-10)
-      if (!db.objectStoreNames.contains('mezzi')) {
-        const s = db.createObjectStore('mezzi', { keyPath: 'id' });
-        s.createIndex('projectId', 'projectId', { unique: false });
-        s.createIndex('impresaId', 'impresaId', { unique: false });
-        s.createIndex('tipologia', 'tipologia', { unique: false });
-      }
-
-      // 13. Persone Fisiche — RUP, RL, DL, dirigenti, funzionari (P9)
-      if (!db.objectStoreNames.contains('persone_fisiche')) {
-        const s = db.createObjectStore('persone_fisiche', { keyPath: 'id' });
-        s.createIndex('ruolo', 'ruolo', { unique: false });
+      const database = event.target.result;
+      
+      // Creazione automatica degli store basata su STORES_CONFIG
+      for (const [storeName, config] of Object.entries(STORES_CONFIG)) {
+        if (!database.objectStoreNames.contains(storeName)) {
+          const store = database.createObjectStore(storeName, { keyPath: config.keyPath });
+          if (config.indexes) {
+            config.indexes.forEach(idx => {
+              store.createIndex(idx.name, idx.keyPath, { unique: false });
+            });
+          }
+        }
       }
     };
 
@@ -103,7 +141,10 @@ function initDB() {
       resolve();
     };
 
-    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
+    req.onerror = () => {
+      console.error(req.error);
+      reject('Errore di archiviazione locale. Riprovare.');
+    };
   });
 }
 
@@ -115,12 +156,12 @@ function initDB() {
 function saveItem(storeName, item) {
   return new Promise((resolve, reject) => {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t   = db.transaction(storeName, 'readwrite');
-    const s   = t.objectStore(storeName);
+    const t = db.transaction(storeName, 'readwrite');
+    const s = t.objectStore(storeName);
     try {
       const req = s.put(item);
       req.onsuccess = () => resolve(item);
-      req.onerror   = () => {
+      req.onerror = () => {
         console.error(req.error);
         if (req.error && req.error.name === 'QuotaExceededError') {
           reject('Spazio di archiviazione esaurito. Elimina alcuni file o libera spazio sul dispositivo.');
@@ -142,8 +183,8 @@ function saveItem(storeName, item) {
 function getAll(storeName) {
   return new Promise((resolve, reject) => {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t   = db.transaction(storeName, 'readonly');
-    const s   = t.objectStore(storeName);
+    const t = db.transaction(storeName, 'readonly');
+    const s = t.objectStore(storeName);
     const req = s.getAll();
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
@@ -154,8 +195,8 @@ function getAll(storeName) {
 function getItem(storeName, id) {
   return new Promise((resolve, reject) => {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t   = db.transaction(storeName, 'readonly');
-    const s   = t.objectStore(storeName);
+    const t = db.transaction(storeName, 'readonly');
+    const s = t.objectStore(storeName);
     const req = s.get(id);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
@@ -166,8 +207,8 @@ function getItem(storeName, id) {
 function getByIndex(storeName, indexName, value) {
   return new Promise((resolve, reject) => {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t   = db.transaction(storeName, 'readonly');
-    const s   = t.objectStore(storeName);
+    const t = db.transaction(storeName, 'readonly');
+    const s = t.objectStore(storeName);
     const idx = s.index(indexName);
     const req = idx.getAll(value);
     req.onsuccess = () => resolve(req.result || []);
@@ -175,12 +216,17 @@ function getByIndex(storeName, indexName, value) {
   });
 }
 
+// Alias per compatibilità con il documento di refactoring
+function getAllByIndex(storeName, indexName, value) {
+  return getByIndex(storeName, indexName, value);
+}
+
 /** Elimina un elemento per chiave primaria */
 function deleteItem(storeName, id) {
   return new Promise((resolve, reject) => {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t   = db.transaction(storeName, 'readwrite');
-    const s   = t.objectStore(storeName);
+    const t = db.transaction(storeName, 'readwrite');
+    const s = t.objectStore(storeName);
     const req = s.delete(id);
     req.onsuccess = () => resolve();
     req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
@@ -191,10 +237,37 @@ function deleteItem(storeName, id) {
 function clearStore(storeName) {
   return new Promise((resolve, reject) => {
     if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t   = db.transaction(storeName, 'readwrite');
-    const s   = t.objectStore(storeName);
+    const t = db.transaction(storeName, 'readwrite');
+    const s = t.objectStore(storeName);
     const req = s.clear();
     req.onsuccess = () => resolve();
     req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
   });
+}
+
+/** 
+ * Elimina intero cantiere e fa cascade su tutti gli store collegati 
+ */
+async function eliminaCantiere(projectId) {
+  const STORES_CANTIERE = [
+    'imprese', 'persone_anas', 'persone_terzi', 'lavoratori',
+    'mezzi', 'verbali', 'verifiche_pos', 'nc', 'ods_inviati',
+    'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 'documenti'
+  ];
+  
+  for (const storeName of STORES_CANTIERE) {
+    const items = await getByIndex(storeName, 'projectId', projectId);
+    for (const item of items) {
+      await deleteItem(storeName, item.id);
+    }
+  }
+  
+  await deleteItem('projects', projectId);
+  
+  // Aggiorna anche OneDrive se attivo
+  if (typeof isArchivioOneDriveAttivo === 'function' && await isArchivioOneDriveAttivo()) {
+    if (typeof _eliminaCartellaLotto === 'function') await _eliminaCartellaLotto(projectId);
+    if (typeof _eliminaJsonLotto === 'function') await _eliminaJsonLotto(projectId);
+    if (typeof _aggiornaRegistroLotti === 'function') await _aggiornaRegistroLotti(projectId, 'remove');
+  }
 }
