@@ -218,6 +218,10 @@ async function mostraViewCantiere(viewName, faseAttesa = null) {
       if (typeof renderTerzi === 'function') {
         await renderTerzi('Tutti');
       }
+    } else if (viewName === 'lavoratori') {
+      if (typeof renderLavoratori === 'function') {
+        await renderLavoratori();
+      }
     }
   } else {
     // Fallback al placeholder per view non ancora implementate

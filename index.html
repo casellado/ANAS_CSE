@@ -22,6 +22,8 @@
   <script defer src="./imprese.js"></script>
   <script defer src="./persone-anas.js"></script>
   <script defer src="./persone-terzi.js"></script>
+  <script defer src="./catalogo-tipologie-mezzi.js"></script>
+  <script defer src="./lavoratori.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -275,6 +277,40 @@
         
         <!-- Grid Terzi -->
         <div id="terzi-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Popolato da JS -->
+        </div>
+      </div>
+
+      <!-- VIEW LAVORATORI (FASE 4.4) -->
+      <div id="view-lavoratori" class="cantiere-subview page-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>👷</span> Lavoratori del Cantiere</h3>
+          <button onclick="apriModalLavoratore()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+            <span>+</span> Nuovo Lavoratore
+          </button>
+        </div>
+        
+        <!-- Filtri Lavoratori -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-6" id="lavoratori-filters">
+          <div class="flex-1">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Filtra per Impresa</label>
+            <select id="filter-lav-impresa" onchange="renderLavoratori()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
+              <!-- Popolato da JS -->
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Stato Documenti</label>
+            <select id="filter-lav-docs" onchange="renderLavoratori()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
+              <option value="Tutti">Tutti</option>
+              <option value="Validi">✅ Validi</option>
+              <option value="In scadenza">⚠️ In scadenza (30gg)</option>
+              <option value="Scaduti">🚨 Scaduti</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Grid Lavoratori -->
+        <div id="lavoratori-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Popolato da JS -->
         </div>
       </div>
@@ -626,6 +662,125 @@
         <div class="flex gap-3">
           <button onclick="chiudiModalEliminaTerzi()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
           <button onclick="eseguiEliminaTerzi()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LAVORATORE (FASE 4.4) -->
+  <div id="modal-lavoratore" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
+      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
+        <h3 id="modal-lavoratore-title" class="text-xl font-bold text-slate-800">Nuovo Lavoratore</h3>
+        <button onclick="chiudiModalLavoratore()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
+      </div>
+      
+      <div class="p-4 md:p-6 overflow-y-auto">
+        <form id="form-lavoratore" class="space-y-8">
+          <input type="hidden" id="lavoratore-id">
+          
+          <!-- STEP 1 & 2: Impresa e Anagrafica -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-2">1. Impresa e Dati Anagrafici</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Impresa di Appartenenza *</label>
+                <select id="lavoratore-impresa" required class="w-full border border-blue-300 rounded px-3 py-2 bg-blue-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition font-semibold">
+                  <!-- Popolato dinamicamente da JS -->
+                </select>
+                <p id="lavoratore-cambio-impresa-warn" class="text-xs text-orange-600 mt-1 font-semibold page-hidden">⚠️ Modificando l'impresa, il lavoratore sarà trasferito alla nuova nel cantiere corrente.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
+                <input type="text" id="lavoratore-nome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
+                <input type="text" id="lavoratore-cognome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Codice Fiscale *</label>
+                <input type="text" id="lavoratore-cf" required pattern="^[A-Za-z0-9]{16}$" placeholder="16 caratteri alfanumerici" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Mansione *</label>
+                <input type="text" id="lavoratore-mansione" required placeholder="Es. Operaio specializzato" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+            </div>
+          </div>
+          
+          <!-- STEP 3: Formazione -->
+          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">2. Attestato Formazione Base/Specifica</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Numero Attestato</label>
+                <input type="text" id="lav-formazione-num" placeholder="Opzionale" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Scadenza</label>
+                <input type="date" id="lav-formazione-scad" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+              <div class="flex items-end">
+                <button type="button" class="w-full bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-300 border border-slate-300 transition" onclick="alert('Upload file in FASE 7')">📎 Upload PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 4: Visita Medica -->
+          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Idoneità Sanitaria (Visita Medica)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Ente / Medico Competente</label>
+                <input type="text" id="lav-visita-ente" placeholder="Opzionale" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Data Visita</label>
+                <input type="date" id="lav-visita-data" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Scadenza</label>
+                <input type="date" id="lav-visita-scad" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 5: Abilitazioni -->
+          <div>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-1 flex-1">4. Abilitazioni e Patentini (Mezzi)</h4>
+              <button type="button" onclick="aggiungiRigaAbilitazioneLav()" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1 bg-blue-50 rounded ml-4">+ Aggiungi Patentino</button>
+            </div>
+            <div id="lav-abilitazioni-container" class="space-y-3">
+              <!-- Righe generate da JS -->
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      
+      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
+        <button onclick="chiudiModalLavoratore()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+        <button onclick="salvaLavoratore(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Lavoratore</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINA LAVORATORE -->
+  <div id="modal-elimina-lavoratore" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
+        <p class="text-slate-600 mb-4">Vuoi davvero eliminare <strong id="elimina-lavoratore-nome"></strong>?</p>
+        <div class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
+          I dati personali e le abilitazioni del lavoratore saranno rimossi definitivamente. I documenti correlati (formazione, visita medica, patentini) verranno eliminati.
+        </div>
+        
+        <div class="flex gap-3">
+          <button onclick="chiudiModalEliminaLavoratore()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+          <button onclick="eseguiEliminaLavoratore()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
         </div>
       </div>
     </div>

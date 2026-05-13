@@ -1,658 +1,462 @@
-// lavoratori.js - Gestione lavoratori delle imprese ANAS SafeHub
+// lavoratori.js - Modulo Anagrafica Lavoratori (FASE 4.4)
+
+let lavoratoreDaEliminare = null;
 
 // ─────────────────────────────────────────────
-// 1. Recupera lavoratori per impresa
+// HELPERS STATO DOCUMENTI
 // ─────────────────────────────────────────────
-async function getLavoratoriByImpresa(impresaId) {
-  return await getByIndex('lavoratori', 'impresaId', impresaId);
-}
 
-// ─────────────────────────────────────────────
-// 2. Crea un nuovo lavoratore
-// ─────────────────────────────────────────────
-async function creaLavoratore(impresaId, dati) {
-  const lavoratore = {
-    id:         'lav_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    impresaId,
-    nome:       dati.nome       || '',
-    cognome:    dati.cognome    || '',
-    mansione:   dati.mansione   || '',
-    cf:         dati.cf         || '',
-    dpi:        dati.dpi        || [],
-    idoneita:   dati.idoneita   || 'non verificata',
-    scadenzaVisita: dati.scadenzaVisita || '',
-    formazione: dati.formazione || [],
-    createdAt:  new Date().toISOString()
-  };
-
-  await saveItem('lavoratori', lavoratore);
-  showToast('Lavoratore aggiunto correttamente ✓', 'success');
-  await renderLavoratoriImpresa('lavoratori-list', impresaId);
-}
-
-// ─────────────────────────────────────────────
-// 3. Rimuovi lavoratore (con conferma custom e cascade)
-// ─────────────────────────────────────────────
-async function rimuoviLavoratore(id, impresaId) {
-  let nome = 'questo lavoratore';
-  try {
-    const lav = await getItem('lavoratori', id);
-    if (lav && lav.nome) nome = `${lav.nome}${lav.cognome ? ' ' + lav.cognome : ''}`;
-  } catch(_) {}
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-elimina-lavoratore';
-  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4 text-center">
-      <div class="text-4xl">⚠️</div>
-      <h2 class="text-lg font-bold text-slate-800">Rimuovi Lavoratore</h2>
-      <p class="text-sm text-slate-600">
-        Vuoi eliminare definitivamente <strong>${escapeHtml(nome)}</strong>?<br>
-        <span class="text-red-600 font-semibold">Verranno persi foto e documenti associati.</span>
-      </p>
-      <div class="flex justify-center gap-3 pt-2">
-        <button onclick="document.getElementById('modal-elimina-lavoratore').remove()"
-                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
-                       hover:bg-slate-200 focus:outline-none">
-          Annulla
-        </button>
-        <button id="btn-conferma-elimina-lav"
-                class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold
-                       hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400">
-          🗑️ Elimina
-        </button>
-      </div>
-    </div>
-  `;
+function calcolaStatoDocumento(scadenza) {
+  if (!scadenza) return { stato: 'mancante', label: '❓ mancante', color: 'text-slate-400' };
   
-  modal.querySelector('#btn-conferma-elimina-lav').onclick = async () => {
-    // Cleanup: foto
-    if (typeof getByIndex === 'function') {
-      const foto = await getByIndex('foto', 'lavoratoreId', id).catch(() => []);
-      for (const f of foto) await deleteItem('foto', f.id);
-    }
-    // Cleanup: doc_links
-    if (typeof getByIndex === 'function') {
-      const links = await getByIndex('doc_links', 'riferimentoId', id).catch(() => []);
-      for (const l of links) await deleteItem('doc_links', l.id);
-    }
+  const now = new Date();
+  const scadData = new Date(scadenza);
+  
+  if (isNaN(scadData.getTime())) return { stato: 'mancante', label: '❓ mancante', color: 'text-slate-400' };
+  
+  now.setHours(0,0,0,0);
+  scadData.setHours(0,0,0,0);
+  
+  const diffTime = scadData - now;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return { stato: 'scaduto', label: '🚨 scaduto', color: 'text-red-600 font-bold' };
+  } else if (diffDays <= 30) {
+    return { stato: 'in-scadenza', label: \`⚠️ scade tra \${diffDays}gg\`, color: 'text-orange-600 font-bold' };
+  } else {
+    return { stato: 'valido', label: \`✅ valido (\${scadData.toLocaleDateString('it-IT')})\`, color: 'text-emerald-600' };
+  }
+}
 
-    await deleteItem('lavoratori', id);
-    document.getElementById('modal-elimina-lavoratore')?.remove();
-    showToast('Lavoratore rimosso.', 'info');
-    await renderLavoratoriImpresa('lavoratori-list', impresaId);
+function getPeggiorStatoGlobale(formazioneStato, visitaStato, patentiniStati) {
+  const tuttiStati = [formazioneStato.stato, visitaStato.stato, ...patentiniStati.map(p => p.stato)];
+  
+  if (tuttiStati.includes('scaduto')) return 'Scaduti';
+  if (tuttiStati.includes('in-scadenza')) return 'In scadenza';
+  return 'Validi'; // Consideriamo validi anche se "mancanti" (se non richiesti)
+}
+
+// ─────────────────────────────────────────────
+// RENDER LISTA LAVORATORI
+// ─────────────────────────────────────────────
+
+async function caricaFiltroImprese() {
+  const projectId = sessionStorage.getItem('currentProjectId');
+  const select = document.getElementById('filter-lav-impresa');
+  select.innerHTML = '<option value="Tutte">Tutte le imprese</option>';
+  
+  if (!projectId) return;
+  
+  try {
+    const imprese = await getByIndex('imprese', 'projectId', projectId);
+    imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
     
-    // Se siamo nel dettaglio, torniamo all'impresa
-    const container = document.getElementById('lavoratore-dettaglio-container');
-    if (container) window.history.back();
-  };
-
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
-  document.body.appendChild(modal);
-}
-
-// ─────────────────────────────────────────────
-// 4. Apri scheda lavoratore
-// ─────────────────────────────────────────────
-function apriSchedaLavoratore(id) {
-  sessionStorage.setItem('currentLavoratoreId', id);
-  window.location.href = `lavoratore-dettaglio.html?id=${id}`;
-}
-
-// ─────────────────────────────────────────────
-// 5. Rendering lista lavoratori
-// ─────────────────────────────────────────────
-async function renderLavoratoriImpresa(containerId, impresaId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  const lavoratori = await getLavoratoriByImpresa(impresaId);
-
-  const idoneitaColore = {
-    'idoneo':         'bg-green-100 text-green-800 border-green-300',
-    'non idoneo':     'bg-red-100   text-red-800   border-red-300',
-    'non verificata': 'bg-slate-100 text-slate-600 border-slate-300'
-  };
-
-  if (lavoratori.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-6 text-slate-400">
-        <p class="text-sm mb-3">Nessun lavoratore registrato.</p>
-        <button onclick="mostraPopupNuovoLavoratore('${impresaId}')"
-                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                aria-label="Aggiungi lavoratore">
-          + Aggiungi Lavoratore
-        </button>
-      </div>`;
-    return;
+    imprese.forEach(imp => {
+      select.innerHTML += \`<option value="\${imp.id}">\${escapeHtml(imp.ragioneSociale)} [\${imp.ruolo}]</option>\`;
+    });
+  } catch(e) {
+    console.error("Errore caricamento imprese per filtro:", e);
   }
-
-  container.innerHTML = `
-    <div class="mb-4">
-      <button onclick="mostraPopupNuovoLavoratore('${impresaId}')"
-              class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold
-                     hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-        + Aggiungi Lavoratore
-      </button>
-    </div>
-
-    ${lavoratori.map(l => {
-      const nome     = escapeHtml(l.nome);
-      const cognome  = escapeHtml(l.cognome);
-      const mansione = escapeHtml(l.mansione);
-      const dpiTesto = l.dpi?.length > 0 ? l.dpi.map(d => escapeHtml(d)).join(', ') : '';
-      return `
-      <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200 mb-3"
-           role="article"
-           aria-label="Lavoratore ${nome} ${cognome}">
-        <div class="flex justify-between items-start gap-4">
-          <div class="flex-1 min-w-0">
-            <div class="font-bold text-slate-800 text-base">${nome} ${cognome}</div>
-            <div class="text-xs text-slate-500 mt-0.5">Mansione: ${mansione || '–'}</div>
-              <span class="text-xs px-2 py-0.5 rounded border font-semibold
-                           ${idoneitaColore[l.idoneita] || idoneitaColore['non verificata']}">
-                ${l.idoneita || 'Non verificata'}
-              </span>
-              ${l.scadenzaVisita ? `
-                <span class="text-[10px] ml-2 font-mono ${new Date(l.scadenzaVisita) < new Date() ? 'text-red-600 font-bold animate-pulse' : 'text-slate-500'}">
-                  Scad. ${new Date(l.scadenzaVisita).toLocaleDateString('it-IT')}
-                </span>
-              ` : ''}
-            </div>
-            ${dpiTesto
-              ? `<div class="text-xs text-slate-400 mt-1">DPI: ${dpiTesto}</div>`
-              : ''
-            }
-          </div>
-
-          <div class="flex gap-2 shrink-0">
-            <button onclick="apriSchedaLavoratore('${l.id}')"
-                    class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg
-                           hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    aria-label="Apri scheda ${nome} ${cognome}">
-              Scheda →
-            </button>
-            <button onclick="rimuoviLavoratore('${l.id}', '${impresaId}')"
-                    class="bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg
-                           hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
-                    aria-label="Rimuovi lavoratore ${nome} ${cognome}">
-              Rimuovi
-            </button>
-          </div>
-        </div>
-      </div>
-    `; }).join('')}
-  `;
 }
 
-// ─────────────────────────────────────────────
-// 6. Popup aggiunta lavoratore
-// ─────────────────────────────────────────────
-function mostraPopupNuovoLavoratore(impresaId) {
-  const existing = document.getElementById('popup-lavoratore');
-  if (existing) existing.remove();
+async function renderLavoratori() {
+  const projectId = sessionStorage.getItem('currentProjectId');
+  if (!projectId) return;
 
-  const html = `
-    <div id="popup-lavoratore"
-         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-         role="dialog" aria-modal="true" aria-labelledby="popup-lav-title">
-      <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4 space-y-4
-                  max-h-[90vh] overflow-y-auto">
+  const filterImpresa = document.getElementById('filter-lav-impresa').value;
+  const filterDocs = document.getElementById('filter-lav-docs').value;
 
-        <h2 id="popup-lav-title" class="text-lg font-bold text-slate-800">
-          👷 Nuovo Lavoratore
-        </h2>
+  const grid = document.getElementById('lavoratori-grid');
+  grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Caricamento lavoratori...</div>';
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="lav-nome" class="text-xs font-semibold text-slate-600 block mb-1">
-              Nome <span class="text-red-500">*</span>
-            </label>
-            <input id="lav-nome"
-                   type="text"
-                   placeholder="Es. Mario"
-                   class="w-full border border-slate-300 rounded-lg p-2 text-sm
-                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                   aria-required="true" />
+  try {
+    const allLavoratori = await getByIndex('lavoratori', 'projectId', projectId);
+    
+    // Serve caricare le imprese per mostrare il nome
+    const impreseStore = await getByIndex('imprese', 'projectId', projectId);
+    const mapImprese = {};
+    impreseStore.forEach(imp => mapImprese[imp.id] = imp);
+
+    // Filtro per impresa
+    let filtered = allLavoratori;
+    if (filterImpresa !== 'Tutte') {
+      filtered = filtered.filter(l => l.impresaId === filterImpresa);
+    }
+
+    const lavoratoriElaborati = filtered.map(lav => {
+      const formazioneStato = calcolaStatoDocumento(lav.attestatoFormazione?.scadenza);
+      const visitaStato = calcolaStatoDocumento(lav.visitaMedica?.scadenza);
+      const patentiniStati = (lav.abilitazioni || []).map(p => calcolaStatoDocumento(p.scadenza));
+      
+      const statoGlobale = getPeggiorStatoGlobale(formazioneStato, visitaStato, patentiniStati);
+      
+      return { lav, formazioneStato, visitaStato, patentiniStati, statoGlobale };
+    });
+
+    // Filtro per stato documenti
+    let finalFiltered = lavoratoriElaborati;
+    if (filterDocs !== 'Tutti') {
+      finalFiltered = lavoratoriElaborati.filter(item => item.statoGlobale === filterDocs);
+    }
+
+    // Ordinamento alfabetico
+    finalFiltered.sort((a, b) => {
+      const cA = (a.lav.cognome || '').toLowerCase();
+      const cB = (b.lav.cognome || '').toLowerCase();
+      if (cA !== cB) return cA.localeCompare(cB);
+      return (a.lav.nome || '').toLowerCase().localeCompare((b.lav.nome || '').toLowerCase());
+    });
+
+    if (finalFiltered.length === 0) {
+      grid.innerHTML = \`
+        <div class="col-span-full bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200">
+          <div class="text-4xl mb-4">👷</div>
+          <h3 class="text-lg font-bold text-slate-700">Nessun lavoratore trovato</h3>
+          <p class="text-sm text-slate-500">Aggiungi il primo lavoratore cliccando su "Nuovo Lavoratore".</p>
+        </div>
+      \`;
+      // Se le imprese sono vuote, ricarica il select per sicurezza al primo render
+      if (document.getElementById('filter-lav-impresa').options.length <= 1) {
+        await caricaFiltroImprese();
+      }
+      return;
+    }
+
+    // Se le imprese non sono state caricate nel filtro
+    if (document.getElementById('filter-lav-impresa').options.length <= 1) {
+      await caricaFiltroImprese();
+    }
+
+    grid.innerHTML = '';
+    
+    for (const item of finalFiltered) {
+      const l = item.lav;
+      const impresa = mapImprese[l.impresaId] || { ragioneSociale: 'Impresa sconosciuta', ruolo: '?' };
+      
+      const card = document.createElement('div');
+      card.className = "bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col hover:shadow-md transition overflow-hidden";
+      
+      const countPat = (l.abilitazioni || []).length;
+      let patentiniHtml = \`<div class="flex items-start gap-2 mt-2 pt-2 border-t border-slate-100">
+        <span class="w-5 text-center shrink-0">🔧</span>
+        <span class="text-xs text-slate-500">\${countPat > 0 ? \`\${countPat} abilitazioni registrate\` : 'Nessuna abilitazione'}</span>
+      </div>\`;
+
+      card.innerHTML = \`
+        <div class="p-4 border-b border-slate-100 bg-slate-50/50 relative">
+          <div class="text-[10px] font-bold text-slate-500 mb-1">\${escapeHtml(l.codiceFiscale)}</div>
+          <h4 class="font-bold text-slate-800 text-lg leading-tight line-clamp-1" title="\${escapeHtml(l.nome)} \${escapeHtml(l.cognome)}">
+            \${escapeHtml(l.nome)} \${escapeHtml(l.cognome)}
+          </h4>
+          <div class="text-xs text-slate-500 mt-1 font-medium">\${escapeHtml(l.mansione)}</div>
+        </div>
+        <div class="p-4 flex-1 space-y-2 text-sm text-slate-600">
+          <div class="flex items-start gap-2 mb-3">
+            <span class="w-5 text-center shrink-0 mt-0.5">🏢</span>
+            <div class="leading-tight">
+              <span class="font-bold text-slate-700 block">\${escapeHtml(impresa.ragioneSociale)}</span>
+              <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-semibold">\${impresa.ruolo}</span>
+            </div>
           </div>
-          <div>
-            <label for="lav-cognome" class="text-xs font-semibold text-slate-600 block mb-1">
-              Cognome <span class="text-red-500">*</span>
-            </label>
-            <input id="lav-cognome"
-                   type="text"
-                   placeholder="Es. Rossi"
-                   class="w-full border border-slate-300 rounded-lg p-2 text-sm
-                          focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                   aria-required="true" />
+          
+          <div class="flex items-start gap-2">
+            <span class="w-5 text-center shrink-0">📋</span>
+            <div class="flex-1">
+              <span class="font-semibold block text-xs uppercase text-slate-400">Formazione</span>
+              <span class="\${item.formazioneStato.color}">\${item.formazioneStato.label}</span>
+            </div>
           </div>
-        </div>
-
-        <div>
-          <label for="lav-cf" class="text-xs font-semibold text-slate-600 block mb-1">
-            Codice Fiscale
-          </label>
-          <input id="lav-cf"
-                 type="text"
-                 placeholder="Es. RSSMRA80A01H501T"
-                 maxlength="16"
-                 style="text-transform:uppercase"
-                 class="w-full border border-slate-300 rounded-lg p-2 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-
-        <div>
-          <label for="lav-mansione" class="text-xs font-semibold text-slate-600 block mb-1">
-            Mansione
-          </label>
-          <input id="lav-mansione"
-                 type="text"
-                 placeholder="Es. Operatore, Capocantiere, Gruista"
-                 class="w-full border border-slate-300 rounded-lg p-2 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-
-        <fieldset>
-          <legend class="text-xs font-semibold text-slate-600 mb-2">DPI consegnati</legend>
-          <div class="grid grid-cols-2 gap-2 text-sm">
-            ${[
-              'Casco',
-              'Guanti',
-              'Gilet Alta Visibilità',
-              'Scarpe Antinfortunistiche',
-              'Imbracatura',
-              'Occhiali di Protezione'
-            ].map(dpi => `
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" class="lav-dpi-check rounded" value="${dpi}" />
-                <span>${dpi}</span>
-              </label>
-            `).join('')}
+          
+          <div class="flex items-start gap-2">
+            <span class="w-5 text-center shrink-0">🏥</span>
+            <div class="flex-1">
+              <span class="font-semibold block text-xs uppercase text-slate-400">Visita Medica</span>
+              <span class="\${item.visitaStato.color}">\${item.visitaStato.label}</span>
+            </div>
           </div>
-        </fieldset>
-
-        <div>
-          <label for="lav-idoneita" class="text-xs font-semibold text-slate-600 block mb-1">
-            Idoneità lavorativa
-          </label>
-          <select id="lav-idoneita"
-                  class="w-full border border-slate-300 rounded-lg p-2 text-sm
-                         focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <option value="idoneo">✅ Idoneo</option>
-            <option value="non idoneo">❌ Non idoneo</option>
-            <option value="non verificata">⚪ Non verificata</option>
-          </select>
+          
+          \${patentiniHtml}
         </div>
-
-        <div>
-          <label for="lav-scadenza" class="text-xs font-semibold text-slate-600 block mb-1">
-            Scadenza Idoneità Medica
-          </label>
-          <input id="lav-scadenza"
-                 type="date"
-                 class="w-full border border-slate-300 rounded-lg p-2 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-
-        <div class="flex justify-end gap-3 pt-2">
-          <button onclick="document.getElementById('popup-lavoratore').remove()"
-                  class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
-                         hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400">
-            Annulla
+        <div class="p-3 border-t border-slate-100 bg-slate-50 flex gap-2 shrink-0">
+          <button onclick="apriModalLavoratore('\${l.id}')" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 transition">
+            <span>📝</span> Modifica
           </button>
-          <button onclick="confermaNuovoLavoratore('${impresaId}')"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold
-                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-            ✅ Salva Lavoratore
+          <button onclick="confermaEliminaLavoratore('\${l.id}', '\${escapeHtml((l.nome + ' ' + l.cognome).replace(/'/g, "\\\\\\'"))}')" class="flex items-center justify-center px-3 py-1.5 text-sm font-semibold text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 hover:border-red-300 transition">
+            <span>🗑️</span>
           </button>
         </div>
-
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML('beforeend', html);
-  document.getElementById('popup-lavoratore').addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') document.getElementById('popup-lavoratore')?.remove();
-  });
-  document.getElementById('lav-nome')?.focus();
+      \`;
+      grid.appendChild(card);
+    }
+  } catch (err) {
+    console.error("Errore render Lavoratori:", err);
+    grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento dei dati.</div>';
+  }
 }
 
-async function confermaNuovoLavoratore(impresaId) {
-  const nome    = (document.getElementById('lav-nome')?.value     || '').trim();
-  const cognome = (document.getElementById('lav-cognome')?.value   || '').trim();
+// ─────────────────────────────────────────────
+// MODAL & FORM CREAZIONE/MODIFICA
+// ─────────────────────────────────────────────
 
-  if (!nome || !cognome) {
-    showToast('Nome e Cognome sono obbligatori.', 'warning');
-    return;
+async function apriModalLavoratore(id = null) {
+  const projectId = sessionStorage.getItem('currentProjectId');
+  if (!projectId) return;
+
+  const form = document.getElementById('form-lavoratore');
+  form.reset();
+  document.getElementById('lavoratore-id').value = '';
+  document.getElementById('modal-lavoratore-title').textContent = id ? 'Modifica Lavoratore' : 'Nuovo Lavoratore';
+  document.getElementById('lavoratore-cambio-impresa-warn').classList.add('page-hidden');
+  
+  // Svuota righe abilitazioni
+  document.getElementById('lav-abilitazioni-container').innerHTML = '';
+
+  // Popola dropdown imprese
+  const selectImpresa = document.getElementById('lavoratore-impresa');
+  selectImpresa.innerHTML = '<option value="">-- Seleziona impresa --</option>';
+  try {
+    const imprese = await getByIndex('imprese', 'projectId', projectId);
+    imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
+    imprese.forEach(imp => {
+      selectImpresa.innerHTML += \`<option value="\${imp.id}">\${escapeHtml(imp.ragioneSociale)} [\${imp.ruolo}]</option>\`;
+    });
+  } catch (e) {
+    console.error("Errore caricamento imprese modale", e);
   }
 
-  const dpi = Array.from(
-    document.querySelectorAll('#popup-lavoratore .lav-dpi-check:checked')
-  ).map(c => c.value);
-
-  await creaLavoratore(impresaId, {
-    nome,
-    cognome,
-    cf:       (document.getElementById('lav-cf')?.value       || '').toUpperCase(),
-    mansione: document.getElementById('lav-mansione')?.value   || '',
-    dpi,
-    idoneita: document.getElementById('lav-idoneita')?.value   || 'non verificata',
-    scadenzaVisita: document.getElementById('lav-scadenza')?.value || ''
-  });
-
-  document.getElementById('popup-lavoratore')?.remove();
-}
-
-// Inizializzazione centralizzata spostata nei file HTML principali.
-
-// ─────────────────────────────────────────────
-// 8. Modal MODIFICA lavoratore — GAP-5
-// ─────────────────────────────────────────────
-const DPI_LISTA = [
-  'Casco', 'Guanti', 'Scarpe antinfortunistiche', 'Gilet alta visibilità',
-  'Otoprotettori', 'Mascherina FFP2/FFP3', 'Occhiali protezione',
-  'Imbracatura anticaduta', 'Stivali', 'Tuta da lavoro'
-];
-
-async function apriModalModificaLavoratore(lavId) {
-  const l = await getItem('lavoratori', lavId);
-  if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
-
-  document.getElementById('modal-modifica-lavoratore')?.remove();
-
-  const modal = document.createElement('div');
-  modal.id        = 'modal-modifica-lavoratore';
-  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh]
-                overflow-y-auto p-6 space-y-4">
-      <h2 class="text-lg font-bold text-slate-800">✏️ Modifica Lavoratore</h2>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label for="mod-lav-nome" class="text-xs font-semibold text-slate-600 block mb-1">Nome <span class="text-red-500">*</span></label>
-          <input id="mod-lav-nome" type="text" value="${escapeHtml(l.nome || '')}"
-                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-        <div>
-          <label for="mod-lav-cognome" class="text-xs font-semibold text-slate-600 block mb-1">Cognome <span class="text-red-500">*</span></label>
-          <input id="mod-lav-cognome" type="text" value="${escapeHtml(l.cognome || '')}"
-                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-        <div>
-          <label for="mod-lav-cf" class="text-xs font-semibold text-slate-600 block mb-1">Codice Fiscale</label>
-          <input id="mod-lav-cf" type="text" value="${escapeHtml(l.cf || '')}"
-                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-mono
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-        <div>
-          <label for="mod-lav-mansione" class="text-xs font-semibold text-slate-600 block mb-1">Mansione</label>
-          <input id="mod-lav-mansione" type="text" value="${escapeHtml(l.mansione || '')}"
-                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-        <div class="col-span-2">
-          <label for="mod-lav-idoneita" class="text-xs font-semibold text-slate-600 block mb-1">Idoneità Lavorativa</label>
-          <select id="mod-lav-idoneita"
-                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white
-                         focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <option value="idoneo"         ${l.idoneita==='idoneo'         ? 'selected':''}>✅ Idoneo</option>
-            <option value="non idoneo"     ${l.idoneita==='non idoneo'     ? 'selected':''}>❌ Non Idoneo</option>
-            <option value="non verificata" ${l.idoneita==='non verificata' ? 'selected':''}>⬜ Non Verificata</option>
-          </select>
-        </div>
-        <div class="col-span-2">
-          <label for="mod-lav-scadenza" class="text-xs font-semibold text-slate-600 block mb-1">Scadenza Idoneità Medica</label>
-          <input id="mod-lav-scadenza" type="date" value="${l.scadenzaVisita || ''}"
-                 class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
-                        focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-        </div>
-      </div>
-
-      <div>
-        <label class="text-xs font-semibold text-slate-600 block mb-2">DPI Consegnati</label>
-        <div class="grid grid-cols-2 gap-1.5">
-          ${DPI_LISTA.map(dpi => `
-            <label class="flex items-center gap-2 text-xs cursor-pointer">
-              <input type="checkbox"
-                     class="mod-lav-dpi-check rounded"
-                     value="${escapeHtml(dpi)}"
-                     ${(l.dpi || []).includes(dpi) ? 'checked' : ''} />
-              ${escapeHtml(dpi)}
-            </label>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
-        <button onclick="document.getElementById('modal-modifica-lavoratore').remove()"
-                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
-                       hover:bg-slate-200 focus:outline-none">
-          Annulla
-        </button>
-        <button onclick="confermaModificaLavoratore('${escapeHtml(l.id)}')"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-          ✅ Salva
-        </button>
-      </div>
-    </div>
-  `;
-
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.remove(); });
-  document.body.appendChild(modal);
-  modal.querySelector('#mod-lav-nome').focus();
-}
-
-async function confermaModificaLavoratore(lavId) {
-  const nome     = (document.getElementById('mod-lav-nome')?.value     || '').trim();
-  const cognome  = (document.getElementById('mod-lav-cognome')?.value  || '').trim();
-  const cf       = (document.getElementById('mod-lav-cf')?.value       || '').toUpperCase().trim();
-  const mansione = (document.getElementById('mod-lav-mansione')?.value || '').trim();
-  const idoneita = document.getElementById('mod-lav-idoneita')?.value  || 'non verificata';
-  const scadenzaVisita = document.getElementById('mod-lav-scadenza')?.value || '';
-  const dpi      = Array.from(document.querySelectorAll('.mod-lav-dpi-check:checked')).map(c => c.value);
-
-  if (!nome || !cognome) { showToast('Nome e Cognome sono obbligatori.', 'warning'); return; }
-
-  const l = await getItem('lavoratori', lavId);
-  if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
-
-  const updated = { ...l, nome, cognome, cf, mansione, idoneita, scadenzaVisita, dpi, updatedAt: new Date().toISOString() };
-  await saveItem('lavoratori', updated);
-
-  document.getElementById('modal-modifica-lavoratore')?.remove();
-  showToast(`Lavoratore "${nome} ${cognome}" aggiornato ✓`, 'success');
-
-  // Ricarica scheda se siamo sulla pagina dettaglio
-  const container = document.getElementById('lavoratore-dettaglio-container');
-  if (container) window.location.reload();
-}
-
-// ─────────────────────────────────────────────
-// 9. Gestione Formazione — GAP-6
-// ─────────────────────────────────────────────
-async function apriPannelloFormazione(lavId) {
-  const l = await getItem('lavoratori', lavId);
-  if (!l) { showToast('Lavoratore non trovato.', 'error'); return; }
-
-  document.getElementById('pannello-formazione')?.remove();
-
-  const panel = document.createElement('div');
-  panel.id        = 'pannello-formazione';
-  panel.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
-  panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-modal', 'true');
-
-  const corsi = l.formazione || [];
-
-  panel.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-4">
-      <h2 class="text-lg font-bold text-slate-800">📚 Formazione Lavoratore</h2>
-      <div class="text-sm text-slate-500">
-        ${escapeHtml(l.nome)} ${escapeHtml(l.cognome)}
-      </div>
-
-      <div id="lista-corsi" class="space-y-2 max-h-48 overflow-y-auto">
-        ${corsi.length > 0
-          ? corsi.map((c, i) => `
-            <div class="flex items-center justify-between bg-slate-50 border border-slate-200
-                        rounded-lg px-3 py-2">
-              <span class="text-sm text-slate-700">${escapeHtml(c)}</span>
-              <button onclick="_rimuoviCorso('${escapeHtml(lavId)}', ${i})"
-                      class="text-red-400 hover:text-red-700 text-xs font-bold ml-2
-                             focus:outline-none" aria-label="Rimuovi corso">
-                ✕
-              </button>
-            </div>
-          `).join('')
-          : '<p class="text-xs text-slate-400 italic py-2 text-center">Nessun corso registrato.</p>'
+  if (id) {
+    // Gestione alert al cambio impresa
+    selectImpresa.onchange = (e) => {
+      document.getElementById('lavoratore-cambio-impresa-warn').classList.remove('page-hidden');
+    };
+    
+    try {
+      const lav = await getItem('lavoratori', id);
+      if (lav) {
+        document.getElementById('lavoratore-id').value = lav.id;
+        document.getElementById('lavoratore-impresa').value = lav.impresaId || '';
+        document.getElementById('lavoratore-nome').value = lav.nome || '';
+        document.getElementById('lavoratore-cognome').value = lav.cognome || '';
+        document.getElementById('lavoratore-cf').value = lav.codiceFiscale || '';
+        document.getElementById('lavoratore-mansione').value = lav.mansione || '';
+        
+        // Formazione
+        if (lav.attestatoFormazione) {
+          document.getElementById('lav-formazione-num').value = lav.attestatoFormazione.numero || '';
+          document.getElementById('lav-formazione-scad').value = lav.attestatoFormazione.scadenza || '';
         }
-      </div>
+        
+        // Visita
+        if (lav.visitaMedica) {
+          document.getElementById('lav-visita-ente').value = lav.visitaMedica.ente || '';
+          document.getElementById('lav-visita-data').value = lav.visitaMedica.data || '';
+          document.getElementById('lav-visita-scad').value = lav.visitaMedica.scadenza || '';
+        }
+        
+        // Abilitazioni
+        if (lav.abilitazioni && lav.abilitazioni.length > 0) {
+          lav.abilitazioni.forEach(ab => {
+            aggiungiRigaAbilitazioneLav(ab);
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Impossibile caricare i dati");
+      return;
+    }
+  } else {
+    selectImpresa.onchange = null;
+  }
 
-      <div class="flex gap-2">
-        <input id="nuovo-corso" type="text"
-               placeholder="Es. Corso RLS 8h — 15/01/2025"
-               class="flex-1 border border-slate-300 rounded-lg p-2.5 text-sm
-                      focus:ring-2 focus:ring-blue-400 focus:outline-none"
-               onkeydown="if(event.key==='Enter') _aggiungiCorso('${escapeHtml(lavId)}')" />
-        <button onclick="_aggiungiCorso('${escapeHtml(lavId)}')"
-                class="bg-blue-600 text-white text-sm px-3 py-2.5 rounded-lg font-semibold
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-          + Aggiungi
-        </button>
-      </div>
+  const modal = document.getElementById('modal-lavoratore');
+  modal.classList.remove('page-hidden');
+  setTimeout(() => modal.classList.remove('opacity-0'), 10);
+}
 
-      <div class="flex justify-end pt-2">
-        <button onclick="document.getElementById('pannello-formazione').remove()"
-                class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold
-                       hover:bg-slate-200 focus:outline-none">
-          Chiudi
-        </button>
+function chiudiModalLavoratore() {
+  const modal = document.getElementById('modal-lavoratore');
+  modal.classList.add('opacity-0');
+  setTimeout(() => modal.classList.add('page-hidden'), 300);
+}
+
+// ─────────────────────────────────────────────
+// ABILITAZIONI DINAMICHE
+// ─────────────────────────────────────────────
+
+function aggiungiRigaAbilitazioneLav(data = null) {
+  const container = document.getElementById('lav-abilitazioni-container');
+  const idRiga = 'ab_' + Date.now() + Math.random().toString(36).substr(2,5);
+  
+  const div = document.createElement('div');
+  div.className = 'bg-white border border-slate-200 p-3 rounded shadow-sm relative group lav-abilitazione-row';
+  div.id = idRiga;
+  
+  const optionsHtml = typeof getOpzioniTipologieMezziHtml === 'function' ? getOpzioniTipologieMezziHtml() : '';
+  
+  div.innerHTML = \`
+    <button type="button" onclick="document.getElementById('\${idRiga}').remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow hover:bg-red-600 hover:text-white transition opacity-0 group-hover:opacity-100">&times;</button>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="lg:col-span-2">
+        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Tipologia Mezzo *</label>
+        <select class="lav-ab-tipo w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" required>
+          \${optionsHtml}
+        </select>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Scadenza *</label>
+        <input type="date" class="lav-ab-scad w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" required>
+      </div>
+      <div class="flex items-end">
+        <button type="button" class="w-full bg-slate-100 text-slate-600 px-2 py-1.5 rounded text-xs border border-slate-300" onclick="alert('Upload in FASE 7')">📎 PDF</button>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">N. Patentino</label>
+        <input type="text" class="lav-ab-num w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" placeholder="Opz.">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Ente Rilascio</label>
+        <input type="text" class="lav-ab-ente w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" placeholder="Es. INAIL">
       </div>
     </div>
-  `;
-
-  panel.addEventListener('click', e => { if (e.target === panel) panel.remove(); });
-  panel.addEventListener('keydown', e => { if (e.key === 'Escape') panel.remove(); });
-  document.body.appendChild(panel);
-  panel.querySelector('#nuovo-corso').focus();
+  \`;
+  
+  container.appendChild(div);
+  
+  if (data) {
+    div.querySelector('.lav-ab-tipo').value = data.tipologiaMezzo || '';
+    div.querySelector('.lav-ab-scad').value = data.scadenza || '';
+    div.querySelector('.lav-ab-num').value = data.numero || '';
+    div.querySelector('.lav-ab-ente').value = data.ente || '';
+  }
 }
 
-async function _aggiungiCorso(lavId) {
-  const input = document.getElementById('nuovo-corso');
-  const corso = (input?.value || '').trim();
-  if (!corso) { showToast('Inserisci il nome del corso.', 'warning'); return; }
-
-  const l = await getItem('lavoratori', lavId);
-  if (!l) return;
-
-  const formazione = [...(l.formazione || []), corso];
-  await saveItem('lavoratori', { ...l, formazione, updatedAt: new Date().toISOString() });
-
-  showToast('Corso aggiunto ✓', 'success');
-  await apriPannelloFormazione(lavId); // ricarica il pannello
-}
-
-async function _rimuoviCorso(lavId, indice) {
-  const l = await getItem('lavoratori', lavId);
-  if (!l) return;
-
-  const formazione = (l.formazione || []).filter((_, i) => i !== indice);
-  await saveItem('lavoratori', { ...l, formazione, updatedAt: new Date().toISOString() });
-
-  showToast('Corso rimosso.', 'info');
-  await apriPannelloFormazione(lavId); // ricarica il pannello
+function raccogliAbilitazioni() {
+  const container = document.getElementById('lav-abilitazioni-container');
+  const righe = container.querySelectorAll('.lav-abilitazione-row');
+  const abil = [];
+  
+  righe.forEach(r => {
+    abil.push({
+      tipologiaMezzo: r.querySelector('.lav-ab-tipo').value,
+      scadenza: r.querySelector('.lav-ab-scad').value,
+      numero: r.querySelector('.lav-ab-num').value.trim(),
+      ente: r.querySelector('.lav-ab-ente').value.trim(),
+      documentoId: null // FASE 7
+    });
+  });
+  
+  return abil;
 }
 
 // ─────────────────────────────────────────────
-// 10. Modal rapido lavoratori (per Dashboard) — MOD-22
+// SALVATAGGIO
 // ─────────────────────────────────────────────
-async function mostraLavoratoriImpresaModal(impresaId) {
-  const [impresa, lavoratori] = await Promise.all([
-    getItem('imprese', impresaId),
-    getLavoratoriByImpresa(impresaId)
-  ]);
 
-  if (!impresa) { showToast('Impresa non trovata.', 'error'); return; }
+async function salvaLavoratore(e) {
+  e.preventDefault();
+  const form = document.getElementById('form-lavoratore');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
 
-  document.getElementById('modal-lavoratori-rapido')?.remove();
+  const projectId = sessionStorage.getItem('currentProjectId');
+  if (!projectId) return;
 
-  const modal = document.createElement('div');
-  modal.id        = 'modal-lavoratori-rapido';
-  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4';
-  modal.setAttribute('role', 'dialog');
-
-  const idoneitaColore = {
-    'idoneo':         'text-green-600',
-    'non idoneo':     'text-red-600',
-    'non verificata': 'text-slate-400'
+  const id = document.getElementById('lavoratore-id').value;
+  
+  // Costruisco l'oggetto rispettando rigorosamente lo schema
+  const lavData = {
+    id: id || 'lav_' + Date.now(),
+    projectId: projectId,
+    impresaId: document.getElementById('lavoratore-impresa').value,
+    nome: document.getElementById('lavoratore-nome').value.trim(),
+    cognome: document.getElementById('lavoratore-cognome').value.trim(),
+    codiceFiscale: document.getElementById('lavoratore-cf').value.trim().toUpperCase(),
+    mansione: document.getElementById('lavoratore-mansione').value.trim(),
+    
+    attestatoFormazione: {
+      numero: document.getElementById('lav-formazione-num').value.trim(),
+      scadenza: document.getElementById('lav-formazione-scad').value,
+      documentoId: null // FASE 7
+    },
+    
+    visitaMedica: {
+      ente: document.getElementById('lav-visita-ente').value.trim(),
+      data: document.getElementById('lav-visita-data').value,
+      scadenza: document.getElementById('lav-visita-scad').value,
+      documentoId: null // FASE 7
+    },
+    
+    abilitazioni: raccogliAbilitazioni(),
+    
+    modifiedAt: new Date().toISOString(),
+    modifiedBy: 'Utente' // FASE 8
   };
 
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-      <!-- Header -->
-      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-        <div>
-          <h2 class="text-lg font-bold text-slate-800">${escapeHtml(impresa.nome)}</h2>
-          <p class="text-xs text-slate-500 uppercase tracking-wide font-semibold">Registro Lavoratori Attivi</p>
-        </div>
-        <button onclick="document.getElementById('modal-lavoratori-rapido').remove()" 
-                class="text-slate-400 hover:text-slate-600 text-2xl font-light">&times;</button>
-      </div>
+  try {
+    await saveItem('lavoratori', lavData);
+    chiudiModalLavoratore();
+    renderLavoratori();
+  } catch (err) {
+    console.error("Errore salvataggio lavoratore", err);
+    alert("Impossibile salvare i dati");
+  }
+}
 
-      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-5">
-        ${lavoratori.length === 0 
-          ? `<div class="text-center py-10 text-slate-400 italic text-sm">Nessun lavoratore registrato per questa impresa.</div>`
-          : `
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            ${lavoratori.map(l => {
-              const isScaduto = l.scadenzaIdoneita && new Date(l.scadenzaIdoneita) < new Date();
-              return `
-                <div class="p-3 rounded-xl border ${isScaduto ? 'border-red-200 bg-red-50' : 'border-slate-100 bg-white'} shadow-sm">
-                  <div class="flex justify-between items-start">
-                    <div class="font-bold text-slate-800 text-sm">${escapeHtml(l.nome)} ${escapeHtml(l.cognome)}</div>
-                    ${isScaduto ? '<span class="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">SCADUTO</span>' : ''}
-                  </div>
-                  <div class="text-[10px] text-slate-500 font-medium">${escapeHtml(l.mansione || '–')}</div>
-                  <div class="mt-2 flex items-center justify-between">
-                    <span class="text-[10px] font-bold ${idoneitaColore[l.idoneita] || 'text-slate-400'}">
-                      ● ${l.idoneita?.toUpperCase() || 'DA VERIFICARE'}
-                    </span>
-                    ${l.scadenzaIdoneita ? `
-                      <span class="text-[9px] font-mono ${isScaduto ? 'text-red-700 font-bold' : 'text-slate-400'}">
-                        Scad: ${new Date(l.scadenzaIdoneita).toLocaleDateString('it-IT')}
-                      </span>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `}
-      </div>
+// ─────────────────────────────────────────────
+// ELIMINAZIONE
+// ─────────────────────────────────────────────
 
-      <!-- Footer -->
-      <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50">
-        <div class="text-[10px] text-slate-400">Totale: ${lavoratori.length} lavoratori</div>
-        <button onclick="apriSchedaImpresa('${impresa.id}')"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">
-          Gestisci Anagrafica Full →
-        </button>
-      </div>
-    </div>
-  `;
+function confermaEliminaLavoratore(id, nome) {
+  lavoratoreDaEliminare = id;
+  document.getElementById('elimina-lavoratore-nome').textContent = nome;
+  
+  const modal = document.getElementById('modal-elimina-lavoratore');
+  modal.classList.remove('page-hidden');
+  setTimeout(() => modal.classList.remove('opacity-0'), 10);
+}
 
-  document.body.appendChild(modal);
+function chiudiModalEliminaLavoratore() {
+  lavoratoreDaEliminare = null;
+  const modal = document.getElementById('modal-elimina-lavoratore');
+  modal.classList.add('opacity-0');
+  setTimeout(() => modal.classList.add('page-hidden'), 300);
+}
+
+async function eseguiEliminaLavoratore() {
+  if (!lavoratoreDaEliminare) return;
+  
+  try {
+    const lavId = lavoratoreDaEliminare;
+    
+    // Elimino prima il lavoratore
+    await deleteItem('lavoratori', lavId);
+    
+    // Cascade su store 'documenti' correlati a questo lavoratore
+    try {
+      const allDocs = await getAll('documenti');
+      const docsLavoratore = allDocs.filter(d => d.entitaCollegataId === lavId);
+      for (const doc of docsLavoratore) {
+        await deleteItem('documenti', doc.id);
+      }
+    } catch (e) {
+      console.warn("Nessun db 'documenti' ancora inizializzato o errore in cascade", e);
+    }
+    
+    chiudiModalEliminaLavoratore();
+    renderLavoratori();
+    
+    if (typeof mostraToast === 'function') {
+      mostraToast("Lavoratore eliminato con successo", "success");
+    } else {
+      alert("Lavoratore eliminato");
+    }
+    
+  } catch (err) {
+    console.error("Errore eliminazione lavoratore:", err);
+    alert("Errore durante l'eliminazione.");
+  }
 }
