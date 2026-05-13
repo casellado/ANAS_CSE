@@ -69,11 +69,11 @@ const MACRO_CATEGORIE_MEZZI = [
 function getOpzioniTipologieMezziHtml() {
   let html = '<option value="">-- Seleziona tipologia --</option>';
   MACRO_CATEGORIE_MEZZI.forEach(cat => {
-    html += \`<optgroup label="\${cat.icona} \${cat.nome}">\`;
+    html += `<optgroup label="${cat.icona} ${cat.nome}">`;
     cat.mezzi.forEach(m => {
-      html += \`<option value="\${m.id}">\${m.nome}</option>\`;
+      html += `<option value="${m.id}">${m.nome}</option>`;
     });
-    html += \`</optgroup>\`;
+    html += `</optgroup>`;
   });
   return html;
 }

@@ -23,9 +23,9 @@ function calcolaStatoDocumento(scadenza) {
   if (diffDays < 0) {
     return { stato: 'scaduto', label: '🚨 scaduto', color: 'text-red-600 font-bold' };
   } else if (diffDays <= 30) {
-    return { stato: 'in-scadenza', label: \`⚠️ scade tra \${diffDays}gg\`, color: 'text-orange-600 font-bold' };
+    return { stato: 'in-scadenza', label: `⚠️ scade tra ${diffDays}gg`, color: 'text-orange-600 font-bold' };
   } else {
-    return { stato: 'valido', label: \`✅ valido (\${scadData.toLocaleDateString('it-IT')})\`, color: 'text-emerald-600' };
+    return { stato: 'valido', label: `✅ valido (${scadData.toLocaleDateString('it-IT')})`, color: 'text-emerald-600' };
   }
 }
 
@@ -44,6 +44,7 @@ function getPeggiorStatoGlobale(formazioneStato, visitaStato, patentiniStati) {
 async function caricaFiltroImprese() {
   const projectId = sessionStorage.getItem('currentProjectId');
   const select = document.getElementById('filter-lav-impresa');
+  if (!select) return;
   select.innerHTML = '<option value="Tutte">Tutte le imprese</option>';
   
   if (!projectId) return;
@@ -53,7 +54,7 @@ async function caricaFiltroImprese() {
     imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
     
     imprese.forEach(imp => {
-      select.innerHTML += \`<option value="\${imp.id}">\${escapeHtml(imp.ragioneSociale)} [\${imp.ruolo}]</option>\`;
+      select.innerHTML += `<option value="${imp.id}">${escapeHtml(imp.ragioneSociale)} [${imp.ruolo}]</option>`;
     });
   } catch(e) {
     console.error("Errore caricamento imprese per filtro:", e);
@@ -64,10 +65,15 @@ async function renderLavoratori() {
   const projectId = sessionStorage.getItem('currentProjectId');
   if (!projectId) return;
 
-  const filterImpresa = document.getElementById('filter-lav-impresa').value;
-  const filterDocs = document.getElementById('filter-lav-docs').value;
+  const filterImpresaEl = document.getElementById('filter-lav-impresa');
+  const filterDocsEl = document.getElementById('filter-lav-docs');
+  if (!filterImpresaEl || !filterDocsEl) return;
+
+  const filterImpresa = filterImpresaEl.value;
+  const filterDocs = filterDocsEl.value;
 
   const grid = document.getElementById('lavoratori-grid');
+  if (!grid) return;
   grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Caricamento lavoratori...</div>';
 
   try {
@@ -109,22 +115,22 @@ async function renderLavoratori() {
     });
 
     if (finalFiltered.length === 0) {
-      grid.innerHTML = \`
+      grid.innerHTML = `
         <div class="col-span-full bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200">
           <div class="text-4xl mb-4">👷</div>
           <h3 class="text-lg font-bold text-slate-700">Nessun lavoratore trovato</h3>
           <p class="text-sm text-slate-500">Aggiungi il primo lavoratore cliccando su "Nuovo Lavoratore".</p>
         </div>
-      \`;
+      `;
       // Se le imprese sono vuote, ricarica il select per sicurezza al primo render
-      if (document.getElementById('filter-lav-impresa').options.length <= 1) {
+      if (filterImpresaEl.options.length <= 1) {
         await caricaFiltroImprese();
       }
       return;
     }
 
     // Se le imprese non sono state caricate nel filtro
-    if (document.getElementById('filter-lav-impresa').options.length <= 1) {
+    if (filterImpresaEl.options.length <= 1) {
       await caricaFiltroImprese();
     }
 
@@ -138,25 +144,25 @@ async function renderLavoratori() {
       card.className = "bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col hover:shadow-md transition overflow-hidden";
       
       const countPat = (l.abilitazioni || []).length;
-      let patentiniHtml = \`<div class="flex items-start gap-2 mt-2 pt-2 border-t border-slate-100">
+      let patentiniHtml = `<div class="flex items-start gap-2 mt-2 pt-2 border-t border-slate-100">
         <span class="w-5 text-center shrink-0">🔧</span>
-        <span class="text-xs text-slate-500">\${countPat > 0 ? \`\${countPat} abilitazioni registrate\` : 'Nessuna abilitazione'}</span>
-      </div>\`;
+        <span class="text-xs text-slate-500">${countPat > 0 ? `${countPat} abilitazioni registrate` : 'Nessuna abilitazione'}</span>
+      </div>`;
 
-      card.innerHTML = \`
+      card.innerHTML = `
         <div class="p-4 border-b border-slate-100 bg-slate-50/50 relative">
-          <div class="text-[10px] font-bold text-slate-500 mb-1">\${escapeHtml(l.codiceFiscale)}</div>
-          <h4 class="font-bold text-slate-800 text-lg leading-tight line-clamp-1" title="\${escapeHtml(l.nome)} \${escapeHtml(l.cognome)}">
-            \${escapeHtml(l.nome)} \${escapeHtml(l.cognome)}
+          <div class="text-[10px] font-bold text-slate-500 mb-1">${escapeHtml(l.codiceFiscale)}</div>
+          <h4 class="font-bold text-slate-800 text-lg leading-tight line-clamp-1" title="${escapeHtml(l.nome)} ${escapeHtml(l.cognome)}">
+            ${escapeHtml(l.nome)} ${escapeHtml(l.cognome)}
           </h4>
-          <div class="text-xs text-slate-500 mt-1 font-medium">\${escapeHtml(l.mansione)}</div>
+          <div class="text-xs text-slate-500 mt-1 font-medium">${escapeHtml(l.mansione)}</div>
         </div>
         <div class="p-4 flex-1 space-y-2 text-sm text-slate-600">
           <div class="flex items-start gap-2 mb-3">
             <span class="w-5 text-center shrink-0 mt-0.5">🏢</span>
             <div class="leading-tight">
-              <span class="font-bold text-slate-700 block">\${escapeHtml(impresa.ragioneSociale)}</span>
-              <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-semibold">\${impresa.ruolo}</span>
+              <span class="font-bold text-slate-700 block">${escapeHtml(impresa.ragioneSociale)}</span>
+              <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-semibold">${impresa.ruolo}</span>
             </div>
           </div>
           
@@ -164,7 +170,7 @@ async function renderLavoratori() {
             <span class="w-5 text-center shrink-0">📋</span>
             <div class="flex-1">
               <span class="font-semibold block text-xs uppercase text-slate-400">Formazione</span>
-              <span class="\${item.formazioneStato.color}">\${item.formazioneStato.label}</span>
+              <span class="${item.formazioneStato.color}">${item.formazioneStato.label}</span>
             </div>
           </div>
           
@@ -172,21 +178,21 @@ async function renderLavoratori() {
             <span class="w-5 text-center shrink-0">🏥</span>
             <div class="flex-1">
               <span class="font-semibold block text-xs uppercase text-slate-400">Visita Medica</span>
-              <span class="\${item.visitaStato.color}">\${item.visitaStato.label}</span>
+              <span class="${item.visitaStato.color}">${item.visitaStato.label}</span>
             </div>
           </div>
           
-          \${patentiniHtml}
+          ${patentiniHtml}
         </div>
         <div class="p-3 border-t border-slate-100 bg-slate-50 flex gap-2 shrink-0">
-          <button onclick="apriModalLavoratore('\${l.id}')" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 transition">
+          <button onclick="apriModalLavoratore('${l.id}')" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 transition">
             <span>📝</span> Modifica
           </button>
-          <button onclick="confermaEliminaLavoratore('\${l.id}', '\${escapeHtml((l.nome + ' ' + l.cognome).replace(/'/g, "\\\\\\'"))}')" class="flex items-center justify-center px-3 py-1.5 text-sm font-semibold text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 hover:border-red-300 transition">
+          <button onclick="confermaEliminaLavoratore('${l.id}', '${escapeHtml((l.nome + ' ' + l.cognome).replace(/'/g, "\\'"))}')" class="flex items-center justify-center px-3 py-1.5 text-sm font-semibold text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 hover:border-red-300 transition">
             <span>🗑️</span>
           </button>
         </div>
-      \`;
+      `;
       grid.appendChild(card);
     }
   } catch (err) {
@@ -204,6 +210,7 @@ async function apriModalLavoratore(id = null) {
   if (!projectId) return;
 
   const form = document.getElementById('form-lavoratore');
+  if (!form) return;
   form.reset();
   document.getElementById('lavoratore-id').value = '';
   document.getElementById('modal-lavoratore-title').textContent = id ? 'Modifica Lavoratore' : 'Nuovo Lavoratore';
@@ -219,7 +226,7 @@ async function apriModalLavoratore(id = null) {
     const imprese = await getByIndex('imprese', 'projectId', projectId);
     imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
     imprese.forEach(imp => {
-      selectImpresa.innerHTML += \`<option value="\${imp.id}">\${escapeHtml(imp.ragioneSociale)} [\${imp.ruolo}]</option>\`;
+      selectImpresa.innerHTML += `<option value="${imp.id}">${escapeHtml(imp.ragioneSociale)} [${imp.ruolo}]</option>`;
     });
   } catch (e) {
     console.error("Errore caricamento imprese modale", e);
@@ -295,13 +302,13 @@ function aggiungiRigaAbilitazioneLav(data = null) {
   
   const optionsHtml = typeof getOpzioniTipologieMezziHtml === 'function' ? getOpzioniTipologieMezziHtml() : '';
   
-  div.innerHTML = \`
-    <button type="button" onclick="document.getElementById('\${idRiga}').remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow hover:bg-red-600 hover:text-white transition opacity-0 group-hover:opacity-100">&times;</button>
+  div.innerHTML = `
+    <button type="button" onclick="document.getElementById('${idRiga}').remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow hover:bg-red-600 hover:text-white transition opacity-0 group-hover:opacity-100">&times;</button>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
       <div class="lg:col-span-2">
         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Tipologia Mezzo *</label>
         <select class="lav-ab-tipo w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" required>
-          \${optionsHtml}
+          ${optionsHtml}
         </select>
       </div>
       <div>
@@ -320,7 +327,7 @@ function aggiungiRigaAbilitazioneLav(data = null) {
         <input type="text" class="lav-ab-ente w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" placeholder="Es. INAIL">
       </div>
     </div>
-  \`;
+  `;
   
   container.appendChild(div);
   
@@ -357,8 +364,8 @@ function raccogliAbilitazioni() {
 async function salvaLavoratore(e) {
   e.preventDefault();
   const form = document.getElementById('form-lavoratore');
-  if (!form.checkValidity()) {
-    form.reportValidity();
+  if (!form || !form.checkValidity()) {
+    if (form) form.reportValidity();
     return;
   }
 
@@ -437,13 +444,13 @@ async function eseguiEliminaLavoratore() {
     
     // Cascade su store 'documenti' correlati a questo lavoratore
     try {
-      const allDocs = await getAll('documenti');
-      const docsLavoratore = allDocs.filter(d => d.entitaCollegataId === lavId);
+      // Ottimizzato: uso l'indice invece di getAll()
+      const docsLavoratore = await getByIndex('documenti', 'entitaCollegataId', lavId);
       for (const doc of docsLavoratore) {
         await deleteItem('documenti', doc.id);
       }
     } catch (e) {
-      console.warn("Nessun db 'documenti' ancora inizializzato o errore in cascade", e);
+      console.warn("Errore in cascade documenti:", e);
     }
     
     chiudiModalEliminaLavoratore();
