@@ -214,6 +214,10 @@ async function mostraViewCantiere(viewName, faseAttesa = null) {
       if (typeof renderAnas === 'function') {
         await renderAnas('Tutti');
       }
+    } else if (viewName === 'terzi') {
+      if (typeof renderTerzi === 'function') {
+        await renderTerzi('Tutti');
+      }
     }
   } else {
     // Fallback al placeholder per view non ancora implementate

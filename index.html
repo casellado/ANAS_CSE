@@ -21,6 +21,7 @@
   <script defer src="./ui.js"></script>
   <script defer src="./imprese.js"></script>
   <script defer src="./persone-anas.js"></script>
+  <script defer src="./persone-terzi.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -249,6 +250,31 @@
 
         <!-- Grid ANAS -->
         <div id="anas-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Popolato da JS -->
+        </div>
+      </div>
+
+      <!-- VIEW TERZI (FASE 4.3) -->
+      <div id="view-terzi" class="cantiere-subview page-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🏢</span> Enti Terzi del Cantiere</h3>
+          <button onclick="apriModalTerzi()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+            <span>+</span> Nuovo
+          </button>
+        </div>
+        
+        <!-- Filtri Terzi -->
+        <div class="flex flex-wrap gap-2 mb-6" id="terzi-filters">
+          <button onclick="renderTerzi('Tutti')" class="filter-btn-terzi filter-terzi-Tutti active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutti</button>
+          <button onclick="renderTerzi('SPRESAL')" class="filter-btn-terzi filter-terzi-SPRESAL bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Spresal</button>
+          <button onclick="renderTerzi('VVF')" class="filter-btn-terzi filter-terzi-VVF bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">VVF</button>
+          <button onclick="renderTerzi('PROVINCIA')" class="filter-btn-terzi filter-terzi-PROVINCIA bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Provincia</button>
+          <button onclick="renderTerzi('CONSULENTE')" class="filter-btn-terzi filter-terzi-CONSULENTE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Consulente</button>
+          <button onclick="renderTerzi('ALTRO')" class="filter-btn-terzi filter-terzi-ALTRO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Altro</button>
+        </div>
+        
+        <!-- Grid Terzi -->
+        <div id="terzi-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Popolato da JS -->
         </div>
       </div>
@@ -516,6 +542,90 @@
         <div class="flex gap-3">
           <button onclick="chiudiModalEliminaAnas()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
           <button onclick="eseguiEliminaAnas()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TERZI (FASE 4.3) -->
+  <div id="modal-terzi" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
+        <h3 id="modal-terzi-title" class="text-xl font-bold text-slate-800">Nuova Persona Terza</h3>
+        <button onclick="chiudiModalTerzi()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
+      </div>
+      
+      <div class="p-4 md:p-6 overflow-y-auto">
+        <form id="form-terzi" class="space-y-6">
+          <input type="hidden" id="terzi-id">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
+              <input type="text" id="terzi-nome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
+              <input type="text" id="terzi-cognome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Qualifica *</label>
+              <input type="text" id="terzi-qualifica" placeholder="Es. Ispettore tecnico" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tipo Ente *</label>
+              <select id="terzi-tipoente" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <option value="SPRESAL">SPRESAL</option>
+                <option value="VVF">VVF (Vigili del Fuoco)</option>
+                <option value="PROVINCIA">Provincia</option>
+                <option value="CONSULENTE">Consulente Esterno</option>
+                <option value="ALTRO">Altro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ente / Denominazione *</label>
+              <input type="text" id="terzi-ente" placeholder="Es. ASP Catanzaro - Spresal" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+              <input type="email" id="terzi-email" placeholder="nome@ente.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
+              <input type="tel" id="terzi-telefono" placeholder="Es. +39 333..." class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      
+      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
+        <button onclick="chiudiModalTerzi()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+        <button onclick="salvaTerzi(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Persona</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINA TERZI -->
+  <div id="modal-elimina-terzi" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
+        <p class="text-slate-600 mb-4">Vuoi davvero eliminare <strong id="elimina-terzi-nome"></strong>?</p>
+        <div class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
+          <strong>Attenzione:</strong> questa persona potrebbe essere associata a verbali esistenti. L'eliminazione non rimuove i verbali ma potrebbe lasciare riferimenti orfani nelle future visualizzazioni.
+        </div>
+        
+        <div class="flex gap-3">
+          <button onclick="chiudiModalEliminaTerzi()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+          <button onclick="eseguiEliminaTerzi()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
         </div>
       </div>
     </div>
