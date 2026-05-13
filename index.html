@@ -19,6 +19,7 @@
   
   <!-- File legacy lasciati temporaneamente per non rimuoverli brutalmente (gestiti in fasi future) -->
   <script defer src="./ui.js"></script>
+  <script defer src="./imprese.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -168,6 +169,54 @@
         </div>
       </div>
 
+      <!-- VIEW IMPRESE (FASE 4.1) -->
+      <div id="view-imprese" class="cantiere-subview page-hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🏢</span> Imprese del Cantiere</h3>
+          <button onclick="apriModalImpresa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+            <span>+</span> Nuova Impresa
+          </button>
+        </div>
+        
+        <!-- Filtri Imprese -->
+        <div class="flex flex-wrap gap-2 mb-6" id="imprese-filters">
+          <button onclick="renderImprese('Tutte')" class="filter-btn active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutte</button>
+          <button onclick="renderImprese('AFFIDATARIA')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Affidataria</button>
+          <button onclick="renderImprese('ESECUTRICE')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Esecutrice</button>
+          <button onclick="renderImprese('SUBAPPALTO')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">SubAppalto</button>
+          <button onclick="renderImprese('FORNITORE')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Fornitore</button>
+        </div>
+        
+        <!-- Grid Imprese -->
+        <div id="imprese-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Popolato da JS -->
+        </div>
+      </div>
+
+      <!-- VIEW IMPRESE (FASE 4.1) -->
+      <div id="view-imprese" class="cantiere-subview page-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🏢</span> Imprese del Cantiere</h3>
+          <button onclick="apriModalImpresa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+            <span>+</span> Nuova Impresa
+          </button>
+        </div>
+        
+        <!-- Filtri Imprese -->
+        <div class="flex flex-wrap gap-2 mb-6" id="imprese-filters">
+          <button onclick="renderImprese('Tutte')" class="filter-btn-impresa filter-Tutte active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutte</button>
+          <button onclick="renderImprese('AFFIDATARIA')" class="filter-btn-impresa filter-AFFIDATARIA bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Affidataria</button>
+          <button onclick="renderImprese('ESECUTRICE')" class="filter-btn-impresa filter-ESECUTRICE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Esecutrice</button>
+          <button onclick="renderImprese('SUBAPPALTO')" class="filter-btn-impresa filter-SUBAPPALTO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">SubAppalto</button>
+          <button onclick="renderImprese('FORNITORE')" class="filter-btn-impresa filter-FORNITORE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Fornitore</button>
+        </div>
+        
+        <!-- Grid Imprese -->
+        <div id="imprese-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Popolato da JS -->
+        </div>
+      </div>
+
       <!-- Placeholder generico per le altre view -->
       <div id="view-placeholder" class="cantiere-subview page-hidden">
         <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200 mt-10 max-w-2xl mx-auto">
@@ -210,6 +259,134 @@
       <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end gap-3">
         <button onclick="chiudiModalNuovoCantiere()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
         <button onclick="salvaNuovoCantiere()" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Crea Cantiere</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL IMPRESA (FASE 4.1) -->
+  <div id="modal-impresa" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
+        <h3 id="modal-impresa-title" class="text-xl font-bold text-slate-800">Nuova Impresa</h3>
+        <button onclick="chiudiModalImpresa()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
+      </div>
+      
+      <div class="p-4 md:p-6 overflow-y-auto">
+        <form id="form-impresa" class="space-y-8">
+          <input type="hidden" id="impresa-id">
+          
+          <!-- STEP 1: Ruolo -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">1. Ruolo dell'impresa</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                <input type="radio" name="impresa-ruolo" value="AFFIDATARIA" class="mt-1" required onchange="aggiornaFormImpresa()">
+                <div class="ml-3">
+                  <div class="font-bold text-slate-800">Affidataria</div>
+                  <div class="text-xs text-slate-500">Impresa principale appaltatrice</div>
+                </div>
+              </label>
+              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                <input type="radio" name="impresa-ruolo" value="ESECUTRICE" class="mt-1" required onchange="aggiornaFormImpresa()">
+                <div class="ml-3">
+                  <div class="font-bold text-slate-800">Esecutrice</div>
+                  <div class="text-xs text-slate-500">Impresa di lavorazioni specifiche</div>
+                </div>
+              </label>
+              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                <input type="radio" name="impresa-ruolo" value="SUBAPPALTO" class="mt-1" required onchange="aggiornaFormImpresa()">
+                <div class="ml-3">
+                  <div class="font-bold text-slate-800">SubAppalto</div>
+                  <div class="text-xs text-slate-500">Subappaltatrice di altra impresa</div>
+                </div>
+              </label>
+              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                <input type="radio" name="impresa-ruolo" value="FORNITORE" class="mt-1" required onchange="aggiornaFormImpresa()">
+                <div class="ml-3">
+                  <div class="font-bold text-slate-800">Fornitore</div>
+                  <div class="text-xs text-slate-500">Fornitore di materiali o servizi</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <!-- STEP 2: Anagrafica -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">2. Dati Anagrafici</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ragione Sociale *</label>
+                <input type="text" id="impresa-ragione-sociale" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Partita IVA *</label>
+                <input type="text" id="impresa-piva" required pattern="[0-9]{11}" placeholder="11 cifre numeriche" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Codice Fiscale *</label>
+                <input type="text" id="impresa-cf" required pattern="([0-9]{11}|[A-Za-z0-9]{16})" placeholder="11 o 16 caratteri" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Sede Legale *</label>
+                <input type="text" id="impresa-sede" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Indirizzo PEC *</label>
+                <input type="email" id="impresa-pec" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+            </div>
+          </div>
+          
+          <!-- STEP 3: Subappalto Di -->
+          <div id="sezione-subappalto" class="page-hidden p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+            <h4 class="text-sm font-bold text-yellow-800 mb-2 uppercase tracking-wide">3. Dettagli Subappalto</h4>
+            <label class="block text-xs font-semibold text-yellow-700 uppercase tracking-wide mb-1">Sub-appaltatrice di *</label>
+            <select id="impresa-subappalto-di" class="w-full border border-yellow-300 rounded px-3 py-2 bg-white focus:ring-2 focus:ring-yellow-500 outline-none transition">
+              <!-- Popolato dinamicamente -->
+            </select>
+            <p id="msg-subappalto-locked" class="text-xs text-red-600 mt-1 page-hidden">Non modificabile: l'impresa ha lavoratori/mezzi associati.</p>
+          </div>
+          
+          <!-- STEP 4: Documenti -->
+          <div>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">4. Scadenze Documenti</h4>
+              <button type="button" onclick="aggiungiRigaDocImpresa()" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1 bg-blue-50 rounded">+ Aggiungi Scadenza</button>
+            </div>
+            <div id="impresa-docs-container" class="space-y-3">
+              <!-- Righe generate da JS -->
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      
+      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
+        <button onclick="chiudiModalImpresa()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+        <button onclick="salvaImpresa(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Impresa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINA IMPRESA -->
+  <div id="modal-elimina-impresa" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
+        <p class="text-slate-600 mb-4">Vuoi davvero eliminare l'impresa <strong id="elimina-impresa-nome"></strong>?</p>
+        <div id="elimina-impresa-cascade-info" class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200 page-hidden">
+          <div class="font-bold mb-1">Saranno eliminati anche:</div>
+          <ul class="list-disc pl-5 space-y-1" id="elimina-impresa-cascade-list">
+            <!-- Popolato da JS -->
+          </ul>
+        </div>
+        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-6">Operazione irreversibile</p>
+        
+        <div class="flex gap-3">
+          <button onclick="chiudiModalEliminaImpresa()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+          <button onclick="eseguiEliminaImpresa()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
+        </div>
       </div>
     </div>
   </div>

@@ -206,6 +206,10 @@ async function mostraViewCantiere(viewName, faseAttesa = null) {
     // Genera dati specifici
     if (viewName === 'dashboard') {
       await generaDashboardKPI(projectId);
+    } else if (viewName === 'imprese') {
+      if (typeof renderImprese === 'function') {
+        await renderImprese('Tutte');
+      }
     }
   } else {
     // Fallback al placeholder per view non ancora implementate
