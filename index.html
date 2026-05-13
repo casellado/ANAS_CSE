@@ -20,6 +20,7 @@
   <!-- File legacy lasciati temporaneamente per non rimuoverli brutalmente (gestiti in fasi future) -->
   <script defer src="./ui.js"></script>
   <script defer src="./imprese.js"></script>
+  <script defer src="./persone-anas.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -217,6 +218,41 @@
         </div>
       </div>
 
+      <!-- VIEW ANAS (FASE 4.2) -->
+      <div id="view-anas" class="cantiere-subview page-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>👔</span> Personale ANAS del Cantiere</h3>
+          <button onclick="apriModalAnas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+            <span>+</span> Nuovo
+          </button>
+        </div>
+        
+        <!-- Filtri ANAS -->
+        <div class="flex flex-wrap gap-2 mb-6" id="anas-filters">
+          <button onclick="renderAnas('Tutti')" class="filter-btn-anas filter-anas-Tutti active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutti</button>
+          <button onclick="renderAnas('RUP')" class="filter-btn-anas filter-anas-RUP bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">RUP</button>
+          <button onclick="renderAnas('DL')" class="filter-btn-anas filter-anas-DL bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">DL</button>
+          <button onclick="renderAnas('RL')" class="filter-btn-anas filter-anas-RL bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">RL</button>
+          <button onclick="renderAnas('CSE_TITOLARE')" class="filter-btn-anas filter-anas-CSE_TITOLARE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">CSE Tit.</button>
+          <button onclick="renderAnas('CSE_DELEGATO')" class="filter-btn-anas filter-anas-CSE_DELEGATO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">CSE Del.</button>
+          <button onclick="renderAnas('ISPETTORE_CANTIERE')" class="filter-btn-anas filter-anas-ISPETTORE_CANTIERE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Ispettore</button>
+          <button onclick="renderAnas('DIRIGENTE')" class="filter-btn-anas filter-anas-DIRIGENTE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Dirigente</button>
+          <button onclick="renderAnas('ALTRO')" class="filter-btn-anas filter-anas-ALTRO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Altro</button>
+        </div>
+        
+        <!-- Controlli Extra -->
+        <div class="mb-4 flex justify-end">
+          <button onclick="renderAnas(null, true)" class="text-sm font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
+            <span>↕️</span> Ordina per Ruolo
+          </button>
+        </div>
+
+        <!-- Grid ANAS -->
+        <div id="anas-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Popolato da JS -->
+        </div>
+      </div>
+
       <!-- Placeholder generico per le altre view -->
       <div id="view-placeholder" class="cantiere-subview page-hidden">
         <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200 mt-10 max-w-2xl mx-auto">
@@ -386,6 +422,100 @@
         <div class="flex gap-3">
           <button onclick="chiudiModalEliminaImpresa()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
           <button onclick="eseguiEliminaImpresa()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ANAS (FASE 4.2) -->
+  <div id="modal-anas" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
+        <h3 id="modal-anas-title" class="text-xl font-bold text-slate-800">Nuovo Personale ANAS</h3>
+        <button onclick="chiudiModalAnas()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
+      </div>
+      
+      <div class="p-4 md:p-6 overflow-y-auto">
+        <form id="form-anas" class="space-y-6">
+          <input type="hidden" id="anas-id">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
+              <input type="text" id="anas-nome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
+              <input type="text" id="anas-cognome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Qualifica *</label>
+              <input type="text" id="anas-qualifica" placeholder="Es. Funzionario Tecnico" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ruolo *</label>
+              <select id="anas-ruolo" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <option value="RUP">RUP</option>
+                <option value="DL">DL</option>
+                <option value="RL">RL</option>
+                <option value="CSE_TITOLARE">CSE Titolare</option>
+                <option value="CSE_DELEGATO">CSE Delegato</option>
+                <option value="ISPETTORE_CANTIERE">Ispettore Cantiere</option>
+                <option value="DIRIGENTE">Dirigente</option>
+                <option value="ALTRO">Altro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Matricola ANAS</label>
+              <input type="text" id="anas-matricola" placeholder="Opzionale" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Struttura Territoriale</label>
+              <input type="text" id="anas-struttura" value="Struttura Territoriale Calabria" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+              <input type="email" id="anas-email" placeholder="m.rossi@stradeanas.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
+              <input type="tel" id="anas-telefono" placeholder="Es. +39 333..." class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      
+      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
+        <button onclick="chiudiModalAnas()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+        <button onclick="salvaAnas(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Persona</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINA ANAS -->
+  <div id="modal-elimina-anas" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
+        <p class="text-slate-600 mb-4">Vuoi davvero eliminare <strong id="elimina-anas-nome"></strong>?</p>
+        <div class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
+          <strong>Attenzione:</strong> questa persona potrebbe essere associata a verbali esistenti. L'eliminazione non rimuove i verbali ma potrebbe lasciare riferimenti orfani nelle future visualizzazioni.
+        </div>
+        
+        <div class="flex gap-3">
+          <button onclick="chiudiModalEliminaAnas()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+          <button onclick="eseguiEliminaAnas()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
         </div>
       </div>
     </div>
