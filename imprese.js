@@ -360,15 +360,15 @@ async function confermaEliminaImpresa(id, nome) {
     let haCascade = false;
     
     if (lavs.length > 0) {
-      cascadeList.innerHTML += \`<li>\${lavs.length} lavoratori associati</li>\`;
+      cascadeList.innerHTML += `<li>${lavs.length} lavoratori associati</li>`;
       haCascade = true;
     }
     if (mezzi.length > 0) {
-      cascadeList.innerHTML += \`<li>\${mezzi.length} mezzi associati</li>\`;
+      cascadeList.innerHTML += `<li>${mezzi.length} mezzi associati</li>`;
       haCascade = true;
     }
     if (subs.length > 0) {
-      cascadeList.innerHTML += \`<li>\${subs.length} imprese in subappalto a questa</li>\`;
+      cascadeList.innerHTML += `<li>${subs.length} imprese in subappalto a questa</li>`;
       haCascade = true;
     }
     
