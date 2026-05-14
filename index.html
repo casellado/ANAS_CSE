@@ -24,6 +24,7 @@
   <script defer src="./persone-terzi.js"></script>
   <script defer src="./catalogo-tipologie-mezzi.js"></script>
   <script defer src="./lavoratori.js"></script>
+  <script defer src="./mezzi.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -311,6 +312,50 @@
         
         <!-- Grid Lavoratori -->
         <div id="lavoratori-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Popolato da JS -->
+        </div>
+      </div>
+
+      <!-- VIEW MEZZI (FASE 4.5) -->
+      <div id="view-mezzi" class="cantiere-subview page-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🚜</span> Mezzi e Attrezzature</h3>
+          <button onclick="apriModalMezzo()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+            <span>+</span> Nuovo Mezzo
+          </button>
+        </div>
+        
+        <!-- Filtri Mezzi -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" id="mezzi-filters">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Impresa</label>
+            <select id="filter-mez-impresa" onchange="renderMezzi()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
+              <!-- Popolato da JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Categoria</label>
+            <select id="filter-mez-cat" onchange="renderMezzi()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
+              <option value="Tutte">Tutte le categorie</option>
+              <option value="SC">SC - Carichi</option>
+              <option value="SP">SP - Perforazione</option>
+              <option value="MT">MT - Terra</option>
+              <option value="OP">OP - Operatrici</option>
+              <option value="AT">AT - Speciali</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Presenza</label>
+            <select id="filter-mez-presenza" onchange="renderMezzi()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
+              <option value="Tutti">Tutti</option>
+              <option value="In cantiere">In cantiere</option>
+              <option value="Non in cantiere">Non in cantiere</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Grid Mezzi -->
+        <div id="mezzi-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Popolato da JS -->
         </div>
       </div>
@@ -781,6 +826,131 @@
         <div class="flex gap-3">
           <button onclick="chiudiModalEliminaLavoratore()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
           <button onclick="eseguiEliminaLavoratore()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL MEZZO (FASE 4.5) -->
+  <div id="modal-mezzo" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
+      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
+        <h3 id="modal-mezzo-title" class="text-xl font-bold text-slate-800">Nuovo Mezzo / Attrezzatura</h3>
+        <button onclick="chiudiModalMezzo()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
+      </div>
+      
+      <div class="p-4 md:p-6 overflow-y-auto">
+        <form id="form-mezzo" class="space-y-8">
+          <input type="hidden" id="mezzo-id">
+          
+          <!-- STEP 1 & 2: Impresa e Tipologia -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-2">1. Proprietà e Tipologia</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Impresa Proprietaria *</label>
+                <select id="mezzo-impresa" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition font-semibold">
+                  <!-- Popolato dinamicamente -->
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tipologia Mezzo *</label>
+                <select id="mezzo-tipologia" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition font-semibold">
+                  <!-- Popolato da catalogo-tipologie-mezzi.js -->
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- STEP 3: Dati Anagrafici -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-2">2. Dati Identificativi</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Marca *</label>
+                <input type="text" id="mezzo-marca" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Modello *</label>
+                <input type="text" id="mezzo-modello" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Matricola (INAIL/Altro) *</label>
+                <input type="text" id="mezzo-matricola" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Numero di Serie</label>
+                <input type="text" id="mezzo-serie" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Anno Immatricolazione</label>
+                <input type="number" id="mezzo-anno" min="1950" max="2026" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div class="flex items-end pb-2">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" id="mezzo-presenza" checked class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                  <span class="text-sm font-bold text-slate-700 uppercase tracking-wide">Presente in Cantiere</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 4: Documentazione e Verifiche -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Libretto -->
+            <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+              <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Libretto Uso e Manutenzione</h4>
+              <div class="flex items-center gap-4">
+                <div class="flex-1 text-xs text-slate-500">Carica il manuale tecnico del fabbricante (PDF).</div>
+                <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="alert('Upload in FASE 7')">📎 Upload Libretto</button>
+              </div>
+            </div>
+            
+            <!-- Foto -->
+            <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+              <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">4. Foto del Mezzo</h4>
+              <div class="flex items-center gap-4">
+                <div id="mezzo-foto-count" class="flex-1 text-xs text-slate-500">Nessuna foto caricata.</div>
+                <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="alert('Multi-upload in FASE 7')">📷 Aggiungi Foto</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 5: Verifiche Periodiche -->
+          <div>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-1 flex-1">5. Verifiche Periodiche e Verbali</h4>
+              <button type="button" onclick="aggiungiRigaVerificaMezzo()" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1 bg-blue-50 rounded ml-4">+ Aggiungi Verifica</button>
+            </div>
+            <div id="mezzo-verifiche-container" class="space-y-3">
+              <!-- Righe generate da JS -->
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      
+      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
+        <button onclick="chiudiModalMezzo()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+        <button onclick="salvaMezzo(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Mezzo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINA MEZZO -->
+  <div id="modal-elimina-mezzo" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
+        <p class="text-slate-600 mb-4">Vuoi davvero eliminare il mezzo <strong id="elimina-mezzo-nome"></strong>?</p>
+        <div id="elimina-mezzo-cascade-info" class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
+          I dati del mezzo e i documenti correlati (libretto, verbali, foto) saranno rimossi definitivamente.
+        </div>
+        
+        <div class="flex gap-3">
+          <button onclick="chiudiModalEliminaMezzo()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
+          <button onclick="eseguiEliminaMezzo()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
         </div>
       </div>
     </div>
