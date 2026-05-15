@@ -23,6 +23,7 @@
   <script defer src="./imprese.js"></script>
   <script defer src="./persone-anas.js"></script>
   <script defer src="./persone-terzi.js"></script>
+  <script defer src="./foto.js"></script>
   <script defer src="./catalogo-tipologie-mezzi.js"></script>
   <script defer src="./lavoratori.js"></script>
   <script defer src="./mezzi.js"></script>
@@ -37,6 +38,9 @@
       <h1 class="text-xl font-bold tracking-tight">CSE SafeHub</h1>
     </div>
     <div class="flex items-center gap-3">
+      <span id="ai-status-badge" class="text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-tighter cursor-pointer transition-all bg-slate-100 text-slate-400 border-slate-200" onclick="typeof mostraGuidaAttivazioneAI === 'function' ? mostraGuidaAttivazioneAI() : alert('AI non caricata')">
+        🤖 AI <span id="ai-status-text">Verifica...</span>
+      </span>
       <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
         <span>☁️</span> <span class="hidden sm:inline">OneDrive</span>
       </button>
@@ -55,6 +59,9 @@
       <h1 id="topbar-cantiere-title" class="text-lg md:text-xl font-bold tracking-tight truncate max-w-xs md:max-w-lg">Cantiere: ...</h1>
     </div>
     <div class="flex items-center gap-3">
+      <span id="ai-status-badge-cantiere" class="ai-status-badge-sync text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-tighter cursor-pointer transition-all bg-slate-100 text-slate-400 border-slate-200" onclick="typeof mostraGuidaAttivazioneAI === 'function' ? mostraGuidaAttivazioneAI() : alert('AI non caricata')">
+        🤖 AI <span id="ai-status-text-cantiere">Verifica...</span>
+      </span>
       <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
         <span>☁️</span>
       </button>
@@ -126,7 +133,7 @@
           <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">👷 Anagrafiche</div>
           <div class="space-y-1">
             <button onclick="mostraViewCantiere('imprese', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="imprese"><span>🏢</span> Imprese</button>
-            <button onclick="mostraViewCantiere('anas', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="anas"><span>👤</span> ANAS</button>
+            <button onclick="mostraViewCantiere('anas', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="anas"><span>👔</span> Sicurezza</button>
             <button onclick="mostraViewCantiere('terzi', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="terzi"><span>👮</span> Terzi</button>
             <button onclick="mostraViewCantiere('lavoratori', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="lavoratori"><span>👷</span> Lavoratori</button>
             <button onclick="mostraViewCantiere('mezzi', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="mezzi"><span>🚜</span> Mezzi</button>
@@ -177,29 +184,6 @@
         </div>
       </div>
 
-      <!-- VIEW IMPRESE (FASE 4.1) -->
-      <div id="view-imprese" class="cantiere-subview page-hidden">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🏢</span> Imprese del Cantiere</h3>
-          <button onclick="apriModalImpresa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
-            <span>+</span> Nuova Impresa
-          </button>
-        </div>
-        
-        <!-- Filtri Imprese -->
-        <div class="flex flex-wrap gap-2 mb-6" id="imprese-filters">
-          <button onclick="renderImprese('Tutte')" class="filter-btn active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutte</button>
-          <button onclick="renderImprese('AFFIDATARIA')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Affidataria</button>
-          <button onclick="renderImprese('ESECUTRICE')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Esecutrice</button>
-          <button onclick="renderImprese('SUBAPPALTO')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">SubAppalto</button>
-          <button onclick="renderImprese('FORNITORE')" class="filter-btn bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Fornitore</button>
-        </div>
-        
-        <!-- Grid Imprese -->
-        <div id="imprese-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <!-- Popolato da JS -->
-        </div>
-      </div>
 
       <!-- VIEW IMPRESE (FASE 4.1) -->
       <div id="view-imprese" class="cantiere-subview page-hidden">
@@ -228,7 +212,7 @@
       <!-- VIEW ANAS (FASE 4.2) -->
       <div id="view-anas" class="cantiere-subview page-hidden">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>👔</span> Personale ANAS del Cantiere</h3>
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>👔</span> Personale Gestione Sicurezza del Cantiere</h3>
           <button onclick="apriModalAnas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
             <span>+</span> Nuovo
           </button>
@@ -848,6 +832,15 @@
             </div>
           </div>
           
+          <!-- Foto Lavoratore -->
+          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">5. Foto e Riconoscimento</h4>
+            <div class="flex items-center gap-4">
+              <div id="lavoratore-foto-count" class="flex-1 text-xs text-slate-500">Nessuna foto caricata.</div>
+              <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="aggiungiFotoEntita('lavoratore', document.getElementById('lavoratore-id').value, 'lavoratore-foto-count')">📷 Aggiungi Foto</button>
+            </div>
+          </div>
+          
         </form>
       </div>
       
@@ -960,7 +953,7 @@
               <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">4. Foto del Mezzo</h4>
               <div class="flex items-center gap-4">
                 <div id="mezzo-foto-count" class="flex-1 text-xs text-slate-500">Nessuna foto caricata.</div>
-                <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="alert('Multi-upload in FASE 7')">📷 Aggiungi Foto</button>
+                <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="aggiungiFotoEntita('mezzo', document.getElementById('mezzo-id').value, 'mezzo-foto-count')">📷 Aggiungi Foto</button>
               </div>
             </div>
           </div>

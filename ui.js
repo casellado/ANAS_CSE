@@ -670,6 +670,16 @@ async function apriModalModificaCantiere(projectId) {
                    class="w-full border border-slate-300 rounded-lg p-2 text-sm
                           focus:ring-2 focus:ring-blue-400 focus:outline-none" />
           </div>
+          <div>
+            <label for="mod-rl" class="text-xs font-semibold text-slate-600 block mb-1">
+              Responsabile dei Lavori (R.L.)
+            </label>
+            <input id="mod-rl" type="text"
+                   value="${escapeHtml(p.rl || '')}"
+                   placeholder="Es. Ing. Francesco Rossi"
+                   class="w-full border border-slate-300 rounded-lg p-2 text-sm
+                          focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+          </div>
         </div>
       </details>
 
@@ -800,7 +810,7 @@ async function confermaModificaCantiere(projectId) {
     const updated = {
       ...p,
       nome, loc, status,
-      emailRup, emailDl, emailImpresa,
+      emailRup, emailDl, emailImpresa, rl,
       updatedAt: new Date().toISOString()
     };
     await saveItem('projects', updated);
@@ -1198,6 +1208,16 @@ function apriModalNuovoCantiere() {
               </label>
               <input id="nc-email-impresa" type="text"
                      placeholder="Es. costruzionirossi@pec.it"
+                     autocomplete="off"
+                     class="w-full border border-slate-300 rounded-lg p-2 text-sm
+                            focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+            </div>
+            <div>
+              <label for="nc-rl" class="text-xs font-semibold text-slate-600 block mb-1">
+                Responsabile dei Lavori (R.L.)
+              </label>
+              <input id="nc-rl" type="text"
+                     placeholder="Es. Ing. Francesco Rossi"
                      autocomplete="off"
                      class="w-full border border-slate-300 rounded-lg p-2 text-sm
                             focus:ring-2 focus:ring-blue-400 focus:outline-none" />

@@ -138,7 +138,29 @@ async function renderMezzi() {
 
       const card = document.createElement('div');
       card.className = "bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col hover:shadow-md transition overflow-hidden";
+      
+      // Anteprima Foto (Premium Look)
+      let fotoPreviewHtml = '';
+      if (m.foto && m.foto.length > 0) {
+        fotoPreviewHtml = `
+          <div class="h-32 w-full overflow-hidden relative group-card-img">
+            <img src="${m.foto[0].base64}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" alt="Foto Mezzo">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
+            <div class="absolute bottom-2 right-2 bg-slate-900/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+              ${m.foto.length} foto
+            </div>
+          </div>
+        `;
+      } else {
+        fotoPreviewHtml = `
+          <div class="h-24 w-full bg-slate-100 flex items-center justify-center text-slate-300">
+            <span class="text-4xl">${catObj.icona}</span>
+          </div>
+        `;
+      }
+
       card.innerHTML = `
+        ${fotoPreviewHtml}
         <div class="p-4 border-b border-slate-100 bg-slate-50/50 relative">
           <div class="flex justify-between items-start mb-1">
             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${catObj.icona} ${catObj.id}</span>
@@ -416,7 +438,7 @@ async function salvaMezzo(e) {
       filename: document.getElementById('mezzo-libretto-filename').value
     },
     verifichePeriodiche: raccogliVerificheMezzo(),
-    foto: [], // FASE 7
+    foto: id ? (await getItem('mezzi', id))?.foto || [] : [],
     
     modifiedAt: new Date().toISOString(),
     modifiedBy: 'Utente' // FASE 8

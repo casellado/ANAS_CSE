@@ -183,6 +183,18 @@ async function renderLavoratori() {
           </div>
           
           ${patentiniHtml}
+          
+          <!-- Foto e Info Extra -->
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div class="flex -space-x-2">
+              ${(l.foto || []).slice(0, 3).map(f => `<img src="${f.base64}" class="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" alt="Foto">`).join('')}
+              ${(l.foto || []).length > 3 ? `<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm">+${l.foto.length - 3}</div>` : ''}
+              ${(l.foto || []).length === 0 ? `<span class="text-[10px] text-slate-400 italic">Nessuna foto</span>` : ''}
+            </div>
+            <div class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-tighter">
+              ID: ${l.id.substring(0, 8)}
+            </div>
+          </div>
         </div>
         <div class="p-3 border-t border-slate-100 bg-slate-50 flex gap-2 shrink-0">
           <button onclick="apriModalLavoratore('${l.id}')" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 transition">
@@ -281,6 +293,13 @@ async function apriModalLavoratore(id = null) {
           lav.abilitazioni.forEach(ab => {
             aggiungiRigaAbilitazioneLav(ab);
           });
+        }
+
+        // Foto
+        const fotoCountEl = document.getElementById('lavoratore-foto-count');
+        if (fotoCountEl) {
+          const count = (lav.foto || []).length;
+          fotoCountEl.textContent = count > 0 ? `${count} foto caricate.` : 'Nessuna foto caricata.';
         }
       }
     } catch (e) {
@@ -426,6 +445,7 @@ async function salvaLavoratore(e) {
     },
     
     abilitazioni: raccogliAbilitazioni(),
+    foto: id ? (await getItem('lavoratori', id))?.foto || [] : [],
     
     modifiedAt: new Date().toISOString(),
     modifiedBy: 'Utente' // FASE 8

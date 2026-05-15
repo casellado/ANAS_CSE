@@ -1,4 +1,4 @@
-// persone-anas.js - Modulo Anagrafica ANAS (FASE 4.2)
+// persone-anas.js - Modulo Anagrafica Sicurezza (FASE 4.2)
 
 let currentFiltroAnas = 'Tutti';
 let currentOrdinamentoAnas = 'alfabetico'; // 'alfabetico' o 'ruolo'
@@ -74,7 +74,7 @@ async function renderAnas(filtroRuolo = null, toggleOrdinamento = false) {
       grid.innerHTML = `
         <div class="col-span-full bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200">
           <div class="text-4xl mb-4">👔</div>
-          <h3 class="text-lg font-bold text-slate-700">Nessun personale ANAS trovato</h3>
+          <h3 class="text-lg font-bold text-slate-700">Nessun personale trovato</h3>
           <p class="text-sm text-slate-500">Aggiungi la prima persona cliccando su "Nuovo".</p>
         </div>
       `;
@@ -144,8 +144,8 @@ async function renderAnas(filtroRuolo = null, toggleOrdinamento = false) {
       grid.appendChild(card);
     }
   } catch (err) {
-    console.error("Errore render ANAS:", err);
-    grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento del personale ANAS.</div>';
+    console.error("Errore render Sicurezza:", err);
+    grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento del personale di sicurezza.</div>';
   }
 }
 
@@ -160,7 +160,7 @@ async function apriModalAnas(id = null) {
   const form = document.getElementById('form-anas');
   form.reset();
   document.getElementById('anas-id').value = '';
-  document.getElementById('modal-anas-title').textContent = id ? 'Modifica Personale ANAS' : 'Nuovo Personale ANAS';
+  document.getElementById('modal-anas-title').textContent = id ? 'Modifica Persona' : 'Nuova Persona';
 
   if (id) {
     // Modifica: pre-popola i dati
@@ -232,7 +232,7 @@ async function salvaAnas(e) {
     chiudiModalAnas();
     renderAnas();
   } catch (err) {
-    console.error("Errore salvataggio persona ANAS", err);
+    console.error("Errore salvataggio persona", err);
     alert("Impossibile salvare i dati");
   }
 }
