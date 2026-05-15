@@ -1,4 +1,4 @@
-// verbali-list.js - Lista e dettaglio verbali ANAS SafeHub
+// verbali-list.js - Lista e dettaglio verbali CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 1. Recupera verbali del cantiere corrente

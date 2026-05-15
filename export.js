@@ -1,4 +1,4 @@
-// export.js - Esportazione PDF / JSON per ANAS SafeHub
+// export.js - Esportazione PDF / JSON per CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 0. Download blob generico — delega a salvaDocumento
@@ -102,7 +102,7 @@ function apriFinestraStampa(titolo, htmlContenuto) {
     <html lang="it">
     <head>
       <meta charset="UTF-8">
-      <title>${titolo} - ANAS SafeHub</title>
+      <title>${titolo} - CSE SafeHub</title>
       <style>
         body        { font-family: Arial, sans-serif; padding: 24px; color: #1e293b; }
         h1          { font-size: 20px; margin-bottom: 4px; color: #0f172a; }
@@ -120,7 +120,7 @@ function apriFinestraStampa(titolo, htmlContenuto) {
       </style>
     </head>
     <body>
-      <div class="meta">ANAS SafeHub · Stampato il ${new Date().toLocaleString('it-IT')}</div>
+      <div class="meta">CSE SafeHub · Stampato il ${new Date().toLocaleString('it-IT')}</div>
       ${htmlContenuto}
       <script>window.onload = () => window.print();<\/script>
     </body>

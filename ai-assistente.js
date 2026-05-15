@@ -1,4 +1,4 @@
-// ai-assistente.js — AI Browser Built-in per ANAS SafeHub
+// ai-assistente.js — AI Browser Built-in per CSE SafeHub
 // Usa Gemini Nano (Chrome LanguageModel API) se disponibile.
 // Se non disponibile: degradazione silenziosa, app funziona normalmente.
 // Geom. Dogano Casella — CSE · ANAS SpA

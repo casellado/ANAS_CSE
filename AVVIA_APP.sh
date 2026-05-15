@@ -1,13 +1,13 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────
-#   ANAS SafeHub — Avvio locale automatico (Linux/Mac)
+#   CSE SafeHub — Avvio locale automatico (Linux/Mac)
 # ─────────────────────────────────────────────────────
 
 cd "$(dirname "$0")"
 
 echo
 echo "==========================================="
-echo "  ANAS SafeHub - Avvio locale"
+echo "  CSE SafeHub - Avvio locale"
 echo "==========================================="
 echo
 

@@ -247,6 +247,10 @@ async function apriModalLavoratore(id = null) {
         document.getElementById('lavoratore-cognome').value = lav.cognome || '';
         document.getElementById('lavoratore-cf').value = lav.codiceFiscale || '';
         document.getElementById('lavoratore-mansione').value = lav.mansione || '';
+        document.getElementById('lavoratore-data-nascita').value = lav.dataNascita || '';
+        document.getElementById('lavoratore-luogo-nascita').value = lav.luogoNascita || '';
+        document.getElementById('lavoratore-telefono').value = lav.telefono || '';
+        document.getElementById('lavoratore-email').value = lav.email || '';
         
         // Formazione
         if (lav.attestatoFormazione) {
@@ -259,6 +263,17 @@ async function apriModalLavoratore(id = null) {
           document.getElementById('lav-visita-ente').value = lav.visitaMedica.ente || '';
           document.getElementById('lav-visita-data').value = lav.visitaMedica.data || '';
           document.getElementById('lav-visita-scad').value = lav.visitaMedica.scadenza || '';
+          if (lav.visitaMedica.base64) {
+            impostaStatoFileLavoratore('btn-upload-visita', lav.visitaMedica.filename);
+            document.getElementById('lav-visita-base64').value = lav.visitaMedica.base64;
+            document.getElementById('lav-visita-filename').value = lav.visitaMedica.filename;
+          }
+        }
+
+        if (lav.attestatoFormazione && lav.attestatoFormazione.base64) {
+          impostaStatoFileLavoratore('btn-upload-formazione', lav.attestatoFormazione.filename);
+          document.getElementById('lav-formazione-base64').value = lav.attestatoFormazione.base64;
+          document.getElementById('lav-formazione-filename').value = lav.attestatoFormazione.filename;
         }
         
         // Abilitazioni
@@ -316,7 +331,12 @@ function aggiungiRigaAbilitazioneLav(data = null) {
         <input type="date" class="lav-ab-scad w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white" required>
       </div>
       <div class="flex items-end">
-        <button type="button" class="w-full bg-slate-100 text-slate-600 px-2 py-1.5 rounded text-xs border border-slate-300" onclick="alert('Upload in FASE 7')">📎 PDF</button>
+        <input type="file" class="hidden" onchange="gestisciUploadFileLav(this)">
+        <button type="button" class="btn-file-lav w-full ${data && data.base64 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-300'} px-2 py-1.5 rounded text-xs border" onclick="this.previousElementSibling.click()">
+          ${data && data.base64 ? '✅ File' : '📎 PDF'}
+        </button>
+        <input type="hidden" class="lav-ab-base64" value="${data && data.base64 ? data.base64 : ''}">
+        <input type="hidden" class="lav-ab-filename" value="${data && data.filename ? data.filename : ''}">
       </div>
       <div>
         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">N. Patentino</label>
@@ -350,7 +370,8 @@ function raccogliAbilitazioni() {
       scadenza: r.querySelector('.lav-ab-scad').value,
       numero: r.querySelector('.lav-ab-num').value.trim(),
       ente: r.querySelector('.lav-ab-ente').value.trim(),
-      documentoId: null // FASE 7
+      base64: r.querySelector('.lav-ab-base64').value,
+      filename: r.querySelector('.lav-ab-filename').value
     });
   });
   
@@ -384,17 +405,24 @@ async function salvaLavoratore(e) {
     codiceFiscale: document.getElementById('lavoratore-cf').value.trim().toUpperCase(),
     mansione: document.getElementById('lavoratore-mansione').value.trim(),
     
+    dataNascita: document.getElementById('lavoratore-data-nascita').value,
+    luogoNascita: document.getElementById('lavoratore-luogo-nascita').value.trim(),
+    telefono: document.getElementById('lavoratore-telefono').value.trim(),
+    email: document.getElementById('lavoratore-email').value.trim(),
+
     attestatoFormazione: {
       numero: document.getElementById('lav-formazione-num').value.trim(),
       scadenza: document.getElementById('lav-formazione-scad').value,
-      documentoId: null // FASE 7
+      base64: document.getElementById('lav-formazione-base64').value,
+      filename: document.getElementById('lav-formazione-filename').value
     },
     
     visitaMedica: {
       ente: document.getElementById('lav-visita-ente').value.trim(),
       data: document.getElementById('lav-visita-data').value,
       scadenza: document.getElementById('lav-visita-scad').value,
-      documentoId: null // FASE 7
+      base64: document.getElementById('lav-visita-base64').value,
+      filename: document.getElementById('lav-visita-filename').value
     },
     
     abilitazioni: raccogliAbilitazioni(),
@@ -466,4 +494,58 @@ async function eseguiEliminaLavoratore() {
     console.error("Errore eliminazione lavoratore:", err);
     alert("Errore durante l'eliminazione.");
   }
+}
+
+/** Utility per caricare stato file da UI */
+function impostaStatoFileLavoratore(btnId, filename) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.innerHTML = '✅ ' + (filename ? filename.substring(0, 10) + '...' : 'File');
+  btn.classList.remove('bg-slate-200', 'text-slate-700', 'bg-slate-100', 'text-slate-600');
+  btn.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+}
+
+/** Gestione Upload generica per Lavoratore */
+async function gestisciUploadFileLav(input, targetIdPrefix = null) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("File troppo grande (max 2MB)");
+    input.value = '';
+    return;
+  }
+
+  try {
+    const base64 = await convertiInBase64(file);
+    if (targetIdPrefix) {
+      document.getElementById(targetIdPrefix + '-base64').value = base64;
+      document.getElementById(targetIdPrefix + '-filename').value = file.name;
+      impostaStatoFileLavoratore('btn-upload-' + targetIdPrefix.split('-')[1], file.name);
+    } else {
+      const riga = input.closest('div');
+      const btn = riga.querySelector('.btn-file-lav');
+      const hBase64 = riga.querySelector('.lav-ab-base64');
+      const hFilename = riga.querySelector('.lav-ab-filename');
+      
+      if (hBase64) hBase64.value = base64;
+      if (hFilename) hFilename.value = file.name;
+      if (btn) {
+        btn.innerHTML = '✅ ' + file.name.substring(0, 10) + '...';
+        btn.classList.remove('bg-slate-100', 'text-slate-600');
+        btn.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+      }
+    }
+  } catch (err) {
+    console.error("Errore upload lavoratore:", err);
+  }
+}
+
+function convertiInBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 }

@@ -1,4 +1,4 @@
-// settings-sync.js — Sincronizzazione impostazioni condivise ANAS SafeHub
+// settings-sync.js — Sincronizzazione impostazioni condivise CSE SafeHub
 // Geom. Dogano Casella · CSE ANAS SpA Calabria
 
 /**

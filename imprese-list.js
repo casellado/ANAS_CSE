@@ -1,4 +1,4 @@
-// imprese-list.js — Lista e dettaglio imprese ANAS SafeHub
+// imprese-list.js — Lista e dettaglio imprese CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 1. Apertura scheda impresa (naviga alla pagina dettaglio)

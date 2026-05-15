@@ -1,4 +1,4 @@
-// firma.js — Firma Canvas con Timestamp per ANAS SafeHub CSE
+// firma.js — Firma Canvas con Timestamp per CSE SafeHub CSE
 // Geom. Dogano Casella — Coordinatore Sicurezza in Esecuzione
 
 // ─────────────────────────────────────────────

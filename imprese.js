@@ -179,6 +179,9 @@ async function apriModalImpresa(id = null) {
         document.getElementById('impresa-cf').value = impresa.codiceFiscale || '';
         document.getElementById('impresa-sede').value = impresa.sedeLegale || '';
         document.getElementById('impresa-pec').value = impresa.pec || '';
+        document.getElementById('impresa-referente').value = impresa.referente || '';
+        document.getElementById('impresa-telefono').value = impresa.telefono || '';
+        document.getElementById('impresa-email').value = impresa.email || '';
         
         // Check radio ruolo
         const radio = document.querySelector(`input[name="impresa-ruolo"][value="${impresa.ruolo}"]`);
@@ -270,7 +273,12 @@ function aggiungiRigaDocImpresa(doc = null) {
       <input type="date" class="doc-scadenza w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" value="${vScad}">
     </div>
     <div class="w-full sm:w-auto mt-2 sm:mt-0 flex gap-2">
-      <button type="button" class="flex-1 bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-sm hover:bg-slate-200 border border-slate-300" onclick="alert('Upload file (FASE 7)')">📎 File</button>
+      <input type="file" class="hidden doc-file-input" onchange="gestisciUploadFile(this)">
+      <button type="button" class="btn-file flex-1 ${doc && doc.base64 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-300'} px-3 py-1.5 rounded text-sm hover:bg-slate-200 border" onclick="this.previousElementSibling.click()">
+        ${doc && doc.base64 ? '✅ File' : '📎 File'}
+      </button>
+      <input type="hidden" class="doc-base64" value="${doc && doc.base64 ? doc.base64 : ''}">
+      <input type="hidden" class="doc-filename" value="${doc && doc.filename ? doc.filename : ''}">
       <button type="button" class="bg-red-50 text-red-600 px-3 py-1.5 rounded text-sm hover:bg-red-100 border border-red-200" onclick="rimuoviRigaDocImpresa(this)">🗑️</button>
     </div>
   `;
@@ -280,6 +288,46 @@ function aggiungiRigaDocImpresa(doc = null) {
 function rimuoviRigaDocImpresa(btn) {
   const riga = btn.closest('.row-documento');
   if (riga) riga.remove();
+}
+
+/** Gestisce l'upload e la conversione in Base64 */
+async function gestisciUploadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("File troppo grande. Massimo 2MB per il database locale.");
+    input.value = '';
+    return;
+  }
+
+  const riga = input.closest('.row-documento');
+  const btn = riga.querySelector('.btn-file');
+  const hBase64 = riga.querySelector('.doc-base64');
+  const hFilename = riga.querySelector('.doc-filename');
+
+  btn.innerHTML = '⌛ Caricamento...';
+
+  try {
+    const base64 = await convertiInBase64(file);
+    hBase64.value = base64;
+    hFilename.value = file.name;
+    btn.innerHTML = '✅ ' + file.name.substring(0, 10) + '...';
+    btn.classList.remove('bg-slate-100', 'text-slate-600', 'border-slate-300');
+    btn.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+  } catch (err) {
+    console.error("Errore upload:", err);
+    btn.innerHTML = '❌ Errore';
+  }
+}
+
+function convertiInBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -308,8 +356,10 @@ async function salvaImpresa(e) {
   document.querySelectorAll('.row-documento').forEach(row => {
     const tipo = row.querySelector('.doc-tipo').value;
     const scadenza = row.querySelector('.doc-scadenza').value;
+    const base64 = row.querySelector('.doc-base64').value;
+    const filename = row.querySelector('.doc-filename').value;
     if (tipo) {
-      documenti.push({ tipo, scadenza, documentoId: null });
+      documenti.push({ tipo, scadenza, base64, filename });
     }
   });
 
@@ -321,6 +371,9 @@ async function salvaImpresa(e) {
     codiceFiscale: document.getElementById('impresa-cf').value.trim().toUpperCase(),
     sedeLegale: document.getElementById('impresa-sede').value.trim(),
     pec: document.getElementById('impresa-pec').value.trim(),
+    referente: document.getElementById('impresa-referente').value.trim(),
+    telefono: document.getElementById('impresa-telefono').value.trim(),
+    email: document.getElementById('impresa-email').value.trim(),
     ruolo: ruolo,
     subAppaltoDi: ruolo === 'SUBAPPALTO' ? subAppaltoDi : null,
     documenti: documenti,

@@ -1,4 +1,4 @@
-// imprese-assegnazione.js - Collegamento Imprese ↔ Cantiere ANAS SafeHub
+// imprese-assegnazione.js - Collegamento Imprese ↔ Cantiere CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 1. Recupera imprese assegnate al cantiere corrente

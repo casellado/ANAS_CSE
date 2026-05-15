@@ -436,7 +436,7 @@ async function _buildReportHtml(dataYMD) {
   </div>
 
   <div class="footer">
-    Diario generato automaticamente da ANAS SafeHub v1.5 il ${new Date().toLocaleString('it-IT')} —
+    Diario generato automaticamente da CSE SafeHub v1.5 il ${new Date().toLocaleString('it-IT')} —
     Documento riservato · uso interno ANAS SpA
   </div>
 

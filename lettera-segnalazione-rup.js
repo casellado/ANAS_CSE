@@ -247,7 +247,7 @@ ${cseAlbo ? '<span style="font-size: 9pt;">' + escapeHtml(cseAlbo) + '</span>' :
 
   <div class="footer">
     Atto emesso ai sensi dell'art. 92 c.1 lett. e D.Lgs 81/2008 —
-    ANAS SafeHub
+    CSE SafeHub
   </div>
 </body></html>`;
 }

@@ -539,7 +539,7 @@ function _buildODSHtml(ods, cantiere, imp) {
 
   <div class="footer">
     Atto emesso ai sensi dell'art. 92 c.1 lett. f D.Lgs 81/2008 —
-    Generato da ANAS SafeHub il ${new Date().toLocaleString('it-IT')}
+    Generato da CSE SafeHub il ${new Date().toLocaleString('it-IT')}
   </div>
 
 </body></html>`;

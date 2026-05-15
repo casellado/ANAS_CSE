@@ -1,4 +1,4 @@
-// impostazioni.js — Personalizzazione intestazione verbale ANAS SafeHub
+// impostazioni.js — Personalizzazione intestazione verbale CSE SafeHub
 // Geom. Dogano Casella — CSE
 
 // ─────────────────────────────────────────────

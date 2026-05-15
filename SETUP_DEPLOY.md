@@ -1,4 +1,4 @@
-# GUIDA SETUP — Deploy Protetto ANAS SafeHub
+# GUIDA SETUP — Deploy Protetto CSE SafeHub
 
 ## Architettura finale
 
@@ -79,7 +79,7 @@ echo "🌐 URL: https://TUO_USERNAME.github.io/anas-safehub-pages/"
 # Nella cartella del progetto
 git init
 git add .
-git commit -m "Initial commit - ANAS SafeHub v1.2"
+git commit -m "Initial commit - CSE SafeHub v1.2"
 git branch -M main
 git remote add origin https://github.com/TUO_USERNAME/anas-safehub-source.git
 git push -u origin main
@@ -112,7 +112,7 @@ Dopo ~60 secondi l'app è live su:
 2. Tasto destro → Visualizza sorgente
 3. Dovresti vedere qualcosa tipo:
 ```js
-/* ANAS SafeHub v1.2 | © 2025 Geom. Dogano Casella | Tutti i diritti riservati */
+/* CSE SafeHub v1.2 | © 2025 Geom. Dogano Casella | Tutti i diritti riservati */
 var _0x1a2b=['0x3f','base64',...];(function(_0x4c5d,...
 ```
    Invece del codice leggibile originale ✅
@@ -175,7 +175,7 @@ function renderNCCard(nc) {
 
 **Dopo (offuscato):**
 ```js
-/* ANAS SafeHub v1.2 | © 2025 Geom. Dogano Casella */
+/* CSE SafeHub v1.2 | © 2025 Geom. Dogano Casella */
 const _0x3f2a=['0x1b','c3Rl','c3RhdG8','YXBlcnRh'];
 (function(_0x4b2c,_0x1a3d){const _0x5e2f=function(_0x3a1b)
 {while(--_0x3a1b){_0x4b2c['push'](_0x4b2c['shift']());}};
@@ -203,4 +203,4 @@ Per usare `app.tuodominio.it` invece del link GitHub:
 
 ---
 
-*Geom. Dogano Casella — ANAS SafeHub © 2025*
+*Geom. Dogano Casella — CSE SafeHub © 2025*

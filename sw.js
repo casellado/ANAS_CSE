@@ -1,4 +1,4 @@
-// sw.js — Service Worker ANAS SafeHub v2.2.17
+// sw.js — Service Worker CSE SafeHub v2.2.17
 // Network-first per file app (deploy sempre fresco), cache-fallback offline
 // Dogano Casella · ANAS SpA
 

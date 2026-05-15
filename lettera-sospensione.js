@@ -386,7 +386,7 @@ function _buildLetteraHtml(d) {
   <div class="footer">
     Atto emesso ai sensi dell'art. 92 c.1 lett. f D.Lgs 81/2008 —
     Documento generato il ${escapeHtml(dataLabel)} —
-    ANAS SafeHub v1.5
+    CSE SafeHub v1.5
   </div>
 
 </body></html>`;

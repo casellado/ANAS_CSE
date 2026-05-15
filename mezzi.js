@@ -341,7 +341,12 @@ function aggiungiRigaVerificaMezzo(data = null) {
         </select>
       </div>
       <div class="flex items-end">
-        <button type="button" class="w-full bg-slate-100 text-slate-600 px-2 py-1.5 rounded text-[10px] border border-slate-300" onclick="alert('Upload PDF in FASE 7')">📎 Verbale</button>
+        <input type="file" class="hidden" onchange="gestisciUploadFileMezzo(this)">
+        <button type="button" class="btn-file-mez w-full ${data && data.base64 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-300'} px-2 py-1.5 rounded text-[10px] border" onclick="this.previousElementSibling.click()">
+          ${data && data.base64 ? '✅ File' : '📎 Verbale'}
+        </button>
+        <input type="hidden" class="mez-ver-base64" value="${data && data.base64 ? data.base64 : ''}">
+        <input type="hidden" class="mez-ver-filename" value="${data && data.filename ? data.filename : ''}">
       </div>
     </div>
   `;
@@ -367,7 +372,8 @@ function raccogliVerificheMezzo() {
       data: r.querySelector('.mez-ver-data').value,
       enteVerifica: r.querySelector('.mez-ver-ente').value.trim(),
       esito: r.querySelector('.mez-ver-esito').value,
-      documentoId: null // FASE 7
+      base64: r.querySelector('.mez-ver-base64').value,
+      filename: r.querySelector('.mez-ver-filename').value
     });
   });
   
@@ -405,7 +411,10 @@ async function salvaMezzo(e) {
     
     presenteInCantiere: document.getElementById('mezzo-presenza').checked,
     
-    libretto: { documentoId: null }, // FASE 7
+    libretto: { 
+      base64: document.getElementById('mezzo-libretto-base64').value,
+      filename: document.getElementById('mezzo-libretto-filename').value
+    },
     verifichePeriodiche: raccogliVerificheMezzo(),
     foto: [], // FASE 7
     
@@ -473,4 +482,58 @@ async function eseguiEliminaMezzo() {
     console.error("Errore eliminazione mezzo:", err);
     alert("Errore durante l'eliminazione.");
   }
+}
+
+/** Utility per caricare stato file da UI */
+function impostaStatoFileMezzo(btnId, filename) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.innerHTML = '✅ ' + (filename ? filename.substring(0, 10) + '...' : 'File');
+  btn.classList.remove('bg-slate-100', 'text-slate-600', 'bg-white', 'text-slate-700');
+  btn.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+}
+
+/** Gestione Upload generica per Mezzo */
+async function gestisciUploadFileMezzo(input, targetIdPrefix = null) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("File troppo grande (max 2MB)");
+    input.value = '';
+    return;
+  }
+
+  try {
+    const base64 = await convertiInBase64(file);
+    if (targetIdPrefix) {
+      document.getElementById(targetIdPrefix + '-base64').value = base64;
+      document.getElementById(targetIdPrefix + '-filename').value = file.name;
+      impostaStatoFileMezzo('btn-upload-' + targetIdPrefix.split('-')[1], file.name);
+    } else {
+      const riga = input.closest('div');
+      const btn = riga.querySelector('.btn-file-mez');
+      const hBase64 = riga.querySelector('.mez-ver-base64');
+      const hFilename = riga.querySelector('.mez-ver-filename');
+      
+      if (hBase64) hBase64.value = base64;
+      if (hFilename) hFilename.value = file.name;
+      if (btn) {
+        btn.innerHTML = '✅ ' + file.name.substring(0, 10) + '...';
+        btn.classList.remove('bg-slate-100', 'text-slate-600');
+        btn.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+      }
+    }
+  } catch (err) {
+    console.error("Errore upload mezzo:", err);
+  }
+}
+
+function convertiInBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 }

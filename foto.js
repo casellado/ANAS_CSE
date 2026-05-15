@@ -1,4 +1,4 @@
-// foto.js - Gestione Foto NC/Verbali ANAS SafeHub
+// foto.js - Gestione Foto NC/Verbali CSE SafeHub
 // NOTA: lo store "foto" è ora definito in db.js (non più qui con DB_VERSION+1)
 
 // ─────────────────────────────────────────────

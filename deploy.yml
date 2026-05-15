@@ -1,5 +1,5 @@
 # .github/workflows/deploy.yml
-# ANAS SafeHub — Deploy automatico
+# CSE SafeHub — Deploy automatico
 #
 # Flusso:
 #   Push su repo PRIVATO (sorgente)

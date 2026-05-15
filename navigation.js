@@ -1,4 +1,4 @@
-// navigation.js - Routing inter-pagina ANAS SafeHub v2.0
+// navigation.js - Routing inter-pagina CSE SafeHub v2.0
 
 // ─────────────────────────────────────────────
 // 1. Naviga alla Dashboard del cantiere

@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ANAS SafeHub · Hub Cantieri CSE</title>
+  <title>CSE SafeHub · Hub Cantieri CSE</title>
+  <meta name="description" content="Suite professionale per Coordinatori della Sicurezza in fase di Esecuzione (CSE) — D.Lgs 81/08 Titolo IV">
   <link rel="icon" type="image/png" href="icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
@@ -33,7 +34,7 @@
   <header id="home-topbar" class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 transition-all duration-300">
     <div class="flex items-center gap-3">
       <span class="text-2xl" aria-hidden="true">🚧</span>
-      <h1 class="text-xl font-bold tracking-tight">ANAS SafeHub</h1>
+      <h1 class="text-xl font-bold tracking-tight">CSE SafeHub</h1>
     </div>
     <div class="flex items-center gap-3">
       <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
@@ -142,6 +143,7 @@
             <button onclick="mostraViewCantiere('ods_ricevuti', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_ricevuti"><span>📥</span> ODS Ricevuti</button>
             <button onclick="mostraViewCantiere('sospensioni', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-red-400 hover:text-red-300" data-view="sospensioni"><span>🛑</span> Sospensioni</button>
             <button onclick="mostraViewCantiere('diario_cse', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="diario_cse"><span>📓</span> Diario CSE</button>
+            <button onclick="mostraViewCantiere('eventi-incidentali', '6bis')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="eventi-incidentali"><span>🚨</span> Eventi Incidentali</button>
           </div>
         </div>
         
@@ -149,6 +151,7 @@
           <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📁 Documentale</div>
           <div class="space-y-1">
             <button onclick="mostraViewCantiere('doc_fondamentali', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="doc_fondamentali"><span>📑</span> Doc. Fondamentali</button>
+            <button onclick="mostraViewCantiere('registro-psc', '7bis')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="registro-psc"><span>📋</span> Registro PSC</button>
             <button onclick="mostraViewCantiere('archivio', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="archivio"><span>🗄️</span> Archivio File</button>
           </div>
         </div>
@@ -378,7 +381,7 @@
   <!-- FOOTER -->
   <footer class="bg-slate-900 border-t border-slate-800 p-4 text-center shrink-0 mt-auto">
     <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
-      by Geom. Dogano Casella · ANAS S.p.A.
+      CSE SafeHub · by Geom. Dogano Casella
     </div>
   </footer>
 
@@ -451,6 +454,15 @@
                 </div>
               </label>
             </div>
+            <!-- Dettagli Subappalto (mostrato solo se ruolo = SUBAPPALTO) -->
+            <div id="sezione-subappalto" class="mt-4 page-hidden p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <h4 class="text-xs font-bold text-yellow-800 mb-2 uppercase tracking-wide">Dettagli Subappalto</h4>
+              <label class="block text-[10px] font-semibold text-yellow-700 uppercase tracking-wide mb-1">Sub-appaltatrice di *</label>
+              <select id="impresa-subappalto-di" class="w-full border border-yellow-300 rounded px-3 py-1.5 bg-white focus:ring-2 focus:ring-yellow-500 outline-none transition text-sm">
+                <!-- Popolato dinamicamente -->
+              </select>
+              <p id="msg-subappalto-locked" class="text-[10px] text-red-600 mt-1 page-hidden font-bold">⚠️ Non modificabile: l'impresa ha lavoratori/mezzi associati.</p>
+            </div>
           </div>
           
           <!-- STEP 2: Anagrafica -->
@@ -480,14 +492,23 @@
             </div>
           </div>
           
-          <!-- STEP 3: Subappalto Di -->
-          <div id="sezione-subappalto" class="page-hidden p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-            <h4 class="text-sm font-bold text-yellow-800 mb-2 uppercase tracking-wide">3. Dettagli Subappalto</h4>
-            <label class="block text-xs font-semibold text-yellow-700 uppercase tracking-wide mb-1">Sub-appaltatrice di *</label>
-            <select id="impresa-subappalto-di" class="w-full border border-yellow-300 rounded px-3 py-2 bg-white focus:ring-2 focus:ring-yellow-500 outline-none transition">
-              <!-- Popolato dinamicamente -->
-            </select>
-            <p id="msg-subappalto-locked" class="text-xs text-red-600 mt-1 page-hidden">Non modificabile: l'impresa ha lavoratori/mezzi associati.</p>
+          <!-- STEP 3: Contatti -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Contatti e Referenti</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Referente Aziendale</label>
+                <input type="text" id="impresa-referente" placeholder="Nome e Cognome" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Telefono/Cellulare</label>
+                <input type="tel" id="impresa-telefono" placeholder="Es. 0961..." class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email di Contatto</label>
+                <input type="email" id="impresa-email" placeholder="info@impresa.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+            </div>
           </div>
           
           <!-- STEP 4: Documenti -->
@@ -748,6 +769,22 @@
                 <input type="text" id="lavoratore-cf" required pattern="^[A-Za-z0-9]{16}$" placeholder="16 caratteri alfanumerici" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
               </div>
               <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Data di Nascita *</label>
+                <input type="date" id="lavoratore-data-nascita" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Luogo di Nascita *</label>
+                <input type="text" id="lavoratore-luogo-nascita" required placeholder="Es. Catanzaro (CZ)" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cellulare</label>
+                <input type="tel" id="lavoratore-telefono" placeholder="Es. 333 1234567" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+                <input type="email" id="lavoratore-email" placeholder="nome@email.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
+              </div>
+              <div>
                 <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Mansione *</label>
                 <input type="text" id="lavoratore-mansione" required placeholder="Es. Operaio specializzato" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
               </div>
@@ -767,7 +804,10 @@
                 <input type="date" id="lav-formazione-scad" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
               </div>
               <div class="flex items-end">
-                <button type="button" class="w-full bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-300 border border-slate-300 transition" onclick="alert('Upload file in FASE 7')">📎 Upload PDF</button>
+                <input type="file" id="input-formazione" class="hidden" onchange="gestisciUploadFileLav(this, 'lav-formazione')">
+                <button type="button" id="btn-upload-formazione" class="w-full bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-300 border border-slate-300 transition" onclick="document.getElementById('input-formazione').click()">📎 Upload PDF</button>
+                <input type="hidden" id="lav-formazione-base64">
+                <input type="hidden" id="lav-formazione-filename">
               </div>
             </div>
           </div>
@@ -787,6 +827,12 @@
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Scadenza</label>
                 <input type="date" id="lav-visita-scad" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+              <div class="flex items-end">
+                <input type="file" id="input-visita" class="hidden" onchange="gestisciUploadFileLav(this, 'lav-visita')">
+                <button type="button" id="btn-upload-visita" class="w-full bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-300 border border-slate-300 transition" onclick="document.getElementById('input-visita').click()">📎 PDF</button>
+                <input type="hidden" id="lav-visita-base64">
+                <input type="hidden" id="lav-visita-filename">
               </div>
             </div>
           </div>
@@ -902,7 +948,10 @@
               <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Libretto Uso e Manutenzione</h4>
               <div class="flex items-center gap-4">
                 <div class="flex-1 text-xs text-slate-500">Carica il manuale tecnico del fabbricante (PDF).</div>
-                <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="alert('Upload in FASE 7')">📎 Upload Libretto</button>
+                <input type="file" id="input-libretto" class="hidden" onchange="gestisciUploadFileMezzo(this, 'mezzo-libretto')">
+                <button type="button" id="btn-upload-libretto" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="document.getElementById('input-libretto').click()">📎 Upload Libretto</button>
+                <input type="hidden" id="mezzo-libretto-base64">
+                <input type="hidden" id="mezzo-libretto-filename">
               </div>
             </div>
             

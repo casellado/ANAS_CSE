@@ -1,7 +1,7 @@
-// db.js - Gestione IndexedDB per ANAS SafeHub v3
+// db.js - Gestione IndexedDB for CSE SafeHub v3
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 
 const STORES_CONFIG = {
   // Globali
@@ -55,6 +55,22 @@ const STORES_CONFIG = {
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
       { name: 'tipo', keyPath: 'tipo' },
+      { name: 'data', keyPath: 'data' }
+    ]
+  },
+  eventi_incidentali: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'tipo', keyPath: 'tipo' },
+      { name: 'data', keyPath: 'data' }
+    ]
+  },
+  aggiornamenti_psc: { 
+    keyPath: 'id',
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'tipoAggiornamento', keyPath: 'tipoAggiornamento' },
       { name: 'data', keyPath: 'data' }
     ]
   },
@@ -252,7 +268,10 @@ async function eliminaCantiere(projectId) {
   const STORES_CANTIERE = [
     'imprese', 'persone_anas', 'persone_terzi', 'lavoratori',
     'mezzi', 'verbali', 'verifiche_pos', 'nc', 'ods_inviati',
-    'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 'documenti'
+    'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 
+    'documenti', 
+    'eventi_incidentali',
+    'aggiornamenti_psc'
   ];
   
   for (const storeName of STORES_CANTIERE) {

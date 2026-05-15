@@ -1,4 +1,4 @@
-// documenti-preview.js - Preview PDF e immagini ANAS SafeHub
+// documenti-preview.js - Preview PDF e immagini CSE SafeHub
 
 // Registry blob URL attivi — per revoca controllata
 const _blobUrlRegistry = new Map();

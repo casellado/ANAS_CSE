@@ -1,4 +1,4 @@
-// email.js — Integrazione Email / Outlook ANAS SafeHub
+// email.js — Integrazione Email / Outlook CSE SafeHub
 // Usa protocollo mailto: (universale, funziona con Outlook, Gmail, Thunderbird)
 // Geom. Dogano Casella — CSE
 

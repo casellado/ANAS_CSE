@@ -214,7 +214,7 @@ async function _generaEInviaVerbaleMezzi(projectId, dataVerbale, note) {
         </div>
 
         <div class="footer">
-          Documento generato da ANAS SafeHub — ${new Date().toLocaleString('it-IT')}<br>
+          Documento generato da CSE SafeHub — ${new Date().toLocaleString('it-IT')}<br>
           La verifica è effettuata sulla base della documentazione fornita. Le verifiche periodiche (art. 71 c.11) restano in capo al datore di lavoro.
         </div>
       </body>

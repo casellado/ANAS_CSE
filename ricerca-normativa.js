@@ -1,6 +1,6 @@
 // ricerca-normativa.js — Assistente Ricerca Normativa CSE
 // Usa Gemini API (gratuita) — solo ricerca, non scrive documenti
-// Geom. Dogano Casella — ANAS SafeHub
+// Geom. Dogano Casella — CSE SafeHub
 
 // ─────────────────────────────────────────────
 // COSTANTI

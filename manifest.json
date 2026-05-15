@@ -1,7 +1,7 @@
 {
-  "name": "ANAS SafeHub — Suite CSE",
-  "short_name": "SafeHub CSE",
-  "description": "Pannello di coordinamento sicurezza cantieri ANAS SpA — Geom. Dogano Casella",
+  "name": "CSE SafeHub — Suite CSE",
+  "short_name": "CSE SafeHub",
+  "description": "Suite professionale per Coordinatori della Sicurezza in fase di Esecuzione (CSE) — Geom. Dogano Casella",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

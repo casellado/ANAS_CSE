@@ -1,4 +1,4 @@
-// ui-dashboard.js - UI avanzata dashboard cantiere ANAS SafeHub
+// ui-dashboard.js - UI avanzata dashboard cantiere CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 1. Gestione Tabs Dashboard (accessibilità)

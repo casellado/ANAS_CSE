@@ -1,4 +1,4 @@
-// app.js - ANAS SafeHub v3 - SPA entry point
+// app.js - CSE SafeHub v3 - SPA entry point
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {

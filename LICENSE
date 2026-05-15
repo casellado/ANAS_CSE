@@ -1,15 +1,6 @@
-Copyright (c) 2026 Geom. Dogano Casella
-
-ANAS SafeHub — Suite gestionale CSE
-Sviluppato autonomamente da Geom. Dogano Casella, ispettore di cantiere
-presso ANAS S.p.A. — Struttura Territoriale Calabria, fuori da orario di
-lavoro e con dotazione informatica personale.
-
-Il presente software è distribuito con licenza MIT come segue.
-
-================================================================================
 MIT License
-================================================================================
+
+Copyright (c) 2026 Geom. Dogano Casella
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,38 +21,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-Dichiarazione di paternità autoriale
-================================================================================
 
-L'autore unico di questo software è Geom. Dogano Casella.
+DICHIARAZIONE DI PATERNITÀ AUTORIALE
 
-Lo sviluppo è avvenuto integralmente:
-- Fuori da orario di servizio presso ANAS S.p.A.
-- Su strumentazione informatica personale dell'autore
-- Senza utilizzo di codice, materiali o dati riservati di proprietà ANAS
-- Senza istruzioni o commissioni da parte di ANAS S.p.A.
+Il software "CSE SafeHub" è opera personale di:
 
-Ai sensi dell'art. 12 bis Legge 633/1941, la titolarità dei diritti
-patrimoniali del presente software resta in capo all'autore.
+    Geom. Dogano Casella
 
-L'utilizzo del software all'interno di ANAS S.p.A. da parte di colleghi
-Coordinatori della Sicurezza è concesso a titolo gratuito secondo i termini
-della licenza MIT sopra riportata.
+sviluppata, mantenuta e firmata in via esclusiva dall'autore.
 
-================================================================================
-Note tecniche
-================================================================================
+La paternità autoriale è documentata e tracciabile attraverso:
 
-Il software contiene riferimenti alla normativa italiana sulla sicurezza nei
-cantieri (D.Lgs 81/08) e alla modulistica ANAS (Mod.RE.01-x) di pubblico uso
-professionale, in quanto strumento operativo per Coordinatori della Sicurezza
-in Esecuzione.
+  • La cronologia completa dei commit pubblici sul repository GitHub,
+    con timestamp e firma dell'autore su ogni contributo.
+  • Il repository ufficiale https://github.com/casellado/ANAS_CSE
+  • Tutta la documentazione tecnica del progetto, firmata dall'autore.
+  • Il presente file LICENSE, datato e versionato all'interno del repository.
 
-Tali riferimenti normativi e modulistici NON costituiscono materiale riservato
-ANAS e sono utilizzati nell'ambito dell'attività professionale del CSE, come
-previsto dalla normativa di settore.
+Ai sensi della Legge 22 aprile 1941 n. 633 sul diritto d'autore, in particolare
+dell'articolo 12-bis, l'autore rivendica integralmente i diritti morali e
+patrimoniali sull'opera, salvo quanto espressamente concesso dalla licenza MIT
+sopra riportata.
 
 ================================================================================
 
-Per contatti relativi alla licenza o al progetto:
-Geom. Dogano Casella — Ispettore di cantiere ANAS S.p.A. Calabria
+CONTATTI
+
+Per richieste, contestazioni, segnalazione bug, contributi al progetto o
+qualunque altra comunicazione, contattare direttamente l'autore tramite i
+canali pubblici del repository GitHub:
+
+    https://github.com/casellado/ANAS_CSE/issues
+
+================================================================================
+
+Data di emissione presente versione: maggio 2026

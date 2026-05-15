@@ -1,4 +1,4 @@
-// salvataggio.js — Salvataggio unificato ANAS SafeHub
+// salvataggio.js — Salvataggio unificato CSE SafeHub
 // Destinazioni: USB / PC / OneDrive
 // Formati: PDF (stampa), Word (.doc), JSON
 // Dogano Casella · Ispettore ANAS SpA
@@ -208,7 +208,7 @@ function scaricaComeWord(htmlContenuto, nomeFile = 'documento') {
     <head>
       <meta charset="UTF-8">
       <meta name=ProgId content=Word.Document>
-      <meta name=Generator content="ANAS SafeHub">
+      <meta name=Generator content="CSE SafeHub">
       <!--[if gte mso 9]>
       <xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml>
       <![endif]-->
@@ -518,7 +518,7 @@ async function exportNCWord(ncId) {
   const html = `
     <div class="intestazione">
       <h1>NON CONFORMITÀ — ${(n.livello || '').toUpperCase()}</h1>
-      <div style="font-size:10pt; color:#64748b;">D.Lgs 81/08 · ANAS SafeHub</div>
+      <div style="font-size:10pt; color:#64748b;">D.Lgs 81/08 · CSE SafeHub</div>
     </div>
 
     <table>
@@ -571,7 +571,7 @@ async function exportLavoratoreWord(lavId) {
   const html = `
     <div class="intestazione">
       <h1>SCHEDA LAVORATORE</h1>
-      <div style="font-size:10pt; color:#64748b;">D.Lgs 81/08 · ANAS SafeHub</div>
+      <div style="font-size:10pt; color:#64748b;">D.Lgs 81/08 · CSE SafeHub</div>
     </div>
 
     <table>
@@ -640,7 +640,7 @@ async function exportImpresaWord(impresaId) {
   const html = `
     <div class="intestazione">
       <h1>SCHEDA IMPRESA</h1>
-      <div style="font-size:10pt; color:#64748b;">D.Lgs 81/08 · ANAS SafeHub</div>
+      <div style="font-size:10pt; color:#64748b;">D.Lgs 81/08 · CSE SafeHub</div>
     </div>
 
     <table>

@@ -1,5 +1,5 @@
 // onedrive-ui.js — Pannello stato e configurazione OneDrive
-// ANAS SafeHub v2.0 — Geom. Dogano Casella · CSE ANAS SpA Calabria
+// CSE SafeHub v2.0 — Geom. Dogano Casella · CSE ANAS SpA Calabria
 //
 // Gestisce:
 //  - Bottone topbar con badge stato (🔗 / ☁️ / ⚠️ / disabilitato)

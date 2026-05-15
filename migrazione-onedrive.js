@@ -1,5 +1,5 @@
 // migrazione-onedrive.js — MOD-2: Migrazione dati IndexedDB → OneDrive
-// ANAS SafeHub v2.0 — Geom. Dogano Casella · CSE ANAS SpA Calabria
+// CSE SafeHub v2.0 — Geom. Dogano Casella · CSE ANAS SpA Calabria
 //
 // Trigger: chiamato da onedrive-ui.js dopo configuraArchivioOneDrive() / richiediPermessoOneDrive()
 // Comportamento:

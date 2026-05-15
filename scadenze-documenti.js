@@ -1,4 +1,4 @@
-// scadenze-documenti.js - Sistema scadenze documentali ANAS SafeHub
+// scadenze-documenti.js - Sistema scadenze documentali CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 1. Calcola stato scadenza

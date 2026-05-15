@@ -1,5 +1,5 @@
 # Guida alla Collaborazione Multi-Utente (OneDrive)
-## ANAS SafeHub — Suite CSE
+## CSE SafeHub — Suite CSE
 
 Questa guida spiega come condividere i dati dei cantieri con i colleghi ispettori e assistenti CSE utilizzando lo spazio **OneDrive aziendale**.
 
@@ -36,4 +36,4 @@ Il collega che deve vedere gli aggiornamenti:
 3. **Backup**: Questa procedura funge anche da backup. Se perdi il tablet, puoi recuperare tutto dall'ultimo file salvato su OneDrive.
 
 ---
-*ANAS SafeHub — Innovazione digitale per la sicurezza sul lavoro.*
+*CSE SafeHub — Innovazione digitale per la sicurezza sul lavoro.*

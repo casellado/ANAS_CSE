@@ -1,5 +1,5 @@
 // emergenza.js — Numeri di Emergenza Cantiere
-// ANAS SafeHub v2.0 — Geom. Dogano Casella · CSE ANAS SpA Calabria
+// CSE SafeHub v2.0 — Geom. Dogano Casella · CSE ANAS SpA Calabria
 //
 // Mostra un modale con i numeri di emergenza essenziali per il cantiere.
 // I numeri sono cliccabili (tel:) per chiamata diretta da smartphone.

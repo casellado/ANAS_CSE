@@ -1,4 +1,4 @@
-// verbali.js - Gestione Verbali di Sopralluogo ANAS SafeHub
+// verbali.js - Gestione Verbali di Sopralluogo CSE SafeHub
 
 // ─────────────────────────────────────────────
 // 1. ID univoco

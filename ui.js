@@ -1,4 +1,4 @@
-// ui.js - Interfaccia utente ANAS SafeHub
+// ui.js - Interfaccia utente CSE SafeHub
 
 // ─────────────────────────────────────────────
 // Utility DOM
@@ -893,6 +893,13 @@ async function confermaEliminaCantiere(projectId) {
     const mezzi = await getByIndex('mezzi', 'projectId', projectId).catch(() => []);
     for (const m of mezzi) await deleteItem('mezzi', m.id);
 
+    // 4-bis. Eventi e Registro PSC (Refactoring v3)
+    const eventi = await getByIndex('eventi_incidentali', 'projectId', projectId).catch(() => []);
+    for (const ev of eventi) await deleteItem('eventi_incidentali', ev.id);
+
+    const pscUpdates = await getByIndex('aggiornamenti_psc', 'projectId', projectId).catch(() => []);
+    for (const psc of pscUpdates) await deleteItem('aggiornamenti_psc', psc.id);
+
     // 5. Infine elimina il cantiere stesso
     await deleteItem('projects', projectId);
 
@@ -1471,7 +1478,7 @@ function mostraManualeUso() {
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 flex flex-col max-h-[90vh]">
       <div class="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
         <div>
-          <h2 class="font-bold text-lg">📚 Manuale d'Uso — ANAS SafeHub</h2>
+          <h2 class="font-bold text-lg">📚 Manuale d'Uso — CSE SafeHub</h2>
           <div class="text-xs opacity-80">Guida completa alla piattaforma CSE</div>
         </div>
         <button onclick="document.getElementById('modal-manuale-uso').remove()"
@@ -1479,11 +1486,11 @@ function mostraManualeUso() {
       </div>
 
       <div class="p-6 space-y-6 overflow-y-auto flex-1 text-slate-800 text-sm leading-relaxed" style="font-family:sans-serif;">
-        <p>Benvenuto nel <strong>Manuale d'Uso ufficiale di ANAS SafeHub</strong>, la piattaforma professionale dedicata ai Coordinatori della Sicurezza in Fase di Esecuzione (CSE) per i cantieri di ANAS SpA.</p>
+        <p>Benvenuto nel <strong>Manuale d'Uso ufficiale di CSE SafeHub</strong>, la piattaforma professionale dedicata ai Coordinatori della Sicurezza in Fase di Esecuzione (CSE) per la gestione operativa dei cantieri temporanei o mobili.</p>
         <p>L'applicazione è progettata con un'architettura <strong>offline-first</strong>, garantendo la piena operatività anche in assenza di connessione Internet (utilizzando il database locale del browser IndexedDB) ed è predisposta per l'uso come <strong>Progressive Web App (PWA)</strong> sia su dispositivi mobili che su desktop.</p>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">1. Introduzione e Installazione (PWA)</h3>
-        <p><strong>Cos'è ANAS SafeHub?</strong><br>È una suite integrata pensata per digitalizzare le operazioni del CSE, rispettando i requisiti del D.Lgs 81/08 e delle direttive ANAS. Tutte le informazioni vengono salvate sul dispositivo e possono essere sincronizzate con un archivio Cloud (OneDrive) o esportate in formato locale.</p>
+        <p><strong>Cos'è CSE SafeHub?</strong><br>È una suite integrata pensata per digitalizzare le operazioni del CSE, rispettando i requisiti del D.Lgs 81/08. Tutte le informazioni vengono salvate sul dispositivo e possono essere sincronizzate con un archivio Cloud (OneDrive) o esportate in formato locale.</p>
         <p><strong>Installazione come PWA:</strong><br>Grazie al supporto PWA, l'applicazione può essere installata come un'app nativa sul tuo dispositivo:</p>
         <ul class="list-disc ml-5 space-y-1">
           <li><strong>🖥️ Desktop (Chrome / Edge):</strong> Clicca sull'icona di installazione (disponibile a destra della barra degli indirizzi) e seleziona "Installa".</li>
@@ -1577,7 +1584,7 @@ function mostraManualeUso() {
         </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">8. Archivio Condiviso OneDrive (Livello 2)</h3>
-        <p>ANAS SafeHub supporta la modalità <strong>Archivio Condiviso OneDrive</strong>, che permette a più tecnici di lavorare sui medesimi cantieri vedendo gli stessi dati in modo collaborativo.</p>
+        <p>CSE SafeHub supporta la modalità <strong>Archivio Condiviso OneDrive</strong>, che permette a più tecnici di lavorare sui medesimi cantieri vedendo gli stessi dati in modo collaborativo.</p>
         <p><strong>🔗 Configurazione:</strong></p>
         <ul class="list-disc ml-5 space-y-1">
           <li>Assicurati che il client OneDrive di Windows sia attivo con account ANAS loggato.</li>
@@ -1618,9 +1625,9 @@ function mostraManualeUso() {
 
         <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500">
           <strong>Autore della Suite</strong><br>
-          Ispettore di cantiere — assistente al Coordinatore della Sicurezza in Esecuzione<br>
-          ANAS S.p.A. — Struttura Territoriale Calabria<br><br>
-          <em>ANAS SafeHub · Professional Suite for CSE · ANAS S.p.A.</em>
+          Geom. Dogano Casella<br>
+          Professionista tecnico e specialista in sicurezza dei cantieri<br><br>
+          <em>CSE SafeHub · Professional Suite for CSE</em>
         </div>
       </div>
 
