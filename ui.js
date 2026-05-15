@@ -646,7 +646,7 @@ async function apriModalModificaCantiere(projectId) {
             </label>
             <input id="mod-email-rup" type="text"
                    value="${escapeHtml(p.emailRup || '')}"
-                   placeholder="Es. mario.verdi@anas.it"
+                   placeholder="Es. mario.verdi@email.it"
                    class="w-full border border-slate-300 rounded-lg p-2 text-sm
                           focus:ring-2 focus:ring-blue-400 focus:outline-none" />
           </div>
@@ -656,7 +656,7 @@ async function apriModalModificaCantiere(projectId) {
             </label>
             <input id="mod-email-dl" type="text"
                    value="${escapeHtml(p.emailDl || '')}"
-                   placeholder="Es. lucia.bianchi@anas.it"
+                   placeholder="Es. lucia.bianchi@email.it"
                    class="w-full border border-slate-300 rounded-lg p-2 text-sm
                           focus:ring-2 focus:ring-blue-400 focus:outline-none" />
           </div>
@@ -1131,7 +1131,7 @@ function apriModalNuovoCantiere() {
                  aria-required="true"
                  aria-describedby="nc-id-hint" />
           <div id="nc-id-hint" class="text-xs text-slate-400 mt-1">
-            Codice alfanumerico univoco assegnato da ANAS (es. CZ399)
+            Codice alfanumerico univoco assegnato al cantiere (es. CZ399)
           </div>
         </div>
 
@@ -1187,7 +1187,7 @@ function apriModalNuovoCantiere() {
                 R.U.P. — Email / PEC
               </label>
               <input id="nc-email-rup" type="text"
-                     placeholder="Es. mario.verdi@anas.it"
+                     placeholder="Es. mario.verdi@email.it"
                      autocomplete="off"
                      class="w-full border border-slate-300 rounded-lg p-2 text-sm
                             focus:ring-2 focus:ring-blue-400 focus:outline-none" />
@@ -1197,7 +1197,7 @@ function apriModalNuovoCantiere() {
                 Direttore Lavori — Email / PEC
               </label>
               <input id="nc-email-dl" type="text"
-                     placeholder="Es. lucia.bianchi@anas.it"
+                     placeholder="Es. lucia.bianchi@email.it"
                      autocomplete="off"
                      class="w-full border border-slate-300 rounded-lg p-2 text-sm
                             focus:ring-2 focus:ring-blue-400 focus:outline-none" />
@@ -1559,13 +1559,13 @@ function mostraManualeUso() {
           <li><strong>Compilazione:</strong> Clicca su <code>Riunione Coord.</code>. Scegli il tipo di riunione (es. Preliminare, In corso d'opera, Ingresso nuove imprese, Coordinamento RLS).</li>
           <li><strong>Argomenti trattati:</strong> Inserisci gli argomenti di discussione e le decisioni operative assunte.</li>
           <li><strong>Esito e motivazione:</strong> Per ogni esito è obbligatorio compilare il campo "Motivazione del CSE" per documentare l'attività di vigilanza ex art. 92 D.Lgs 81/08.</li>
-          <li><strong>Firma multipla:</strong> Gestisce le firme dei vari presenti (ANAS, Imprese, RL, DL, ecc.) ognuno con identificativo nominativo.</li>
+          <li><strong>Firma multipla:</strong> Gestisce le firme dei vari presenti (Committente, Imprese, RL, DL, ecc.) ognuno con identificativo nominativo.</li>
         </ul>
         <p><strong>4.3 ✅ Verifica POS (Mod. RE. 01-5):</strong></p>
         <ul class="list-disc ml-5 space-y-1">
           <li><strong>Checklist:</strong> Compila la checklist deterministica composta da tutte le voci di verifica obbligatorie per il Piano Operativo di Sicurezza dell'impresa.</li>
           <li><strong>Esito finale:</strong> Seleziona l'idoneità del POS (Idoneo / Idoneo con prescrizioni / Non idoneo).</li>
-          <li><strong>Generazione:</strong> Stampa o esporta il documento nel layout industriale ufficiale ANAS a 6 colonne fisse.</li>
+          <li><strong>Generazione:</strong> Stampa o esporta il documento nel layout industriale ufficiale a 6 colonne fisse.</li>
         </ul>
 
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">5. Modulo Sicurezza (NC e ODS)</h3>
@@ -1597,7 +1597,7 @@ function mostraManualeUso() {
         <h3 class="text-base font-bold text-blue-800 border-b pb-1">7. Impostazioni e Firme</h3>
         <p><strong>⚙️ Setup Personale:</strong><br>All'interno della sezione Impostazioni:</p>
         <ul class="list-disc ml-5 space-y-1">
-          <li><strong>Configurazione Loghi:</strong> Carica i loghi aziendali e del committente (es. ANAS SpA) per l'intestazione automatica.</li>
+          <li><strong>Configurazione Loghi:</strong> Carica i loghi aziendali e del committente per l'intestazione automatica.</li>
           <li><strong>Firma Predefinita:</strong> Disegna o carica la tua firma di CSE per precompilare i nuovi verbali.</li>
           <li><strong>Nome del Tecnico:</strong> Il nome inserito apparirà negli audit log e nei verbali generati.</li>
           <li><strong>Normative di Riferimento:</strong> Specifica le norme standard da riportare nel footer dei documenti.</li>
@@ -1607,7 +1607,7 @@ function mostraManualeUso() {
         <p>CSE SafeHub supporta la modalità <strong>Archivio Condiviso OneDrive</strong>, che permette a più tecnici di lavorare sui medesimi cantieri vedendo gli stessi dati in modo collaborativo.</p>
         <p><strong>🔗 Configurazione:</strong></p>
         <ul class="list-disc ml-5 space-y-1">
-          <li>Assicurati che il client OneDrive di Windows sia attivo con account ANAS loggato.</li>
+          <li>Assicurati che il client OneDrive di Windows sia attivo con il tuo account aziendale loggato.</li>
           <li>In SafeHub, clicca il bottone <code>☁️ Configura</code> nella topbar e seleziona una cartella condivisa OneDrive (es. <code>OneDrive\\CSE\\</code>).</li>
           <li>I dati verranno salvati direttamente nella cartella e sincronizzati automaticamente (delay tipico 30-60s).</li>
         </ul>
@@ -1629,7 +1629,7 @@ function mostraManualeUso() {
           <li>Riavvia Chrome e clicca sul badge viola <strong>🤖 Clicca per attivare AI</strong> nella topbar di SafeHub.</li>
         </ol>
 
-        <p><strong>🔒 Privacy e Sicurezza:</strong><br>A differenza delle comuni AI cloud, SafeHub utilizza la <strong>Edge Intelligence</strong>: ogni analisi e suggerimento normativo avviene nel chip del tuo PC. Nessun dato viene inviato esternamente, garantendo la totale riservatezza dei dati ANAS.</p>
+        <p><strong>🔒 Privacy e Sicurezza:</strong><br>A differenza delle comuni AI cloud, SafeHub utilizza la <strong>Edge Intelligence</strong>: ogni analisi e suggerimento normativo avviene nel chip del tuo PC. Nessun dato viene inviato esternamente, garantendo la totale riservatezza dei dati di cantiere.</p>
 
         <p><strong>💡 Vantaggi per il CSE:</strong></p>
         <ul class="list-disc ml-5 space-y-1">
