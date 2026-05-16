@@ -76,9 +76,9 @@ const DocxGenerator = {
         const footer = await getItem('impostazioni', 'footer_centrale');
         
         return {
-            logo_aziendale: logo ? logo.value : null, // Base64
-            header_destro: header ? header.value : '',
-            footer_centrale: footer ? footer.value : 'Generato con CSE SafeHub'
+            logo_aziendale: logo ? logo.valore : null, // Base64 (usato valore come da specifica)
+            header_destro: header ? header.valore : '',
+            footer_centrale: footer ? footer.valore : 'CSE SafeHub'
         };
     },
 

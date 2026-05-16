@@ -20,9 +20,12 @@ const IMPOSTAZIONI_DEFAULT = {
   // Riferimenti normativi da citare nel footer del PDF
   normativa: 'D.Lgs 81/2008 · D.I. 22/01/2019',
 
-  // Footer PDF
+  // Footer PDF / Word (Specifiche v2.0)
   footerSinistro: 'Coordinatore per l\'Esecuzione — CSE',
-  footerDestro: 'Documento riservato — uso interno ANAS SpA',
+  footerDestro: 'Documento riservato — uso interno',
+  header_destro: 'Mod.Verbale.01 - Rev.1.0',
+  footer_centrale: 'CSE SafeHub',
+  logo_aziendale: null,
 
   // Loghi (base64 PNG/JPG) — null se non caricati
   logoSinistro: null,   // logo studio / CSE
@@ -312,8 +315,9 @@ async function renderViewImpostazioni(containerId) {
             <!-- Metadati Generali -->
             <div class="space-y-3">
               ${_campo('committenteNome', 'Nome Committente', imp.committenteNome || 'ANAS SpA', 'Es. ANAS SpA')}
+              ${_campo('header_destro', 'Intestazione Destra (Word)', imp.header_destro, 'Es. Mod.Verbale.01 - Rev.1.0')}
+              ${_campo('footer_centrale', 'Piè di Pagina Centrale (Word)', imp.footer_centrale, 'Es. ANAS S.p.A.')}
               ${_campo('committenteContrat', 'Contratto / Rep.', imp.committenteContrat, 'Es. Contratto rep. n. 1234/2024')}
-              ${_campo('cantiereDescrizione', 'Oggetto Lavori', imp.cantiereDescrizione, 'Es. Manutenzione programmata SS 106')}
             </div>
           </div>
 
@@ -468,7 +472,7 @@ async function salvaImpostazioniUI() {
     'committenteNome', 'committenteContrat',
     'cantiereDescrizione', 'rup', 'dl',
     'firmaNome', 'firmaQualifica', 'firmaAlbo',
-    'footerSinistro', 'footerDestro', 'normativa',
+    'footerSinistro', 'footerDestro', 'normativa', 'header_destro', 'footer_centrale',
     'posTecnicoNome', 'posTecnicoQualifica', 'posTecnicoAlbo', 'posRup', 'posDl', 'posCUP', 'posCIG', 'posCommessa', 'posStruttura', 'posCodicePpm',
     'riuTecnicoNome', 'riuTecnicoQualifica', 'riuRup', 'riuDl'
   ];

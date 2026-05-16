@@ -1,12 +1,12 @@
 /**
  * verbali-sopralluogo.js
  * Modulo per la gestione completa dei verbali di sopralluogo (CRUD + UI).
- * Pattern FASE 5.1
+ * Pattern FASE 5.1 - Allineato Specifiche v2.0
  */
 
 let currentVerbaleId = null;
-let signatureCSE = null;
-let presentFirme = []; // Array di {id, nome, qualifica, canvas, rifiutato}
+let currentPresenti = []; // Lista locale di {personaId, nome, qualifica, impresa, origine, firmato, firmaBase64, rifiuto, noteRifiuto}
+let signatureCanvases = {}; // Mappa idPresente -> istanza SignatureCanvas
 
 /**
  * Renderizza la lista dei verbali del cantiere corrente.
@@ -16,8 +16,6 @@ async function renderVerbali() {
     const container = document.getElementById('view-verbali');
     if (!container) return;
 
-    // Se non abbiamo view-verbali lo creiamo al volo (inject in index.html)
-    // Per ora assumiamo che index.html abbia già lo scheletro o usiamo il placeholder
     const listHtml = `
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>📝</span> Verbali di Sopralluogo</h3>
@@ -31,7 +29,6 @@ async function renderVerbali() {
             </div>
         </div>
 
-        <!-- Tabella Verbali -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -52,11 +49,8 @@ async function renderVerbali() {
 
     container.innerHTML = listHtml;
     
-    // Caricamento dati
     const tbody = document.getElementById('verbali-tbody');
     const verbali = await getByIndex('verbali', 'projectId', projectId);
-    
-    // Sort decrescente per data
     verbali.sort((a,b) => new Date(b.data) - new Date(a.data));
 
     if (verbali.length === 0) {
@@ -66,8 +60,8 @@ async function renderVerbali() {
 
     tbody.innerHTML = verbali.map(v => `
         <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-            <td class="px-4 py-3 font-mono text-xs font-bold">${v.numero || 'BOZZA'}</td>
-            <td class="px-4 py-3 text-sm">${v.data ? new Date(v.data).toLocaleDateString() : '-'}</td>
+            <td class="px-4 py-3 font-mono text-xs font-bold">${v.numeroProgressivo || 'BOZZA'}</td>
+            <td class="px-4 py-3 text-sm">${v.dataSopralluogo ? new Date(v.dataSopralluogo).toLocaleDateString() : '-'}</td>
             <td class="px-4 py-3 text-sm font-semibold truncate max-w-xs">${escapeHtml(v.oggetto || 'Senza oggetto')}</td>
             <td class="px-4 py-3 text-center">
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${v.stato === 'finalizzato' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
@@ -87,7 +81,7 @@ async function renderVerbali() {
 }
 
 /**
- * Wizard caricamento template Word.
+ * Gestione Template Word (Wizard)
  */
 async function mostraWizardTemplate() {
     const existing = document.getElementById('modal-wizard-template');
@@ -97,9 +91,9 @@ async function mostraWizardTemplate() {
 
     const modal = document.createElement('div');
     modal.id = 'modal-wizard-template';
-    modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[1000] p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[5000] p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
             <div class="bg-slate-800 p-6 text-white flex justify-between items-center">
                 <h3 class="text-xl font-bold">Template Verbale Sopralluogo</h3>
                 <button onclick="document.getElementById('modal-wizard-template').remove()" class="text-2xl">&times;</button>
@@ -108,23 +102,20 @@ async function mostraWizardTemplate() {
                 <div class="text-center">
                     <div class="text-5xl mb-4">📄</div>
                     <p class="text-slate-600 text-sm leading-relaxed">
-                        Per generare il verbale in formato Word, devi caricare un file <strong>.docx</strong> 
-                        preparato con i segnaposto corretti (es. {{data_sopralluogo}}).
+                        Carica il tuo file <strong>.docx</strong> personalizzato con i segnaposto {{...}}.
                     </p>
                 </div>
-
                 <div class="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center gap-4 bg-slate-50 transition hover:border-blue-400">
                     <input type="file" id="template-upload" class="hidden" accept=".docx" onchange="handleTemplateUpload(event)">
                     <button onclick="document.getElementById('template-upload').click()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">
                         ${currentTemplate ? 'Aggiorna Template' : 'Seleziona File .docx'}
                     </button>
                     <div id="template-status" class="text-xs font-bold ${currentTemplate ? 'text-green-600' : 'text-slate-400'}">
-                        ${currentTemplate ? '✅ Template attualmente caricato' : 'Nessun file caricato'}
+                        ${currentTemplate ? '✅ Template caricato: ' + (currentTemplate.name || 'Personalizzato') : 'Nessun file caricato'}
                     </div>
                 </div>
-
-                <div class="text-[10px] text-slate-400 italic">
-                    I segnaposto supportati includono: {{numero}}, {{data}}, {{oggetto}}, {#imprese_presenti}...
+                <div class="text-[10px] text-slate-400 italic bg-slate-100 p-3 rounded">
+                    Segnaposto principali: {{numero_progressivo}}, {{data_sopralluogo}}, {{nome_cantiere}}, {#imprese_presenti}, {#presenti_firme}, {%firma_cse}...
                 </div>
             </div>
         </div>
@@ -136,22 +127,24 @@ async function handleTemplateUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.docx')) {
-        alert("Per favore, seleziona un file in formato .docx");
-        return;
-    }
-
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const arrayBuffer = e.target.result;
-        await saveItem('impostazioni', {
-            chiave: 'template_verbale_sopralluogo',
-            file: arrayBuffer,
-            name: file.name,
-            updatedAt: new Date().toISOString()
-        });
-        alert("Template caricato con successo!");
-        document.getElementById('modal-wizard-template').remove();
+        try {
+            const arrayBuffer = e.target.result;
+            // Validazione base PizZip
+            new PizZip(arrayBuffer);
+            
+            await saveItem('impostazioni', {
+                chiave: 'template_verbale_sopralluogo',
+                valore: arrayBuffer, // Salviamo come binary buffer per efficienza
+                name: file.name,
+                uploadedAt: new Date().toISOString()
+            });
+            alert("Template caricato e validato correttamente ✓");
+            document.getElementById('modal-wizard-template').remove();
+        } catch (err) {
+            alert("Errore nel file Word: assicurati che sia un .docx valido.");
+        }
     };
     reader.readAsArrayBuffer(file);
 }
@@ -160,109 +153,168 @@ async function checkTemplateAndNewVerbale() {
     const template = await getItem('impostazioni', 'template_verbale_sopralluogo');
     if (!template) {
         mostraWizardTemplate();
-        alert("Devi caricare un template Word prima di creare un verbale.");
+        alert("Carica il template Word prima di iniziare.");
         return;
     }
-    apriVerbale(); // Crea nuovo
+    apriVerbale();
 }
 
 /**
- * Form Dettaglio Verbale (CRUD).
+ * Form Editor Verbale
  */
 async function apriVerbale(id = null) {
     currentVerbaleId = id || 'VS_' + Date.now();
     let verbale = id ? await getItem('verbali', id) : null;
     const projectId = sessionStorage.getItem('currentProjectId');
     const project = await getItem('projects', projectId);
+    const impGlobal = await caricaImpostazioni();
 
     if (!verbale) {
         verbale = {
             id: currentVerbaleId,
             projectId: projectId,
             tipo: 'sopralluogo',
-            numero: '',
-            data: new Date().toISOString().split('T')[0],
+            numeroProgressivo: '',
+            stato: 'bozza',
+            dataSopralluogo: new Date().toISOString().split('T')[0],
             oggetto: 'Sopralluogo di coordinamento e controllo',
-            condizioniMeteo: 'Sereno',
-            progressivaInizio: '',
-            progressivaFine: '',
+            condizioniMeteo: 'soleggiato',
+            progressivaChilometrica: { inizio: '', fine: '' },
             statoLuoghi: '',
             notePrescrizioni: '',
-            impreseIds: [],
+            impresePresentiIds: [],
             presenti: [],
-            ncIds: [],
-            stato: 'bozza',
-            createdAt: new Date().toISOString()
+            redattoreInfo: {
+                isDelegato: false,
+                nomeRedattore: impGlobal.firmaNome || 'CSE',
+                qualifica: impGlobal.firmaQualifica || 'CSE',
+                firmaBase64: impGlobal.firmaImmagine || null
+            }
         };
     }
 
+    currentPresenti = [...verbale.presenti];
+    signatureCanvases = {};
+
     const isFinalizzato = verbale.stato === 'finalizzato';
 
-    // UI del Form (Modal gigante o View dedicata)
     const existing = document.getElementById('modal-editor-verbale');
     if (existing) existing.remove();
 
     const modal = document.createElement('div');
     modal.id = 'modal-editor-verbale';
-    modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex flex-col p-4 md:p-8';
+    modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex flex-col p-2 md:p-8';
     
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-auto flex flex-col flex-1 overflow-hidden">
-            <header class="bg-slate-800 text-white p-6 flex justify-between items-center shrink-0">
-                <div>
-                    <h3 class="text-xl font-bold">${id ? 'Modifica Verbale' : 'Nuovo Verbale di Sopralluogo'}</h3>
-                    <div class="text-xs text-slate-400 font-mono">${currentVerbaleId} | ${verbale.stato.toUpperCase()}</div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-auto flex flex-col flex-1 overflow-hidden animate-in fade-in duration-300">
+            <header class="bg-slate-800 text-white p-4 md:p-6 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-4">
+                    <span class="text-3xl">📝</span>
+                    <div>
+                        <h3 class="text-xl font-bold">${id ? 'Modifica Verbale' : 'Nuovo Sopralluogo'}</h3>
+                        <div class="text-[10px] text-slate-400 font-mono tracking-tighter uppercase">
+                            ${project.nome} · ID: ${currentVerbaleId} · ${verbale.stato}
+                        </div>
+                    </div>
                 </div>
-                <button onclick="document.getElementById('modal-editor-verbale').remove()" class="text-2xl">&times;</button>
+                <button onclick="document.getElementById('modal-editor-verbale').remove()" class="text-2xl hover:text-red-400 transition">&times;</button>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-8 space-y-10 bg-slate-50">
-                <!-- Sezione 1: Dati Generali -->
-                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                    <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4">1. Dati Generali</h4>
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50">
+                
+                <!-- Sezione 1: Intestazione -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 1. Dati Generali
+                    </h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Sopralluogo</label>
-                            <input type="date" id="v-data" value="${verbale.data}" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-2.5 text-sm">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data</label>
+                            <input type="date" id="v-data" value="${verbale.dataSopralluogo}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Oggetto</label>
-                            <input type="text" id="v-oggetto" value="${escapeHtml(verbale.oggetto)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-2.5 text-sm">
+                            <input type="text" id="v-oggetto" value="${escapeHtml(verbale.oggetto)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Meteo</label>
-                            <input type="text" id="v-meteo" value="${escapeHtml(verbale.condizioniMeteo)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-2.5 text-sm">
+                            <select id="v-meteo" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm">
+                                <option value="soleggiato" ${verbale.condizioniMeteo === 'soleggiato' ? 'selected' : ''}>Soleggiato</option>
+                                <option value="nuvoloso" ${verbale.condizioniMeteo === 'nuvoloso' ? 'selected' : ''}>Nuvoloso</option>
+                                <option value="pioggia" ${verbale.condizioniMeteo === 'pioggia' ? 'selected' : ''}>Pioggia</option>
+                                <option value="neve" ${verbale.condizioniMeteo === 'neve' ? 'selected' : ''}>Neve</option>
+                                <option value="vento" ${verbale.condizioniMeteo === 'vento' ? 'selected' : ''}>Vento</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Progr. Inizio (Km/Area)</label>
-                            <input type="text" id="v-prog-inizio" value="${escapeHtml(verbale.progressivaInizio)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-2.5 text-sm">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Progr. Inizio</label>
+                            <input type="text" id="v-prog-inizio" value="${escapeHtml(verbale.progressivaChilometrica.inizio)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm" placeholder="es. km 42+150">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Progr. Fine (Km/Area)</label>
-                            <input type="text" id="v-prog-fine" value="${escapeHtml(verbale.progressivaFine)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-2.5 text-sm">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Progr. Fine</label>
+                            <input type="text" id="v-prog-fine" value="${escapeHtml(verbale.progressivaChilometrica.fine)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm" placeholder="es. km 42+850">
                         </div>
                     </div>
                 </div>
 
-                <!-- Sezione 2: Descrizione Stato Luoghi -->
-                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                    <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4">2. Esito Sopralluogo</h4>
-                    <div class="space-y-4">
+                <!-- Sezione 2: Descrizione -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 2. Esito Ispezione
+                    </h4>
+                    <div class="space-y-6">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stato dei Luoghi e Verifiche</label>
-                            <textarea id="v-stato-luoghi" rows="5" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">${escapeHtml(verbale.statoLuoghi)}</textarea>
+                            <textarea id="v-stato-luoghi" rows="4" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-300" placeholder="Descrivi cosa hai verificato e lo stato del cantiere...">${escapeHtml(verbale.statoLuoghi)}</textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Note e Prescrizioni Immediate</label>
-                            <textarea id="v-note-prescrizioni" rows="4" ${isFinalizzato ? 'disabled' : ''} class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">${escapeHtml(verbale.notePrescrizioni)}</textarea>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Note e Prescrizioni</label>
+                            <textarea id="v-note-prescrizioni" rows="3" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-300" placeholder="Inserisci eventuali prescrizioni immediate...">${escapeHtml(verbale.notePrescrizioni)}</textarea>
                         </div>
                     </div>
                 </div>
 
-                <!-- Placeholder per Presenti e Firme -->
-                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                    <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4">3. Presenti e Firme</h4>
-                    <p class="text-xs text-slate-400 italic">Modulo firme integrato in arrivo nella sottomissione completa.</p>
+                <!-- Sezione 3: Presenti e Firme -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 3. Presenti e Firme
+                        </h4>
+                        ${!isFinalizzato ? `
+                        <button onclick="mostraModalAggiungiPresente()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 transition">
+                            + AGGIUNGI PRESENTE
+                        </button>` : ''}
+                    </div>
+                    
+                    <div id="presenti-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Popolato da renderPresenti() -->
+                    </div>
+                </div>
+
+                <!-- Sezione 4: Firma CSE -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 4. Redattore (CSE)
+                    </h4>
+                    <div class="flex flex-col md:flex-row gap-6 items-center">
+                        <div class="flex-1 space-y-4 w-full">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nome Redattore</label>
+                                <input type="text" id="v-cse-nome" value="${escapeHtml(verbale.redattoreInfo.nomeRedattore)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qualifica</label>
+                                <input type="text" id="v-cse-qualifica" value="${escapeHtml(verbale.redattoreInfo.qualifica)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm">
+                            </div>
+                        </div>
+                        <div class="shrink-0">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 text-center">Firma Digitale</label>
+                            <div id="cse-signature-box" class="w-64 h-32 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center overflow-hidden">
+                                ${verbale.redattoreInfo.firmaBase64 ? `<img src="${verbale.redattoreInfo.firmaBase64}" class="max-h-full">` : '<span class="text-[10px] text-slate-400">Nessuna firma</span>'}
+                            </div>
+                            ${!isFinalizzato ? `<button onclick="inizializzaFirmaCSE()" class="w-full mt-2 text-[10px] font-bold text-blue-600 hover:underline">Firma Ora</button>` : ''}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -270,7 +322,7 @@ async function apriVerbale(id = null) {
                 <button onclick="document.getElementById('modal-editor-verbale').remove()" class="text-sm font-bold text-slate-500 hover:text-slate-700">Annulla</button>
                 <div class="flex gap-3">
                     ${!isFinalizzato ? `<button onclick="salvaVerbale('bozza')" class="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition">Salva Bozza</button>` : ''}
-                    <button onclick="finalizzaVerbale()" class="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <button onclick="eseguiFinalizzazione()" class="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
                         <span>💾</span> ${isFinalizzato ? 'Scarica Word' : 'Finalizza e Scarica'}
                     </button>
                 </div>
@@ -279,64 +331,288 @@ async function apriVerbale(id = null) {
     `;
 
     document.body.appendChild(modal);
+    renderPresenti();
 }
 
 /**
- * Logica di salvataggio.
+ * Gestione Presenti
+ */
+function renderPresenti() {
+    const container = document.getElementById('presenti-container');
+    if (!container) return;
+    
+    container.innerHTML = currentPresenti.map((p, idx) => `
+        <div class="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 relative group">
+            <button onclick="rimuoviPresente(${idx})" class="absolute top-2 right-2 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+            <div class="flex items-start gap-3">
+                <div class="bg-slate-200 w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">👤</div>
+                <div>
+                    <div class="text-xs font-bold text-slate-800">${escapeHtml(p.nome)}</div>
+                    <div class="text-[10px] text-slate-500 uppercase">${escapeHtml(p.qualifica)}</div>
+                    <div class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${escapeHtml(p.impresa)}</div>
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="ref-rifiuto-${idx}" ${p.rifiuto ? 'checked' : ''} onchange="toggleRifiutoFirma(${idx}, this.checked)" class="rounded text-red-600">
+                    <label for="ref-rifiuto-${idx}" class="text-[10px] font-bold text-red-600 uppercase">Rifiuto Firma</label>
+                </div>
+                
+                ${p.rifiuto ? `
+                    <input type="text" placeholder="Motivo del rifiuto..." value="${escapeHtml(p.noteRifiuto || '')}" onchange="updateNotaRifiuto(${idx}, this.value)" class="w-full text-xs border-slate-200 rounded-lg p-2">
+                ` : `
+                    <div id="canvas-presente-${idx}" class="w-full h-24">
+                        ${p.firmaBase64 ? `<img src="${p.firmaBase64}" class="h-full mx-auto">` : `<div class="h-full flex items-center justify-center border-2 border-dashed border-slate-200 text-[10px] text-slate-300">Firma mancante</div>`}
+                    </div>
+                    ${!p.firmaBase64 ? `<button onclick="abilitaFirmaPresente(${idx})" class="w-full text-[10px] font-bold text-blue-600">✍️ Firma ora</button>` : ''}
+                `}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function mostraModalAggiungiPresente() {
+    const projectId = sessionStorage.getItem('currentProjectId');
+    const lavoratori = await getByIndex('lavoratori', 'projectId', projectId);
+    const terzi = await getByIndex('persone_terzi', 'projectId', projectId);
+    const sicurezza = await getByIndex('persone_anas', 'projectId', projectId);
+    const imprese = await getByIndex('imprese', 'projectId', projectId);
+
+    const existing = document.getElementById('modal-add-presente');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-add-presente';
+    modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="bg-slate-100 p-4 font-bold border-b text-slate-700">Aggiungi Presente</div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Seleziona da Anagrafica</label>
+                    <select id="sel-presente-anag" class="w-full border-slate-200 rounded-xl p-3 text-sm" onchange="autoFillPresente(this.value)">
+                        <option value="">-- Scegli o inserisci manuale --</option>
+                        <optgroup label="Sicurezza">
+                            ${sicurezza.map(p => `<option value="S|${p.id}|${p.nome}|${p.ruolo}|Sicurezza">${p.nome} (${p.ruolo})</option>`).join('')}
+                        </optgroup>
+                        <optgroup label="Lavoratori Imprese">
+                            ${lavoratori.map(p => `<option value="L|${p.id}|${p.nome}|${p.qualifica}|${getImpresaNomeSync(p.impresaId, imprese)}">${p.nome} - ${getImpresaNomeSync(p.impresaId, imprese)}</option>`).join('')}
+                        </optgroup>
+                        <optgroup label="Terzi / Enti">
+                            ${terzi.map(p => `<option value="T|${p.id}|${p.nome}|${p.ruolo}|Terzi">${p.nome} (${p.ruolo})</option>`).join('')}
+                        </optgroup>
+                    </select>
+                </div>
+                <hr>
+                <div class="space-y-3">
+                    <input type="text" id="new-p-nome" placeholder="Nome e Cognome" class="w-full border-slate-200 rounded-xl p-3 text-sm">
+                    <input type="text" id="new-p-qual" placeholder="Qualifica/Mansione" class="w-full border-slate-200 rounded-xl p-3 text-sm">
+                    <input type="text" id="new-p-imp" placeholder="Impresa/Ente" class="w-full border-slate-200 rounded-xl p-3 text-sm">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="document.getElementById('modal-add-presente').remove()" class="flex-1 py-2 text-sm font-bold text-slate-500">Annulla</button>
+                    <button onclick="confermaAggiungiPresente()" class="flex-1 bg-blue-600 text-white py-2 rounded-xl font-bold shadow-lg">Aggiungi</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function autoFillPresente(val) {
+    if (!val) return;
+    const [tipo, id, nome, qual, imp] = val.split('|');
+    document.getElementById('new-p-nome').value = nome;
+    document.getElementById('new-p-qual').value = qual;
+    document.getElementById('new-p-imp').value = imp;
+}
+
+function confermaAggiungiPresente() {
+    const nome = document.getElementById('new-p-nome').value.trim();
+    const qual = document.getElementById('new-p-qual').value.trim();
+    const imp = document.getElementById('new-p-imp').value.trim();
+    
+    if (!nome) return alert("Inserisci il nome.");
+    
+    currentPresenti.push({
+        id: 'P_' + Date.now(),
+        nome, qual, impresa: imp,
+        origine: 'manuale',
+        firmato: false,
+        firmaBase64: null,
+        rifiuto: false,
+        noteRifiuto: ''
+    });
+    
+    document.getElementById('modal-add-presente').remove();
+    renderPresenti();
+}
+
+function rimuoviPresente(idx) {
+    currentPresenti.splice(idx, 1);
+    renderPresenti();
+}
+
+function toggleRifiutoFirma(idx, checked) {
+    currentPresenti[idx].rifiuto = checked;
+    if (checked) currentPresenti[idx].firmaBase64 = null;
+    renderPresenti();
+}
+
+function updateNotaRifiuto(idx, val) {
+    currentPresenti[idx].noteRifiuto = val;
+}
+
+function abilitaFirmaPresente(idx) {
+    const box = document.getElementById(`canvas-presente-${idx}`);
+    if (!box) return;
+    signatureCanvases[idx] = new SignatureCanvas(`canvas-presente-${idx}`, { width: box.clientWidth, height: 96 });
+}
+
+function inizializzaFirmaCSE() {
+    const box = document.getElementById('cse-signature-box');
+    box.innerHTML = '';
+    signatureCanvases['cse'] = new SignatureCanvas('cse-signature-box', { width: box.clientWidth, height: 128 });
+}
+
+/**
+ * Finalizzazione e Generazione
  */
 async function salvaVerbale(nuovoStato = 'bozza') {
     const projectId = sessionStorage.getItem('currentProjectId');
+    
+    // Acquisizione firme correnti dai canvas
+    Object.keys(signatureCanvases).forEach(key => {
+        const sign = signatureCanvases[key].toDataURL();
+        if (sign) {
+            if (key === 'cse') {
+                // Info redattore verrà aggiornata sotto
+            } else {
+                currentPresenti[key].firmaBase64 = sign;
+                currentPresenti[key].firmato = true;
+            }
+        }
+    });
+
     const item = {
         id: currentVerbaleId,
         projectId: projectId,
         tipo: 'sopralluogo',
-        data: document.getElementById('v-data').value,
+        stato: nuovoStato,
+        dataSopralluogo: document.getElementById('v-data').value,
         oggetto: document.getElementById('v-oggetto').value,
         condizioniMeteo: document.getElementById('v-meteo').value,
-        progressivaInizio: document.getElementById('v-prog-inizio').value,
-        progressivaFine: document.getElementById('v-prog-fine').value,
+        progressivaChilometrica: {
+            inizio: document.getElementById('v-prog-inizio').value,
+            fine: document.getElementById('v-prog-fine').value
+        },
         statoLuoghi: document.getElementById('v-stato-luoghi').value,
         notePrescrizioni: document.getElementById('v-note-prescrizioni').value,
-        stato: nuovoStato,
+        presenti: currentPresenti,
+        redattoreInfo: {
+            isDelegato: false,
+            nomeRedattore: document.getElementById('v-cse-nome').value,
+            qualifica: document.getElementById('v-cse-qualifica').value,
+            firmaBase64: signatureCanvases['cse'] ? signatureCanvases['cse'].toDataURL() || (await getItem('verbali', currentVerbaleId))?.redattoreInfo.firmaBase64 : (await getItem('verbali', currentVerbaleId))?.redattoreInfo.firmaBase64
+        },
         modifiedAt: new Date().toISOString()
     };
 
     await saveItem('verbali', item);
     if (nuovoStato === 'bozza') {
-        alert("Bozza salvata!");
+        showToast("Bozza salvata ✓", "success");
         document.getElementById('modal-editor-verbale').remove();
         renderVerbali();
     }
     return item;
 }
 
-async function finalizzaVerbale() {
+async function eseguiFinalizzazione() {
     const verbale = await salvaVerbale('finalizzato');
     
-    // Assegnazione numero progressivo se mancante
-    if (!verbale.numero) {
-        const today = verbale.data.replace(/-/g, '');
-        const verbaliGiorno = await getByIndex('verbali', 'data', verbale.data);
-        const count = verbaliGiorno.filter(v => v.projectId === verbale.projectId && v.stato === 'finalizzato').length;
-        verbale.numero = `${today}/VS${String(count).padStart(2, '0')}`;
+    // 1. Validazione obbligatoria
+    if (!verbale.dataSopralluogo || !verbale.oggetto || !verbale.statoLuoghi) {
+        alert("Compila data, oggetto e stato dei luoghi prima di finalizzare.");
+        return;
+    }
+
+    // 2. Numerazione Progressiva YYYYMMDD/VSNN
+    if (!verbale.numeroProgressivo) {
+        const dataPrefix = verbale.dataSopralluogo.replace(/-/g, '');
+        const verbaliGiorno = await getByIndex('verbali', 'projectId', verbale.projectId);
+        const count = verbaliGiorno.filter(v => v.dataSopralluogo === verbale.dataSopralluogo && v.stato === 'finalizzato').length;
+        verbale.numeroProgressivo = `${dataPrefix}/VS${String(count + 1).padStart(2, '0')}`;
         await saveItem('verbali', verbale);
     }
 
-    // Generazione WORD
-    try {
-        const blob = await DocxGenerator.generate(verbale);
-        const fileName = `Verbale_${verbale.numero.replace(/\//g, '_')}.docx`;
+    // 3. Preparazione Dati estesi per Word (Mapping loops)
+    const imprese = await getByIndex('imprese', 'projectId', verbale.projectId);
+    const dataWord = {
+        ...verbale,
+        numero_progressivo: verbale.numeroProgressivo,
+        data_sopralluogo: new Date(verbale.dataSopralluogo).toLocaleDateString('it-IT'),
+        condizioni_meteo: verbale.condizioniMeteo.toUpperCase(),
+        progressiva_inizio: verbale.progressivaChilometrica.inizio,
+        progressiva_fine: verbale.progressivaChilometrica.fine,
         
-        // Download browser
+        imprese_presenti: Array.from(new Set(verbale.presenti.map(p => p.impresa))).map(impName => {
+            const impObj = imprese.find(i => i.ragioneSociale === impName);
+            return { ragione_sociale: impName, ruolo: impObj ? impObj.ruolo : 'Esecutrice' };
+        }),
+        
+        referenti_presenti: verbale.presenti.map(p => ({
+            nome_completo: p.nome,
+            qualifica: p.qualifica,
+            impresa: p.impresa
+        })),
+
+        presenti_firme: verbale.presenti.map(p => ({
+            nome_completo: p.nome,
+            qualifica: p.qualifica,
+            firma_image: p.firmaBase64,
+            rifiutato: p.rifiuto ? 'SI (Rifiuta firma)' : 'NO',
+            note_rifiuto: p.noteRifiuto || ''
+        })),
+
+        firma_cse: verbale.redattoreInfo.firmaBase64,
+        nome_cse: verbale.redattoreInfo.nomeRedattore,
+        ruolo_cse: verbale.redattoreInfo.qualifica,
+        data_finalizzazione: new Date().toLocaleString('it-IT')
+    };
+
+    try {
+        const blob = await DocxGenerator.generate(dataWord);
+        const fileName = `Verbale_${verbale.numeroProgressivo.replace(/\//g, '_')}.docx`;
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = fileName;
         link.click();
         
-        alert("Verbale finalizzato e scaricato con successo!");
+        showToast("Verbale finalizzato e scaricato! ✓", "success");
         document.getElementById('modal-editor-verbale').remove();
         renderVerbali();
-    } catch (e) {
-        alert("Errore generazione Word: " + e.message);
+    } catch (err) {
+        console.error(err);
+        alert("Errore generazione documento: " + err.message);
     }
+}
+
+/**
+ * Utility
+ */
+function getImpresaNomeSync(id, listaImprese) {
+    const imp = listaImprese.find(i => i.id === id);
+    return imp ? imp.ragioneSociale : 'Impresa sconosciuta';
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+}
+
+async function eliminaVerbale(id) {
+    if (!confirm("Vuoi eliminare definitivamente questo verbale?")) return;
+    await deleteItem('verbali', id);
+    renderVerbali();
 }
