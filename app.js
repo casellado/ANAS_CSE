@@ -226,6 +226,10 @@ async function mostraViewCantiere(viewName, faseAttesa = null) {
       if (typeof renderMezzi === 'function') {
         await renderMezzi();
       }
+    } else if (viewName === 'verbali') {
+      if (typeof renderVerbali === 'function') {
+        await renderVerbali();
+      }
     }
   } else {
     // Fallback al placeholder per view non ancora implementate

@@ -27,6 +27,15 @@
   <script defer src="./catalogo-tipologie-mezzi.js"></script>
   <script defer src="./lavoratori.js"></script>
   <script defer src="./mezzi.js"></script>
+
+  <!-- Moduli Fase 5 — Verbali & Docx -->
+  <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.6/dist/pizzip.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.50.0/build/docxtemplater.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/imagemodule.js"></script>
+  
+  <script defer src="./signature-canvas.js"></script>
+  <script defer src="./docx-generator.js"></script>
+  <script defer src="./verbali-sopralluogo.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -143,7 +152,7 @@
         <div>
           <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📋 Operatività</div>
           <div class="space-y-1">
-            <button onclick="mostraViewCantiere('verbali', 5)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verbali"><span>📝</span> Verbali</button>
+            <button onclick="mostraViewCantiere('verbali')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verbali"><span>📝</span> Verbali</button>
             <button onclick="mostraViewCantiere('verifiche_pos', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verifiche_pos"><span>🛡️</span> Verifica POS</button>
             <button onclick="mostraViewCantiere('nc', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="nc"><span>⚠️</span> NC</button>
             <button onclick="mostraViewCantiere('ods_inviati', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_inviati"><span>📤</span> ODS Inviati</button>
@@ -345,6 +354,12 @@
         <div id="mezzi-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Popolato da JS -->
         </div>
+      </div>
+
+      <!-- VIEW VERBALI (FASE 5.1) -->
+      <div id="view-verbali" class="cantiere-subview page-hidden">
+        <!-- Renderizzato da verbali-sopralluogo.js -->
+        <div class="p-8 text-center text-slate-400 italic">Inizializzazione modulo verbali...</div>
       </div>
 
       <!-- Placeholder generico per le altre view -->

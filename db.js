@@ -55,7 +55,8 @@ const STORES_CONFIG = {
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
       { name: 'tipo', keyPath: 'tipo' },
-      { name: 'data', keyPath: 'data' }
+      { name: 'data', keyPath: 'data' },
+      { name: 'stato', keyPath: 'stato' }
     ]
   },
   eventi_incidentali: { 
@@ -87,7 +88,8 @@ const STORES_CONFIG = {
       { name: 'projectId', keyPath: 'projectId' },
       { name: 'impresaId', keyPath: 'impresaId' },
       { name: 'stato', keyPath: 'stato' },
-      { name: 'livello', keyPath: 'livello' }
+      { name: 'livello', keyPath: 'livello' },
+      { name: 'verbaleOrigineId', keyPath: 'verbaleOrigineId' }
     ]
   },
   ods_inviati: { 
