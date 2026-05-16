@@ -203,9 +203,13 @@ const CantiereController = {
 
     async elimina(id) {
         if (confirm(`Sei sicuro di voler eliminare il cantiere ${id} e TUTTI i suoi dati?`)) {
-            if (typeof eliminaCantiere === 'function') {
+            try {
                 await eliminaCantiere(id);
+                showToast(`Cantiere ${id} eliminato.`, 'info');
                 await this.renderGrid();
+            } catch (err) {
+                console.error('Errore eliminazione cantiere:', err);
+                showToast('Errore durante l\'eliminazione. Riprova.', 'error');
             }
         }
     }

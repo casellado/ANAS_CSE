@@ -230,9 +230,15 @@ async function eliminaCantiere(projectId) {
   ];
   
   for (const storeName of STORES_CANTIERE) {
-    const items = await getAllByIndex(storeName, 'projectId', projectId);
-    for (const item of items) {
-      await deleteItem(storeName, item.id);
+    // Salta store non ancora presenti (upgrade DB in corso o versione precedente)
+    if (!db.objectStoreNames.contains(storeName)) continue;
+    try {
+      const items = await getAllByIndex(storeName, 'projectId', projectId);
+      for (const item of items) {
+        await deleteItem(storeName, item.id);
+      }
+    } catch (e) {
+      console.warn(`eliminaCantiere: store "${storeName}" non accessibile, saltato.`, e);
     }
   }
   
