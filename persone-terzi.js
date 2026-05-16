@@ -230,22 +230,113 @@ function chiudiModalEliminaTerzi() {
 
 async function eseguiEliminaTerzi() {
   if (!terziDaEliminare) return;
-  
+
   try {
     // FASE 4.3: Nessun cascade sui verbali (storicità)
     await deleteItem('persone_terzi', terziDaEliminare);
-    
+
     chiudiModalEliminaTerzi();
     renderTerzi();
-    
-    if (typeof mostraToast === 'function') {
-      mostraToast("Persona eliminata con successo", "success");
-    } else {
-      alert("Persona eliminata con successo");
-    }
-    
+    showToast("Persona eliminata con successo", "success");
+
   } catch (err) {
     console.error("Errore eliminazione:", err);
-    alert("Errore durante l'eliminazione.");
+    showToast("Errore durante l'eliminazione.", "error");
   }
 }
+
+// ─────────────────────────────────────────────
+// RENDER VIEW — scaffold completo + modali
+// ─────────────────────────────────────────────
+
+function renderViewTerzi(container) {
+  container.innerHTML = `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Enti Terzi</h2>
+          <p class="text-slate-500 text-sm mt-1">Autorità e consulenti esterni al cantiere</p>
+        </div>
+        <button onclick="apriModalTerzi()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition">+ Nuovo</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="renderTerzi('Tutti')" class="filter-btn-terzi filter-terzi-Tutti px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-slate-800 text-white transition">Tutti</button>
+        <button onclick="renderTerzi('SPRESAL')" class="filter-btn-terzi filter-terzi-SPRESAL px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Spresal / ASL</button>
+        <button onclick="renderTerzi('VVF')" class="filter-btn-terzi filter-terzi-VVF px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">VVF</button>
+        <button onclick="renderTerzi('PROVINCIA')" class="filter-btn-terzi filter-terzi-PROVINCIA px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Provincia</button>
+        <button onclick="renderTerzi('CONSULENTE')" class="filter-btn-terzi filter-terzi-CONSULENTE px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Consulente</button>
+        <button onclick="renderTerzi('ALTRO')" class="filter-btn-terzi filter-terzi-ALTRO px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Altro</button>
+      </div>
+      <div id="terzi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- MODAL Nuova/Modifica Persona Terza -->
+    <div id="modal-terzi" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2000] flex items-start justify-center p-4 pt-10 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 id="modal-terzi-title" class="text-xl font-bold text-slate-800">Nuova Persona Terza</h3>
+          <button onclick="chiudiModalTerzi()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="form-terzi" onsubmit="salvaTerzi(event)" class="p-6 space-y-4">
+          <input type="hidden" id="terzi-id">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
+              <input type="text" id="terzi-nome" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
+              <input type="text" id="terzi-cognome" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Qualifica</label>
+              <input type="text" id="terzi-qualifica" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Es. Ispettore Tecnico">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Tipo Ente *</label>
+              <select id="terzi-tipoente" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                <option value="SPRESAL">Spresal / ASP</option>
+                <option value="VVF">Vigili del Fuoco</option>
+                <option value="PROVINCIA">Provincia / Comune</option>
+                <option value="CONSULENTE">Consulente esterno</option>
+                <option value="ALTRO">Altro</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nome Ente *</label>
+              <input type="text" id="terzi-ente" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Es. Spresal ASP Catanzaro">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+              <input type="email" id="terzi-email" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
+              <input type="tel" id="terzi-telefono" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+          </div>
+          <div class="flex gap-3 pt-3 border-t border-slate-100">
+            <button type="button" onclick="chiudiModalTerzi()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 transition">Annulla</button>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow">Salva</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL Elimina Persona Terza -->
+    <div id="modal-elimina-terzi" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2100] flex items-center justify-center p-4 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 class="text-lg font-bold text-slate-800">Elimina Persona Terza</h3>
+        <p class="text-sm text-slate-600">Stai per eliminare: <strong id="elimina-terzi-nome"></strong></p>
+        <div class="flex gap-3 pt-2">
+          <button onclick="chiudiModalEliminaTerzi()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50">Annulla</button>
+          <button onclick="eseguiEliminaTerzi()" class="flex-1 py-2.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 shadow">Elimina</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderTerzi();
+}
+
+window.PersoneTerziModulo = { render: renderViewTerzi };

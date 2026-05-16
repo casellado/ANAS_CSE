@@ -504,8 +504,8 @@ async function eseguiEliminaLavoratore() {
     chiudiModalEliminaLavoratore();
     renderLavoratori();
     
-    if (typeof mostraToast === 'function') {
-      mostraToast("Lavoratore eliminato con successo", "success");
+    if (typeof showToast === 'function') {
+      showToast("Lavoratore eliminato con successo", "success");
     } else {
       alert("Lavoratore eliminato");
     }
@@ -569,3 +569,186 @@ function convertiInBase64(file) {
     reader.onerror = error => reject(error);
   });
 }
+
+// ─────────────────────────────────────────────
+// RENDER VIEW — scaffold completo + modali
+// ─────────────────────────────────────────────
+
+async function renderViewLavoratori(container) {
+  container.innerHTML = `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Lavoratori</h2>
+          <p class="text-slate-500 text-sm mt-1">Maestranze operanti nel cantiere</p>
+        </div>
+        <button onclick="apriModalLavoratore()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition">+ Nuovo Lavoratore</button>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-4 items-center">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Impresa:</label>
+          <select id="filter-lav-impresa" onchange="renderLavoratori()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white min-w-[180px]">
+            <option value="Tutte">Tutte le imprese</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Documenti:</label>
+          <select id="filter-lav-docs" onchange="renderLavoratori()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+            <option value="Tutti">Tutti</option>
+            <option value="Scaduti">Con scaduti</option>
+            <option value="In scadenza">In scadenza</option>
+            <option value="Validi">Tutti validi</option>
+          </select>
+        </div>
+      </div>
+      <div id="lavoratori-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- MODAL Nuovo/Modifica Lavoratore -->
+    <div id="modal-lavoratore" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2000] flex items-start justify-center p-4 pt-6 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+        <div class="p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 id="modal-lavoratore-title" class="text-xl font-bold text-slate-800">Nuovo Lavoratore</h3>
+          <button onclick="chiudiModalLavoratore()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="form-lavoratore" onsubmit="salvaLavoratore(event)" class="p-6 space-y-5">
+          <input type="hidden" id="lavoratore-id">
+
+          <div id="lavoratore-cambio-impresa-warn" class="page-hidden bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-700">
+            ⚠️ Stai cambiando l'impresa di appartenenza di questo lavoratore.
+          </div>
+
+          <!-- Impresa -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Impresa *</label>
+            <select id="lavoratore-impresa" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+              <option value="">-- Seleziona impresa --</option>
+            </select>
+          </div>
+
+          <!-- Dati anagrafici -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
+              <input type="text" id="lavoratore-nome" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
+              <input type="text" id="lavoratore-cognome" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Codice Fiscale *</label>
+              <input type="text" id="lavoratore-cf" required maxlength="16" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Mansione *</label>
+              <input type="text" id="lavoratore-mansione" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Es. Operaio specializzato">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Data di Nascita</label>
+              <input type="date" id="lavoratore-data-nascita" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Luogo di Nascita</label>
+              <input type="text" id="lavoratore-luogo-nascita" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
+              <input type="tel" id="lavoratore-telefono" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+              <input type="email" id="lavoratore-email" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+          </div>
+
+          <!-- Attestato Formazione -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide">📋 Attestato Formazione</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">N. Attestato</label>
+                <input type="text" id="lav-formazione-num" class="w-full border border-slate-300 rounded px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Scadenza</label>
+                <input type="date" id="lav-formazione-scad" class="w-full border border-slate-300 rounded px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="file" class="hidden" id="input-file-formazione" accept=".pdf,.jpg,.png" onchange="gestisciUploadFileLav(this, 'lav-formazione')">
+              <button type="button" id="btn-upload-formazione" onclick="document.getElementById('input-file-formazione').click()"
+                      class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition border border-slate-300">
+                📎 Allega PDF
+              </button>
+              <input type="hidden" id="lav-formazione-base64">
+              <input type="hidden" id="lav-formazione-filename">
+            </div>
+          </div>
+
+          <!-- Visita Medica -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide">🏥 Visita Medica</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ente Sanitario</label>
+                <input type="text" id="lav-visita-ente" class="w-full border border-slate-300 rounded px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white" placeholder="Es. Medico Competente">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Visita</label>
+                <input type="date" id="lav-visita-data" class="w-full border border-slate-300 rounded px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Scadenza</label>
+                <input type="date" id="lav-visita-scad" class="w-full border border-slate-300 rounded px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="file" class="hidden" id="input-file-visita" accept=".pdf,.jpg,.png" onchange="gestisciUploadFileLav(this, 'lav-visita')">
+              <button type="button" id="btn-upload-visita" onclick="document.getElementById('input-file-visita').click()"
+                      class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition border border-slate-300">
+                📎 Allega PDF
+              </button>
+              <input type="hidden" id="lav-visita-base64">
+              <input type="hidden" id="lav-visita-filename">
+            </div>
+          </div>
+
+          <!-- Abilitazioni (Patentini) -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide">🔧 Abilitazioni / Patentini</h4>
+              <button type="button" onclick="aggiungiRigaAbilitazioneLav()" class="text-xs text-blue-600 font-bold hover:underline">+ Aggiungi</button>
+            </div>
+            <div id="lav-abilitazioni-container" class="space-y-2"></div>
+          </div>
+
+          <!-- Foto -->
+          <div class="text-xs text-slate-400 italic" id="lavoratore-foto-count">Nessuna foto caricata.</div>
+
+          <div class="flex gap-3 pt-3 border-t border-slate-100">
+            <button type="button" onclick="chiudiModalLavoratore()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 transition">Annulla</button>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow">Salva Lavoratore</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL Elimina Lavoratore -->
+    <div id="modal-elimina-lavoratore" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2100] flex items-center justify-center p-4 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 class="text-lg font-bold text-slate-800">Elimina Lavoratore</h3>
+        <p class="text-sm text-slate-600">Stai per eliminare: <strong id="elimina-lavoratore-nome"></strong></p>
+        <div class="flex gap-3 pt-2">
+          <button onclick="chiudiModalEliminaLavoratore()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50">Annulla</button>
+          <button onclick="eseguiEliminaLavoratore()" class="flex-1 py-2.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 shadow">Elimina</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await caricaFiltroImprese();
+  await renderLavoratori();
+}
+
+window.LavoratoriModulo = { render: renderViewLavoratori };

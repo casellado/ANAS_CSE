@@ -494,8 +494,8 @@ async function eseguiEliminaMezzo() {
     chiudiModalEliminaMezzo();
     renderMezzi();
     
-    if (typeof mostraToast === 'function') {
-      mostraToast("Mezzo eliminato con successo", "success");
+    if (typeof showToast === 'function') {
+      showToast("Mezzo eliminato con successo", "success");
     } else {
       alert("Mezzo eliminato");
     }
@@ -559,3 +559,157 @@ function convertiInBase64(file) {
     reader.onerror = error => reject(error);
   });
 }
+
+// ─────────────────────────────────────────────
+// RENDER VIEW — scaffold completo + modali
+// ─────────────────────────────────────────────
+
+async function renderViewMezzi(container) {
+  // Costruisci le opzioni categorie dinamicamente dal catalogo
+  const catOpzioni = (typeof MACRO_CATEGORIE_MEZZI !== 'undefined')
+    ? MACRO_CATEGORIE_MEZZI.map(c => `<option value="${c.id}">${c.icona} ${c.nome}</option>`).join('')
+    : '';
+
+  container.innerHTML = `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Mezzi &amp; Attrezzature</h2>
+          <p class="text-slate-500 text-sm mt-1">Parco macchine e attrezzature di cantiere</p>
+        </div>
+        <button onclick="apriModalMezzo()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition">+ Nuovo Mezzo</button>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-4 items-center">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Impresa:</label>
+          <select id="filter-mez-impresa" onchange="renderMezzi()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white min-w-[180px]">
+            <option value="Tutte">Tutte le imprese</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Categoria:</label>
+          <select id="filter-mez-cat" onchange="renderMezzi()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+            <option value="Tutte">Tutte</option>
+            ${catOpzioni}
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Presenza:</label>
+          <select id="filter-mez-presenza" onchange="renderMezzi()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+            <option value="Tutti">Tutti</option>
+            <option value="In cantiere">In cantiere</option>
+            <option value="Non in cantiere">Non in cantiere</option>
+          </select>
+        </div>
+      </div>
+      <div id="mezzi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- MODAL Nuovo/Modifica Mezzo -->
+    <div id="modal-mezzo" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2000] flex items-start justify-center p-4 pt-6 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+        <div class="p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 id="modal-mezzo-title" class="text-xl font-bold text-slate-800">Nuovo Mezzo</h3>
+          <button onclick="chiudiModalMezzo()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="form-mezzo" onsubmit="salvaMezzo(event)" class="p-6 space-y-5">
+          <input type="hidden" id="mezzo-id">
+
+          <!-- Impresa e Tipologia -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Impresa *</label>
+              <select id="mezzo-impresa" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                <option value="">-- Seleziona impresa --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Tipologia *</label>
+              <select id="mezzo-tipologia" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                <option value="">-- Seleziona --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dati tecnici -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Marca *</label>
+              <input type="text" id="mezzo-marca" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Modello *</label>
+              <input type="text" id="mezzo-modello" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Matricola / Targa</label>
+              <input type="text" id="mezzo-matricola" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Numero di Serie</label>
+              <input type="text" id="mezzo-serie" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Anno</label>
+              <input type="number" id="mezzo-anno" min="1950" max="2099" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex items-end pb-1">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="mezzo-presenza" class="w-5 h-5 accent-blue-600 rounded">
+                <span class="text-sm font-semibold text-slate-700">Presente in cantiere</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Libretto Uso -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">📋 Libretto d'Uso e Manutenzione</h4>
+            <div class="flex items-center gap-2">
+              <input type="file" class="hidden" id="input-file-libretto" accept=".pdf,.jpg,.png" onchange="gestisciUploadFileMezzo(this, 'mezzo-libretto')">
+              <button type="button" id="btn-upload-libretto" onclick="document.getElementById('input-file-libretto').click()"
+                      class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition border border-slate-300">
+                📎 Allega Libretto
+              </button>
+              <input type="hidden" id="mezzo-libretto-base64">
+              <input type="hidden" id="mezzo-libretto-filename">
+            </div>
+          </div>
+
+          <!-- Verifiche Periodiche -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wide">🔍 Verifiche Periodiche</h4>
+              <button type="button" onclick="aggiungiRigaVerificaMezzo()" class="text-xs text-blue-600 font-bold hover:underline">+ Aggiungi verifica</button>
+            </div>
+            <div id="mezzo-verifiche-container" class="space-y-2"></div>
+          </div>
+
+          <!-- Foto -->
+          <div class="text-xs text-slate-400 italic" id="mezzo-foto-count">Nessuna foto caricata.</div>
+
+          <div class="flex gap-3 pt-3 border-t border-slate-100">
+            <button type="button" onclick="chiudiModalMezzo()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 transition">Annulla</button>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow">Salva Mezzo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL Elimina Mezzo -->
+    <div id="modal-elimina-mezzo" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2100] flex items-center justify-center p-4 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 class="text-lg font-bold text-slate-800">Elimina Mezzo</h3>
+        <p class="text-sm text-slate-600">Stai per eliminare: <strong id="elimina-mezzo-nome"></strong></p>
+        <div class="flex gap-3 pt-2">
+          <button onclick="chiudiModalEliminaMezzo()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50">Annulla</button>
+          <button onclick="eseguiEliminaMezzo()" class="flex-1 py-2.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 shadow">Elimina</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await caricaFiltroImpreseMezzi();
+  await renderMezzi();
+}
+
+window.MezziModulo = { render: renderViewMezzi };

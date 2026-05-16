@@ -255,6 +255,20 @@ function showToast(msg, tipo = 'success', ms = 3000) {
 window.showToast = showToast;
 
 /**
+ * escapeHtml — previene XSS nelle template string HTML
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
+
+/**
  * IMPRESE: Gestione anagrafica scoped a cantiere
  */
 const ImpreseController = {

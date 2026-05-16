@@ -476,8 +476,8 @@ async function eseguiEliminaImpresa() {
     chiudiModalEliminaImpresa();
     renderImprese();
     
-    if (typeof mostraToast === 'function') {
-      mostraToast("Impresa eliminata con successo", "success");
+    if (typeof showToast === 'function') {
+      showToast("Impresa eliminata con successo", "success");
     } else {
       alert("Impresa eliminata con successo");
     }
@@ -487,3 +487,137 @@ async function eseguiEliminaImpresa() {
     alert("Errore durante l'eliminazione dell'impresa.");
   }
 }
+
+// ─────────────────────────────────────────────
+// RENDER VIEW — inietta scaffold completo + modali
+// ─────────────────────────────────────────────
+
+function renderViewImprese(container) {
+  container.innerHTML = `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Imprese</h2>
+          <p class="text-slate-500 text-sm mt-1">Anagrafica imprese operanti nel cantiere</p>
+        </div>
+        <button onclick="apriModalImpresa()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition">+ Nuova Impresa</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="renderImprese('Tutte')" class="filter-btn-impresa filter-Tutte px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-slate-800 text-white transition">Tutte</button>
+        <button onclick="renderImprese('AFFIDATARIA')" class="filter-btn-impresa filter-AFFIDATARIA px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Affidataria</button>
+        <button onclick="renderImprese('ESECUTRICE')" class="filter-btn-impresa filter-ESECUTRICE px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Esecutrice</button>
+        <button onclick="renderImprese('SUBAPPALTO')" class="filter-btn-impresa filter-SUBAPPALTO px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Sub-Appalto</button>
+        <button onclick="renderImprese('FORNITORE')" class="filter-btn-impresa filter-FORNITORE px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Fornitore</button>
+      </div>
+      <div id="imprese-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- MODAL Nuova/Modifica Impresa -->
+    <div id="modal-impresa" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2000] flex items-start justify-center p-4 pt-10 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 id="modal-impresa-title" class="text-xl font-bold text-slate-800">Nuova Impresa</h3>
+          <button onclick="chiudiModalImpresa()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="form-impresa" onsubmit="salvaImpresa(event)" class="p-6 space-y-5">
+          <input type="hidden" id="impresa-id">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Ruolo nel cantiere *</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                <input type="radio" name="impresa-ruolo" value="AFFIDATARIA" onchange="aggiornaFormImpresa()" required class="accent-blue-600">
+                <span class="text-sm font-semibold">Affidataria</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-indigo-50">
+                <input type="radio" name="impresa-ruolo" value="ESECUTRICE" onchange="aggiornaFormImpresa()" class="accent-indigo-600">
+                <span class="text-sm font-semibold">Esecutrice</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-yellow-50">
+                <input type="radio" name="impresa-ruolo" value="SUBAPPALTO" onchange="aggiornaFormImpresa()" class="accent-yellow-600">
+                <span class="text-sm font-semibold">Sub-Appalto</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                <input type="radio" name="impresa-ruolo" value="FORNITORE" onchange="aggiornaFormImpresa()" class="accent-slate-600">
+                <span class="text-sm font-semibold">Fornitore</span>
+              </label>
+            </div>
+          </div>
+          <div id="sezione-subappalto" class="page-hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-2">
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Sub-appaltatrice di *</label>
+            <select id="impresa-subappalto-di" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none bg-white">
+              <option value="">-- Seleziona impresa --</option>
+            </select>
+            <div id="msg-subappalto-locked" class="page-hidden text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
+              ⚠️ Impresa con dipendenti o mezzi — cambio bloccato.
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Ragione Sociale *</label>
+              <input type="text" id="impresa-ragione-sociale" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Es. Rossi Costruzioni S.r.l.">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Partita IVA *</label>
+              <input type="text" id="impresa-piva" required maxlength="11" pattern="[0-9]{11}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400" placeholder="11 cifre">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Codice Fiscale</label>
+              <input type="text" id="impresa-cf" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400" placeholder="Facoltativo">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Sede Legale</label>
+              <input type="text" id="impresa-sede" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Via Roma 1, Crotone (KR)">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">PEC</label>
+              <input type="email" id="impresa-pec" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Referente cantiere</label>
+              <input type="text" id="impresa-referente" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Nome Cognome">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
+              <input type="tel" id="impresa-telefono" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+              <input type="email" id="impresa-email" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide">Documenti &amp; Scadenze</label>
+              <button type="button" onclick="aggiungiRigaDocImpresa()" class="text-xs text-blue-600 font-bold hover:underline">+ Aggiungi documento</button>
+            </div>
+            <div id="impresa-docs-container" class="space-y-2"></div>
+          </div>
+          <div class="flex gap-3 pt-3 border-t border-slate-100">
+            <button type="button" onclick="chiudiModalImpresa()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition border border-slate-200">Annulla</button>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow">Salva Impresa</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL Elimina Impresa -->
+    <div id="modal-elimina-impresa" class="page-hidden opacity-0 fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[2100] flex items-center justify-center p-4 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 class="text-lg font-bold text-slate-800">Elimina Impresa</h3>
+        <p class="text-sm text-slate-600">Stai per eliminare: <strong id="elimina-impresa-nome"></strong></p>
+        <div id="elimina-impresa-cascade-info" class="page-hidden bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-red-700 mb-1">⚠️ Saranno eliminati anche:</p>
+          <ul id="elimina-impresa-cascade-list" class="list-disc list-inside text-xs text-red-600 space-y-0.5"></ul>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button onclick="chiudiModalEliminaImpresa()" class="flex-1 py-2.5 rounded-xl font-bold text-slate-500 border border-slate-200 hover:bg-slate-50">Annulla</button>
+          <button onclick="eseguiEliminaImpresa()" class="flex-1 py-2.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 shadow">Elimina</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderImprese();
+}
+
+window.ImpreseModulo = { render: renderViewImprese };
