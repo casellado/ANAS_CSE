@@ -1,11 +1,12 @@
 /**
  * verbali-sopralluogo.js
  * Modulo per la gestione completa dei verbali di sopralluogo (CRUD + UI).
- * Pattern FASE 5.1 - Allineato Specifiche v2.0
+ * Pattern FASE 5.1-bis - Chiusura GAP Audit
  */
 
 let currentVerbaleId = null;
 let currentPresenti = []; // Lista locale di {personaId, nome, qualifica, impresa, origine, firmato, firmaBase64, rifiuto, noteRifiuto}
+let currentNCDrafts = []; // Lista locale di {livello, scadenza, descrizione, impresaId}
 let signatureCanvases = {}; // Mappa idPresente -> istanza SignatureCanvas
 
 /**
@@ -69,7 +70,7 @@ async function renderVerbali() {
                 </span>
             </td>
             <td class="px-4 py-3 text-right space-x-1">
-                <button onclick="apriVerbale('${v.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Dettaglio/Modifica">
+                <button onclick="apriVerbale('${v.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="${v.stato === 'finalizzato' ? 'Visualizza' : 'Modifica'}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
                 <button onclick="eliminaVerbale('${v.id}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Elimina">
@@ -131,12 +132,11 @@ async function handleTemplateUpload(event) {
     reader.onload = async (e) => {
         try {
             const arrayBuffer = e.target.result;
-            // Validazione base PizZip
             new PizZip(arrayBuffer);
             
             await saveItem('impostazioni', {
                 chiave: 'template_verbale_sopralluogo',
-                valore: arrayBuffer, // Salviamo come binary buffer per efficienza
+                valore: arrayBuffer,
                 name: file.name,
                 uploadedAt: new Date().toISOString()
             });
@@ -184,16 +184,22 @@ async function apriVerbale(id = null) {
             notePrescrizioni: '',
             impresePresentiIds: [],
             presenti: [],
+            ncDrafts: [],
+            ncCollegateIds: [],
+            includiTabellaMezzi: false,
             redattoreInfo: {
                 isDelegato: false,
                 nomeRedattore: impGlobal.firmaNome || 'CSE',
                 qualifica: impGlobal.firmaQualifica || 'CSE',
-                firmaBase64: impGlobal.firmaImmagine || null
+                firmaBase64: impGlobal.firmaImmagine || null,
+                attoDelegaRiferimento: '',
+                timestampFirma: null
             }
         };
     }
 
-    currentPresenti = [...verbale.presenti];
+    currentPresenti = [...(verbale.presenti || [])];
+    currentNCDrafts = [...(verbale.ncDrafts || [])];
     signatureCanvases = {};
 
     const isFinalizzato = verbale.stato === 'finalizzato';
@@ -222,7 +228,6 @@ async function apriVerbale(id = null) {
 
             <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50">
                 
-                <!-- Sezione 1: Intestazione -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 1. Dati Generali
@@ -257,7 +262,6 @@ async function apriVerbale(id = null) {
                     </div>
                 </div>
 
-                <!-- Sezione 2: Descrizione -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 2. Esito Ispezione
@@ -265,16 +269,15 @@ async function apriVerbale(id = null) {
                     <div class="space-y-6">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stato dei Luoghi e Verifiche</label>
-                            <textarea id="v-stato-luoghi" rows="4" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-300" placeholder="Descrivi cosa hai verificato e lo stato del cantiere...">${escapeHtml(verbale.statoLuoghi)}</textarea>
+                            <textarea id="v-stato-luoghi" rows="4" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-300" placeholder="Descrivi cosa hai verificato...">${escapeHtml(verbale.statoLuoghi)}</textarea>
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Note e Prescrizioni</label>
-                            <textarea id="v-note-prescrizioni" rows="3" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-300" placeholder="Inserisci eventuali prescrizioni immediate...">${escapeHtml(verbale.notePrescrizioni)}</textarea>
+                            <textarea id="v-note-prescrizioni" rows="3" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-300" placeholder="Inserisci eventuali prescrizioni...">${escapeHtml(verbale.notePrescrizioni)}</textarea>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sezione 3: Presenti e Firme -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <div class="flex justify-between items-center mb-6">
                         <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest flex items-center gap-2">
@@ -285,19 +288,44 @@ async function apriVerbale(id = null) {
                             + AGGIUNGI PRESENTE
                         </button>` : ''}
                     </div>
-                    
-                    <div id="presenti-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Popolato da renderPresenti() -->
+                    <div id="presenti-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+
+                <!-- GAP 1: Sezione NC Dinamica -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xs font-bold text-red-600 uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-2 h-2 bg-red-600 rounded-full"></span> 4. Non Conformità (NC)
+                        </h4>
+                        ${!isFinalizzato ? `
+                        <button onclick="aggiungiNCAlVolo()" class="bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-red-200 transition">
+                            + NUOVA NC
+                        </button>` : ''}
+                    </div>
+                    <div id="nc-drafts-container" class="space-y-4"></div>
+                </div>
+
+                <!-- GAP 4: Opzioni Allegati -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h4 class="text-xs font-bold text-slate-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-slate-600 rounded-full"></span> 5. Allegati e Opzioni
+                    </h4>
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <input type="checkbox" id="v-opt-mezzi" ${verbale.includiTabellaMezzi ? 'checked' : ''} ${isFinalizzato ? 'disabled' : ''} class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                        <div>
+                            <label for="v-opt-mezzi" class="text-sm font-bold text-slate-700">Includi Tabella Mezzi e Attrezzature</label>
+                            <p class="text-[10px] text-slate-500">Compila il loop {#mezzi_attrezzature} nel template Word.</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Sezione 4: Firma CSE -->
+                <!-- GAP 8: Redattore e Delega -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 4. Redattore (CSE)
+                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> 6. Redattore (CSE)
                     </h4>
-                    <div class="flex flex-col md:flex-row gap-6 items-center">
-                        <div class="flex-1 space-y-4 w-full">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nome Redattore</label>
                                 <input type="text" id="v-cse-nome" value="${escapeHtml(verbale.redattoreInfo.nomeRedattore)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm">
@@ -306,13 +334,26 @@ async function apriVerbale(id = null) {
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qualifica</label>
                                 <input type="text" id="v-cse-qualifica" value="${escapeHtml(verbale.redattoreInfo.qualifica)}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm">
                             </div>
+                            <div class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                                <input type="checkbox" id="v-cse-delegato" ${verbale.redattoreInfo.isDelegato ? 'checked' : ''} ${isFinalizzato ? 'disabled' : ''} onchange="toggleDelegaUI(this.checked)" class="w-4 h-4 rounded text-orange-600">
+                                <label for="v-cse-delegato" class="text-xs font-bold text-orange-700">Redatto da Delegato</label>
+                            </div>
+                            <div id="delega-ui" class="${verbale.redattoreInfo.isDelegato ? '' : 'hidden'}">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Atto delega di riferimento</label>
+                                <input type="text" id="v-cse-atto" value="${escapeHtml(verbale.redattoreInfo.attoDelegaRiferimento || '')}" ${isFinalizzato ? 'disabled' : ''} class="w-full border-slate-200 rounded-xl p-3 text-sm" placeholder="es. Atto n. 123 del ...">
+                            </div>
                         </div>
-                        <div class="shrink-0">
+                        <div class="space-y-4">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 text-center">Firma Digitale</label>
-                            <div id="cse-signature-box" class="w-64 h-32 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center overflow-hidden">
+                            <div id="cse-signature-box" class="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center overflow-hidden">
                                 ${verbale.redattoreInfo.firmaBase64 ? `<img src="${verbale.redattoreInfo.firmaBase64}" class="max-h-full">` : '<span class="text-[10px] text-slate-400">Nessuna firma</span>'}
                             </div>
-                            ${!isFinalizzato ? `<button onclick="inizializzaFirmaCSE()" class="w-full mt-2 text-[10px] font-bold text-blue-600 hover:underline">Firma Ora</button>` : ''}
+                            ${!isFinalizzato ? `
+                            <div class="flex flex-wrap gap-2 justify-center">
+                                <button onclick="inizializzaFirmaCSE()" class="text-[10px] font-bold text-blue-600 hover:underline">✍️ Canvas</button>
+                                <button onclick="abilitaPasteFirmaCSE()" class="text-[10px] font-bold text-indigo-600 hover:underline">📋 Incolla (GAP 7)</button>
+                                <button onclick="usaFirmaPermanenteCSE()" class="text-[10px] font-bold text-green-600 hover:underline">🌟 Permanente</button>
+                            </div>` : ''}
                         </div>
                     </div>
                 </div>
@@ -332,163 +373,152 @@ async function apriVerbale(id = null) {
 
     document.body.appendChild(modal);
     renderPresenti();
+    renderNCDrafts();
 }
 
 /**
- * Gestione Presenti
+ * Gestione UI
  */
-function renderPresenti() {
-    const container = document.getElementById('presenti-container');
+function toggleDelegaUI(checked) {
+    document.getElementById('delega-ui').classList.toggle('hidden', !checked);
+}
+
+/**
+ * GAP 1: Logica NC Dinamica
+ */
+async function aggiungiNCAlVolo() {
+    currentNCDrafts.push({
+        idDraft: 'NC_D_' + Date.now(),
+        livello: 'media',
+        descrizione: '',
+        impresaId: '',
+        scadenza: calcolaScadenzaNC(new Date().toISOString().split('T')[0], 'media')
+    });
+    renderNCDrafts();
+}
+
+function calcolaScadenzaNC(dataPartenza, livello) {
+    const d = new Date(dataPartenza);
+    if (livello === 'gravissima') d.setHours(d.getHours() + 24);
+    else if (livello === 'grave') d.setDate(d.getDate() + 7);
+    else if (livello === 'media') d.setDate(d.getDate() + 15);
+    else if (livello === 'lieve') d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+}
+
+async function renderNCDrafts() {
+    const container = document.getElementById('nc-drafts-container');
     if (!container) return;
     
-    container.innerHTML = currentPresenti.map((p, idx) => `
-        <div class="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 relative group">
-            <button onclick="rimuoviPresente(${idx})" class="absolute top-2 right-2 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
-            <div class="flex items-start gap-3">
-                <div class="bg-slate-200 w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">👤</div>
+    const projectId = sessionStorage.getItem('currentProjectId');
+    const imprese = await getByIndex('imprese', 'projectId', projectId);
+    const isFinalizzato = (await getItem('verbali', currentVerbaleId))?.stato === 'finalizzato';
+
+    container.innerHTML = currentNCDrafts.map((nc, idx) => `
+        <div class="p-4 border border-red-100 rounded-xl bg-red-50/30 space-y-3 relative group">
+            ${!isFinalizzato ? `<button onclick="rimuoviNCDraft(${idx})" class="absolute top-2 right-2 text-red-400 hover:text-red-600">&times;</button>` : ''}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <div class="text-xs font-bold text-slate-800">${escapeHtml(p.nome)}</div>
-                    <div class="text-[10px] text-slate-500 uppercase">${escapeHtml(p.qualifica)}</div>
-                    <div class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${escapeHtml(p.impresa)}</div>
+                    <label class="block text-[9px] font-bold text-red-500 uppercase mb-1">Livello</label>
+                    <select onchange="updateNCDraft(${idx}, 'livello', this.value)" ${isFinalizzato ? 'disabled' : ''} class="w-full border-red-100 rounded-lg p-2 text-xs">
+                        <option value="gravissima" ${nc.livello === 'gravissima' ? 'selected' : ''}>GRAVISSIMA (+24h)</option>
+                        <option value="grave" ${nc.livello === 'grave' ? 'selected' : ''}>GRAVE (+7gg)</option>
+                        <option value="media" ${nc.livello === 'media' ? 'selected' : ''}>MEDIA (+15gg)</option>
+                        <option value="lieve" ${nc.livello === 'lieve' ? 'selected' : ''}>LIEVE (+30gg)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-red-500 uppercase mb-1">Impresa Responsabile</label>
+                    <select onchange="updateNCDraft(${idx}, 'impresaId', this.value)" ${isFinalizzato ? 'disabled' : ''} class="w-full border-red-100 rounded-lg p-2 text-xs">
+                        <option value="">-- Seleziona Impresa --</option>
+                        ${imprese.map(i => `<option value="${i.id}" ${nc.impresaId === i.id ? 'selected' : ''}>${i.ragioneSociale}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-red-500 uppercase mb-1">Scadenza Prevista</label>
+                    <div class="p-2 bg-white border border-red-100 rounded-lg text-xs font-bold text-red-700">${new Date(nc.scadenza).toLocaleDateString()}</div>
                 </div>
             </div>
-            
-            <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" id="ref-rifiuto-${idx}" ${p.rifiuto ? 'checked' : ''} onchange="toggleRifiutoFirma(${idx}, this.checked)" class="rounded text-red-600">
-                    <label for="ref-rifiuto-${idx}" class="text-[10px] font-bold text-red-600 uppercase">Rifiuto Firma</label>
-                </div>
-                
-                ${p.rifiuto ? `
-                    <input type="text" placeholder="Motivo del rifiuto..." value="${escapeHtml(p.noteRifiuto || '')}" onchange="updateNotaRifiuto(${idx}, this.value)" class="w-full text-xs border-slate-200 rounded-lg p-2">
-                ` : `
-                    <div id="canvas-presente-${idx}" class="w-full h-24">
-                        ${p.firmaBase64 ? `<img src="${p.firmaBase64}" class="h-full mx-auto">` : `<div class="h-full flex items-center justify-center border-2 border-dashed border-slate-200 text-[10px] text-slate-300">Firma mancante</div>`}
-                    </div>
-                    ${!p.firmaBase64 ? `<button onclick="abilitaFirmaPresente(${idx})" class="w-full text-[10px] font-bold text-blue-600">✍️ Firma ora</button>` : ''}
-                `}
-            </div>
+            <textarea placeholder="Descrizione della non conformità..." onchange="updateNCDraft(${idx}, 'descrizione', this.value)" ${isFinalizzato ? 'disabled' : ''} class="w-full border-red-100 rounded-lg p-2 text-xs h-16">${escapeHtml(nc.descrizione)}</textarea>
         </div>
     `).join('');
 }
 
-async function mostraModalAggiungiPresente() {
-    const projectId = sessionStorage.getItem('currentProjectId');
-    const lavoratori = await getByIndex('lavoratori', 'projectId', projectId);
-    const terzi = await getByIndex('persone_terzi', 'projectId', projectId);
-    const sicurezza = await getByIndex('persone_anas', 'projectId', projectId);
-    const imprese = await getByIndex('imprese', 'projectId', projectId);
-
-    const existing = document.getElementById('modal-add-presente');
-    if (existing) existing.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-add-presente';
-    modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4';
-    modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div class="bg-slate-100 p-4 font-bold border-b text-slate-700">Aggiungi Presente</div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Seleziona da Anagrafica</label>
-                    <select id="sel-presente-anag" class="w-full border-slate-200 rounded-xl p-3 text-sm" onchange="autoFillPresente(this.value)">
-                        <option value="">-- Scegli o inserisci manuale --</option>
-                        <optgroup label="Sicurezza">
-                            ${sicurezza.map(p => `<option value="S|${p.id}|${p.nome}|${p.ruolo}|Sicurezza">${p.nome} (${p.ruolo})</option>`).join('')}
-                        </optgroup>
-                        <optgroup label="Lavoratori Imprese">
-                            ${lavoratori.map(p => `<option value="L|${p.id}|${p.nome}|${p.qualifica}|${getImpresaNomeSync(p.impresaId, imprese)}">${p.nome} - ${getImpresaNomeSync(p.impresaId, imprese)}</option>`).join('')}
-                        </optgroup>
-                        <optgroup label="Terzi / Enti">
-                            ${terzi.map(p => `<option value="T|${p.id}|${p.nome}|${p.ruolo}|Terzi">${p.nome} (${p.ruolo})</option>`).join('')}
-                        </optgroup>
-                    </select>
-                </div>
-                <hr>
-                <div class="space-y-3">
-                    <input type="text" id="new-p-nome" placeholder="Nome e Cognome" class="w-full border-slate-200 rounded-xl p-3 text-sm">
-                    <input type="text" id="new-p-qual" placeholder="Qualifica/Mansione" class="w-full border-slate-200 rounded-xl p-3 text-sm">
-                    <input type="text" id="new-p-imp" placeholder="Impresa/Ente" class="w-full border-slate-200 rounded-xl p-3 text-sm">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button onclick="document.getElementById('modal-add-presente').remove()" class="flex-1 py-2 text-sm font-bold text-slate-500">Annulla</button>
-                    <button onclick="confermaAggiungiPresente()" class="flex-1 bg-blue-600 text-white py-2 rounded-xl font-bold shadow-lg">Aggiungi</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+function updateNCDraft(idx, field, val) {
+    currentNCDrafts[idx][field] = val;
+    if (field === 'livello') {
+        const dataVerbale = document.getElementById('v-data').value;
+        currentNCDrafts[idx].scadenza = calcolaScadenzaNC(dataVerbale, val);
+    }
+    renderNCDrafts();
 }
 
-function autoFillPresente(val) {
-    if (!val) return;
-    const [tipo, id, nome, qual, imp] = val.split('|');
-    document.getElementById('new-p-nome').value = nome;
-    document.getElementById('new-p-qual').value = qual;
-    document.getElementById('new-p-imp').value = imp;
-}
-
-function confermaAggiungiPresente() {
-    const nome = document.getElementById('new-p-nome').value.trim();
-    const qual = document.getElementById('new-p-qual').value.trim();
-    const imp = document.getElementById('new-p-imp').value.trim();
-    
-    if (!nome) return alert("Inserisci il nome.");
-    
-    currentPresenti.push({
-        id: 'P_' + Date.now(),
-        nome, qual, impresa: imp,
-        origine: 'manuale',
-        firmato: false,
-        firmaBase64: null,
-        rifiuto: false,
-        noteRifiuto: ''
-    });
-    
-    document.getElementById('modal-add-presente').remove();
-    renderPresenti();
-}
-
-function rimuoviPresente(idx) {
-    currentPresenti.splice(idx, 1);
-    renderPresenti();
-}
-
-function toggleRifiutoFirma(idx, checked) {
-    currentPresenti[idx].rifiuto = checked;
-    if (checked) currentPresenti[idx].firmaBase64 = null;
-    renderPresenti();
-}
-
-function updateNotaRifiuto(idx, val) {
-    currentPresenti[idx].noteRifiuto = val;
-}
-
-function abilitaFirmaPresente(idx) {
-    const box = document.getElementById(`canvas-presente-${idx}`);
-    if (!box) return;
-    signatureCanvases[idx] = new SignatureCanvas(`canvas-presente-${idx}`, { width: box.clientWidth, height: 96 });
-}
-
-function inizializzaFirmaCSE() {
-    const box = document.getElementById('cse-signature-box');
-    box.innerHTML = '';
-    signatureCanvases['cse'] = new SignatureCanvas('cse-signature-box', { width: box.clientWidth, height: 128 });
+function rimuoviNCDraft(idx) {
+    currentNCDrafts.splice(idx, 1);
+    renderNCDrafts();
 }
 
 /**
- * Finalizzazione e Generazione
+ * GAP 7: Firma Paste
+ */
+function abilitaPasteFirmaCSE() {
+    const box = document.getElementById('cse-signature-box');
+    box.innerHTML = '<div class="text-[10px] text-indigo-500 animate-pulse">Premi Ctrl+V per incollare la firma...</div>';
+    box.focus();
+    
+    // Listener temporaneo
+    const onPaste = async (e) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64 = event.target.result;
+                    box.innerHTML = `<img src="${base64}" class="max-h-full">`;
+                    // Salviamo temporaneamente in una variabile globale o nello stato
+                    window._lastPastedSignature = base64;
+                    showToast("Immagine incollata ✓", "success");
+                };
+                reader.readAsDataURL(blob);
+                break;
+            }
+        }
+    };
+    
+    document.addEventListener('paste', onPaste, { once: true });
+}
+
+async function usaFirmaPermanenteCSE() {
+    const imp = await caricaImpostazioni();
+    if (imp.firmaImmagine) {
+        document.getElementById('cse-signature-box').innerHTML = `<img src="${imp.firmaImmagine}" class="max-h-full">`;
+        window._lastPastedSignature = imp.firmaImmagine;
+        showToast("Firma permanente applicata", "info");
+    } else {
+        alert("Nessuna firma permanente trovata in Impostazioni.");
+    }
+}
+
+/**
+ * Finalizzazione (GAP 1, 5, 6)
  */
 async function salvaVerbale(nuovoStato = 'bozza') {
     const projectId = sessionStorage.getItem('currentProjectId');
-    
-    // Acquisizione firme correnti dai canvas
+    const verbaleEsistente = await getItem('verbali', currentVerbaleId);
+
+    // GAP 9: Protezione finalizzato
+    if (verbaleEsistente && verbaleEsistente.stato === 'finalizzato' && nuovoStato !== 'finalizzato') {
+        alert("Impossibile modificare un verbale finalizzato.");
+        throw new Error('Finalizzato non modificabile');
+    }
+
+    // Acquisizione firme canvas
     Object.keys(signatureCanvases).forEach(key => {
         const sign = signatureCanvases[key].toDataURL();
         if (sign) {
-            if (key === 'cse') {
-                // Info redattore verrà aggiornata sotto
-            } else {
+            if (key === 'cse') window._lastPastedSignature = sign;
+            else {
                 currentPresenti[key].firmaBase64 = sign;
                 currentPresenti[key].firmato = true;
             }
@@ -510,11 +540,16 @@ async function salvaVerbale(nuovoStato = 'bozza') {
         statoLuoghi: document.getElementById('v-stato-luoghi').value,
         notePrescrizioni: document.getElementById('v-note-prescrizioni').value,
         presenti: currentPresenti,
+        ncDrafts: currentNCDrafts,
+        ncCollegateIds: verbaleEsistente?.ncCollegateIds || [],
+        includiTabellaMezzi: document.getElementById('v-opt-mezzi').checked,
         redattoreInfo: {
-            isDelegato: false,
+            isDelegato: document.getElementById('v-cse-delegato').checked,
             nomeRedattore: document.getElementById('v-cse-nome').value,
             qualifica: document.getElementById('v-cse-qualifica').value,
-            firmaBase64: signatureCanvases['cse'] ? signatureCanvases['cse'].toDataURL() || (await getItem('verbali', currentVerbaleId))?.redattoreInfo.firmaBase64 : (await getItem('verbali', currentVerbaleId))?.redattoreInfo.firmaBase64
+            attoDelegaRiferimento: document.getElementById('v-cse-atto').value,
+            firmaBase64: window._lastPastedSignature || verbaleEsistente?.redattoreInfo.firmaBase64,
+            timestampFirma: window._lastPastedSignature ? new Date().toISOString() : verbaleEsistente?.redattoreInfo.timestampFirma
         },
         modifiedAt: new Date().toISOString()
     };
@@ -531,13 +566,63 @@ async function salvaVerbale(nuovoStato = 'bozza') {
 async function eseguiFinalizzazione() {
     const verbale = await salvaVerbale('finalizzato');
     
-    // 1. Validazione obbligatoria
-    if (!verbale.dataSopralluogo || !verbale.oggetto || !verbale.statoLuoghi) {
-        alert("Compila data, oggetto e stato dei luoghi prima di finalizzare.");
+    // GAP 6: Validazione Completa
+    const errori = [];
+    if (!verbale.dataSopralluogo) errori.push("Data sopralluogo");
+    if (!verbale.oggetto) errori.push("Oggetto");
+    if (!verbale.condizioniMeteo) errori.push("Condizioni meteo");
+    if (!verbale.statoLuoghi) errori.push("Stato dei luoghi");
+    if (!verbale.notePrescrizioni) errori.push("Note e prescrizioni");
+    if (verbale.presenti.length === 0) errori.push("Almeno un presente");
+    if (!verbale.impresePresentiIds || verbale.impresePresentiIds.length === 0) errori.push("Almeno un'impresa presente");
+    if (verbale.redattoreInfo.isDelegato && !verbale.redattoreInfo.attoDelegaRiferimento) errori.push("Atto di delega (obbligatorio se delegato)");
+    if (!verbale.redattoreInfo.firmaBase64) errori.push("Firma del redattore (CSE)");
+    
+    verbale.presenti.forEach((p, i) => {
+        if (!p.firmaBase64 && !p.rifiuto) errori.push(`Firma di ${p.nome}`);
+        if (p.rifiuto && !p.noteRifiuto) errori.push(`Motivo rifiuto di ${p.nome}`);
+    });
+
+    verbale.ncDrafts.forEach((nc, i) => {
+        if (!nc.descrizione || !nc.impresaId) errori.push(`Dettagli NC #${i+1} (descrizione e impresa)`);
+    });
+
+    const template = await getItem('impostazioni', 'template_verbale_sopralluogo');
+    if (!template) errori.push("Template Word non caricato in Impostazioni");
+
+    if (errori.length > 0) {
+        alert("ERRORE FINALIZZAZIONE. Campi mancanti:\n- " + errori.join("\n- "));
         return;
     }
 
-    // 2. Numerazione Progressiva YYYYMMDD/VSNN
+    // GAP 1: Creazione Record NC Reali
+    const ncCreate = [];
+    if (verbale.ncDrafts.length > 0 && verbale.ncCollegateIds.length === 0) {
+        const dataPrefix = verbale.dataSopralluogo.replace(/-/g, '');
+        for (let i = 0; i < verbale.ncDrafts.length; i++) {
+            const draft = verbale.ncDrafts[i];
+            const ncId = `nc_${Date.now()}_${i}`;
+            const ncRecord = {
+                id: ncId,
+                projectId: verbale.projectId,
+                verbaleOrigineId: verbale.id,
+                numeroProgressivo: `${dataPrefix}/NC${String(i+1).padStart(2, '0')}`,
+                data: verbale.dataSopralluogo,
+                livello: draft.livello,
+                scadenza: draft.scadenza,
+                descrizione: draft.descrizione,
+                impresaId: draft.impresaId,
+                stato: 'aperta',
+                createdAt: new Date().toISOString()
+            };
+            await saveItem('nc', ncRecord);
+            ncCreate.push(ncRecord);
+            verbale.ncCollegateIds.push(ncId);
+        }
+        await saveItem('verbali', verbale);
+    }
+
+    // Numerazione Progressiva
     if (!verbale.numeroProgressivo) {
         const dataPrefix = verbale.dataSopralluogo.replace(/-/g, '');
         const verbaliGiorno = await getByIndex('verbali', 'projectId', verbale.projectId);
@@ -546,15 +631,22 @@ async function eseguiFinalizzazione() {
         await saveItem('verbali', verbale);
     }
 
-    // 3. Preparazione Dati estesi per Word (Mapping loops)
+    // GAP 2, 3, 4: Mapping Dati per Word
+    const cantiere = await getItem('projects', verbale.projectId);
     const imprese = await getByIndex('imprese', 'projectId', verbale.projectId);
+    const mezziCantiere = verbale.includiTabellaMezzi ? await getByIndex('mezzi', 'projectId', verbale.projectId) : [];
+
     const dataWord = {
         ...verbale,
         numero_progressivo: verbale.numeroProgressivo,
         data_sopralluogo: new Date(verbale.dataSopralluogo).toLocaleDateString('it-IT'),
+        codice_cantiere: cantiere?.id || cantiere?.codice || '-',
+        nome_cantiere: cantiere?.nome || '-',
         condizioni_meteo: verbale.condizioniMeteo.toUpperCase(),
         progressiva_inizio: verbale.progressivaChilometrica.inizio,
         progressiva_fine: verbale.progressivaChilometrica.fine,
+        stato_luoghi: verbale.statoLuoghi,
+        note_prescrizioni: verbale.notePrescrizioni,
         
         imprese_presenti: Array.from(new Set(verbale.presenti.map(p => p.impresa))).map(impName => {
             const impObj = imprese.find(i => i.ragioneSociale === impName);
@@ -567,34 +659,66 @@ async function eseguiFinalizzazione() {
             impresa: p.impresa
         })),
 
+        mezzi_attrezzature: mezziCantiere.map(m => ({
+            tipologia: m.tipologia,
+            marca: m.marca,
+            modello: m.modello,
+            matricola: m.matricolaInail || m.targa || '-'
+        })),
+
+        non_conformita: ncCreate.map(nc => ({
+            numero: nc.numeroProgressivo,
+            livello: nc.livello.toUpperCase(),
+            scadenza: new Date(nc.scadenza).toLocaleDateString('it-IT'),
+            descrizione: nc.descrizione,
+            impresa: imprese.find(i => i.id === nc.impresaId)?.ragioneSociale || '-'
+        })),
+
         presenti_firme: verbale.presenti.map(p => ({
             nome_completo: p.nome,
             qualifica: p.qualifica,
             firma_image: p.firmaBase64,
-            rifiutato: p.rifiuto ? 'SI (Rifiuta firma)' : 'NO',
+            rifiutato: p.rifiuto ? 'SI' : 'NO',
             note_rifiuto: p.noteRifiuto || ''
         })),
 
         firma_cse: verbale.redattoreInfo.firmaBase64,
         nome_cse: verbale.redattoreInfo.nomeRedattore,
         ruolo_cse: verbale.redattoreInfo.qualifica,
+        atto_delega: verbale.redattoreInfo.isDelegato ? verbale.redattoreInfo.attoDelegaRiferimento : '-',
+        timestamp_firma_cse: verbale.redattoreInfo.timestampFirma ? new Date(verbale.redattoreInfo.timestampFirma).toLocaleString('it-IT') : '-',
         data_finalizzazione: new Date().toLocaleString('it-IT')
     };
 
     try {
-        const blob = await DocxGenerator.generate(dataWord);
-        const fileName = `Verbale_${verbale.numeroProgressivo.replace(/\//g, '_')}.docx`;
+        const wordBlob = await DocxGenerator.generate(dataWord);
+        const fileName = `Verbale_Sopralluogo_${verbale.dataSopralluogo.replace(/-/g, '')}_${verbale.numeroProgressivo.replace(/\//g, '_')}.docx`;
+        
+        // GAP 5: Salvataggio OneDrive
+        const oneDrivePath = await getItem('impostazioni', 'onedrive_path');
+        if (oneDrivePath && oneDrivePath.valore) {
+            try {
+                // Assumiamo esistenza di salvaInOneDrive in app.js o globale
+                if (typeof salvaInOneDrive === 'function') {
+                    const cartella = `${oneDrivePath.valore}/Lotto_${verbale.projectId}/02_Verbali/Sopralluogo/`;
+                    await salvaInOneDrive(cartella, fileName, wordBlob);
+                }
+            } catch (odErr) {
+                console.warn("OneDrive fallito, scarico solo locale", odErr);
+            }
+        }
+
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
+        link.href = URL.createObjectURL(wordBlob);
         link.download = fileName;
         link.click();
         
-        showToast("Verbale finalizzato e scaricato! ✓", "success");
+        showToast("Verbale finalizzato con successo! ✓", "success");
         document.getElementById('modal-editor-verbale').remove();
         renderVerbali();
     } catch (err) {
         console.error(err);
-        alert("Errore generazione documento: " + err.message);
+        alert("Errore generazione Word: " + err.message);
     }
 }
 

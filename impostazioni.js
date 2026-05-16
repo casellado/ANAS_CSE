@@ -88,6 +88,12 @@ async function _getCondiviseMemorizzate() {
 // 1. Carica impostazioni da IndexedDB
 // ─────────────────────────────────────────────
 async function caricaImpostazioni(skipCondivise = false) {
+  // GAP 10: Migrazione una-tantum per sessione
+  if (!window._migrazioneEseguita && !skipCondivise) {
+    window._migrazioneEseguita = true;
+    try { await migraImpostazioniLegacy(); } catch (e) { console.warn("Migrazione legacy fallita:", e); }
+  }
+
   let locali = { ...IMPOSTAZIONI_DEFAULT };
   // Traccia quali campi sono stati salvati esplicitamente dall'utente in IndexedDB
   let campiLocaliSalvati = new Set();
