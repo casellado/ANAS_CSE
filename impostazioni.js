@@ -1219,9 +1219,23 @@ async function migraImpostazioniLegacy() {
   }
 }
 
+// ─────────────────────────────────────────────
+// Stub moduli non ancora implementati
+// (verbali-pos.js e verbali-riunione.js — FASE 5.2+)
+// ─────────────────────────────────────────────
+function exportPOSWord() {
+  showToast('Modulo Verifica POS (Mod. RE. 01-5) — in costruzione nella FASE 5.2', 'info', 4000);
+}
+
+function exportRiunioneWord() {
+  showToast('Modulo Riunione Coordinamento (Mod. RE. 01-10) — in costruzione nella FASE 5.2', 'info', 4000);
+}
+
 // Esponi al global scope
 window.migraImpostazioniLegacy = migraImpostazioniLegacy;
 window.caricaImpostazioni = caricaImpostazioni;
 window.salvaImpostazioni = salvaImpostazioni;
 window.renderViewImpostazioni = renderViewImpostazioni;
 window.getFirmaPersistente = getFirmaPersistente;
+window.exportPOSWord = exportPOSWord;
+window.exportRiunioneWord = exportRiunioneWord;
