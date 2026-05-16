@@ -503,15 +503,78 @@ async function usaFirmaPermanenteCSE() {
 /**
  * Finalizzazione (GAP 1, 5, 6)
  */
-async function salvaVerbale(nuovoStato = 'bozza') {
-    const projectId = sessionStorage.getItem('currentProjectId');
-    const verbaleEsistente = await getItem('verbali', currentVerbaleId);
+/**
+ * Raccoglie i dati attuali dal form (senza salvare).
+ */
+function _raccogliDatiForm() {
+    const verbaleEsistente_ref = window._verbaleEsistente || null;
+    return {
+        id: currentVerbaleId,
+        projectId: sessionStorage.getItem('currentProjectId'),
+        tipo: 'sopralluogo',
+        dataSopralluogo: document.getElementById('v-data').value,
+        oggetto: document.getElementById('v-oggetto').value,
+        condizioniMeteo: document.getElementById('v-meteo').value,
+        progressivaChilometrica: {
+            inizio: document.getElementById('v-prog-inizio').value,
+            fine: document.getElementById('v-prog-fine').value
+        },
+        statoLuoghi: document.getElementById('v-stato-luoghi').value,
+        notePrescrizioni: document.getElementById('v-note-prescrizioni').value,
+        presenti: currentPresenti,
+        ncDrafts: currentNCDrafts,
+        ncCollegateIds: verbaleEsistente_ref?.ncCollegateIds || [],
+        impresePresentiIds: [...new Set(currentPresenti.map(p => p.impresaId).filter(id => id))],
+        includiTabellaMezzi: document.getElementById('v-opt-mezzi')?.checked || false,
+        redattoreInfo: {
+            isDelegato: document.getElementById('v-cse-delegato')?.checked || false,
+            nomeRedattore: document.getElementById('v-cse-nome').value,
+            qualifica: document.getElementById('v-cse-qualifica').value,
+            attoDelegaRiferimento: document.getElementById('v-cse-atto')?.value || '',
+            firmaBase64: window._lastPastedSignature || verbaleEsistente_ref?.redattoreInfo?.firmaBase64 || null,
+            timestampFirma: window._lastPastedSignature
+                ? new Date().toISOString()
+                : (verbaleEsistente_ref?.redattoreInfo?.timestampFirma || null)
+        }
+    };
+}
 
-    // GAP 9: Protezione finalizzato
+async function salvaVerbale(nuovoStato = 'bozza') {
+    const verbaleEsistente = await getItem('verbali', currentVerbaleId);
+    window._verbaleEsistente = verbaleEsistente;
+
+    // Protezione: un finalizzato non può tornare a bozza
     if (verbaleEsistente && verbaleEsistente.stato === 'finalizzato' && nuovoStato !== 'finalizzato') {
         alert("Impossibile modificare un verbale finalizzato.");
         throw new Error('Finalizzato non modificabile');
     }
+
+    // Acquisizione firme canvas prima di raccogliere i dati
+    Object.keys(signatureCanvases).forEach(key => {
+        const sign = signatureCanvases[key].toDataURL();
+        if (sign) {
+            if (key === 'cse') window._lastPastedSignature = sign;
+            else {
+                currentPresenti[key].firmaBase64 = sign;
+                currentPresenti[key].firmato = true;
+            }
+        }
+    });
+
+    const item = { ...(_raccogliDatiForm()), stato: nuovoStato, modifiedAt: new Date().toISOString() };
+    await saveItem('verbali', item);
+
+    if (nuovoStato === 'bozza') {
+        showToast("Bozza salvata ✓", "success");
+        document.getElementById('modal-editor-verbale').remove();
+        renderVerbali();
+    }
+    return item;
+}
+
+async function eseguiFinalizzazione() {
+    const verbaleEsistente = await getItem('verbali', currentVerbaleId);
+    window._verbaleEsistente = verbaleEsistente;
 
     // Acquisizione firme canvas
     Object.keys(signatureCanvases).forEach(key => {
@@ -525,75 +588,40 @@ async function salvaVerbale(nuovoStato = 'bozza') {
         }
     });
 
-    const item = {
-        id: currentVerbaleId,
-        projectId: projectId,
-        tipo: 'sopralluogo',
-        stato: nuovoStato,
-        dataSopralluogo: document.getElementById('v-data').value,
-        oggetto: document.getElementById('v-oggetto').value,
-        condizioniMeteo: document.getElementById('v-meteo').value,
-        progressivaChilometrica: {
-            inizio: document.getElementById('v-prog-inizio').value,
-            fine: document.getElementById('v-prog-fine').value
-        },
-        statoLuoghi: document.getElementById('v-stato-luoghi').value,
-        notePrescrizioni: document.getElementById('v-note-prescrizioni').value,
-        presenti: currentPresenti,
-        ncDrafts: currentNCDrafts,
-        ncCollegateIds: verbaleEsistente?.ncCollegateIds || [],
-        includiTabellaMezzi: document.getElementById('v-opt-mezzi').checked,
-        redattoreInfo: {
-            isDelegato: document.getElementById('v-cse-delegato').checked,
-            nomeRedattore: document.getElementById('v-cse-nome').value,
-            qualifica: document.getElementById('v-cse-qualifica').value,
-            attoDelegaRiferimento: document.getElementById('v-cse-atto').value,
-            firmaBase64: window._lastPastedSignature || verbaleEsistente?.redattoreInfo.firmaBase64,
-            timestampFirma: window._lastPastedSignature ? new Date().toISOString() : verbaleEsistente?.redattoreInfo.timestampFirma
-        },
-        modifiedAt: new Date().toISOString()
-    };
+    // Raccoglie dati dal form (senza salvare ancora)
+    const dati = _raccogliDatiForm();
 
-    await saveItem('verbali', item);
-    if (nuovoStato === 'bozza') {
-        showToast("Bozza salvata ✓", "success");
-        document.getElementById('modal-editor-verbale').remove();
-        renderVerbali();
-    }
-    return item;
-}
-
-async function eseguiFinalizzazione() {
-    const verbale = await salvaVerbale('finalizzato');
-    
-    // GAP 6: Validazione Completa
+    // VALIDAZIONE prima di salvare
     const errori = [];
-    if (!verbale.dataSopralluogo) errori.push("Data sopralluogo");
-    if (!verbale.oggetto) errori.push("Oggetto");
-    if (!verbale.condizioniMeteo) errori.push("Condizioni meteo");
-    if (!verbale.statoLuoghi) errori.push("Stato dei luoghi");
-    if (!verbale.notePrescrizioni) errori.push("Note e prescrizioni");
-    if (verbale.presenti.length === 0) errori.push("Almeno un presente");
-    if (!verbale.impresePresentiIds || verbale.impresePresentiIds.length === 0) errori.push("Almeno un'impresa presente");
-    if (verbale.redattoreInfo.isDelegato && !verbale.redattoreInfo.attoDelegaRiferimento) errori.push("Atto di delega (obbligatorio se delegato)");
-    if (!verbale.redattoreInfo.firmaBase64) errori.push("Firma del redattore (CSE)");
-    
-    verbale.presenti.forEach((p, i) => {
+    if (!dati.dataSopralluogo) errori.push("Data sopralluogo");
+    if (!dati.oggetto) errori.push("Oggetto");
+    if (!dati.condizioniMeteo) errori.push("Condizioni meteo");
+    if (!dati.statoLuoghi) errori.push("Stato dei luoghi");
+    if (!dati.notePrescrizioni) errori.push("Note e prescrizioni");
+    if (dati.presenti.length === 0) errori.push("Almeno un presente");
+    if (!dati.impresePresentiIds || dati.impresePresentiIds.length === 0) errori.push("Almeno un'impresa presente");
+    if (dati.redattoreInfo.isDelegato && !dati.redattoreInfo.attoDelegaRiferimento) errori.push("Atto di delega (obbligatorio se delegato)");
+    if (!dati.redattoreInfo.firmaBase64) errori.push("Firma del redattore (CSE)");
+
+    dati.presenti.forEach(p => {
         if (!p.firmaBase64 && !p.rifiuto) errori.push(`Firma di ${p.nome}`);
         if (p.rifiuto && !p.noteRifiuto) errori.push(`Motivo rifiuto di ${p.nome}`);
     });
-
-    verbale.ncDrafts.forEach((nc, i) => {
+    dati.ncDrafts.forEach((nc, i) => {
         if (!nc.descrizione || !nc.impresaId) errori.push(`Dettagli NC #${i+1} (descrizione e impresa)`);
     });
-
     const template = await getItem('impostazioni', 'template_verbale_sopralluogo');
-    if (!template) errori.push("Template Word non caricato in Impostazioni");
+    if (!template) errori.push("Template Word non caricato (pulsante ⚙️ Template)");
 
     if (errori.length > 0) {
+        showToast("Errori: " + errori[0], "error", 5000);
         alert("ERRORE FINALIZZAZIONE. Campi mancanti:\n- " + errori.join("\n- "));
         return;
     }
+
+    // Solo ora salva come finalizzato
+    const verbale = { ...dati, stato: 'finalizzato', modifiedAt: new Date().toISOString() };
+    await saveItem('verbali', verbale);
 
     // GAP 1: Creazione Record NC Reali
     const ncCreate = [];
@@ -739,4 +767,240 @@ async function eliminaVerbale(id) {
     if (!confirm("Vuoi eliminare definitivamente questo verbale?")) return;
     await deleteItem('verbali', id);
     renderVerbali();
+}
+
+// ─────────────────────────────────────────────
+// RENDER PRESENTI
+// Mostra la lista dei presenti nel form verbale.
+// ─────────────────────────────────────────────
+function renderPresenti() {
+    const container = document.getElementById('presenti-container');
+    if (!container) return;
+
+    if (currentPresenti.length === 0) {
+        container.innerHTML = `<div class="col-span-2 py-6 text-center text-[10px] text-slate-400 italic uppercase tracking-widest">Nessun presente aggiunto</div>`;
+        return;
+    }
+
+    container.innerHTML = currentPresenti.map((p, idx) => `
+        <div class="p-4 border border-slate-100 rounded-2xl bg-white space-y-3 relative">
+            <button onclick="rimuoviPresente(${idx})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 text-lg leading-none">&times;</button>
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">${p.nome.charAt(0).toUpperCase()}</div>
+                <div>
+                    <div class="font-bold text-sm text-slate-800">${escapeHtml(p.nome)}</div>
+                    <div class="text-[10px] text-slate-500">${escapeHtml(p.qualifica)} · ${escapeHtml(p.impresa || '-')}</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="rifiuto-${idx}" ${p.rifiuto ? 'checked' : ''}
+                       onchange="toggleRifiutoPresente(${idx}, this.checked)"
+                       class="w-3.5 h-3.5 text-red-500">
+                <label for="rifiuto-${idx}" class="text-[10px] text-red-600 font-bold">Rifiuta firma</label>
+            </div>
+            ${p.rifiuto ? `
+            <input type="text" placeholder="Motivo rifiuto..."
+                   value="${escapeHtml(p.noteRifiuto || '')}"
+                   onchange="currentPresenti[${idx}].noteRifiuto = this.value"
+                   class="w-full border border-red-200 rounded-lg p-2 text-xs bg-red-50">
+            ` : `
+            <div class="flex items-center gap-2">
+                ${p.firmaBase64
+                    ? `<img src="${p.firmaBase64}" class="h-10 border rounded-lg px-2 bg-slate-50" alt="firma">`
+                    : `<div class="text-[10px] text-slate-400 italic">Firma mancante</div>`}
+                <button onclick="inizializzaFirmaPresente(${idx})"
+                        class="text-[10px] font-bold text-blue-600 hover:underline ml-auto">✍️ Firma</button>
+            </div>
+            `}
+        </div>
+    `).join('');
+}
+
+function rimuoviPresente(idx) {
+    currentPresenti.splice(idx, 1);
+    renderPresenti();
+}
+
+function toggleRifiutoPresente(idx, checked) {
+    currentPresenti[idx].rifiuto = checked;
+    currentPresenti[idx].firmaBase64 = null;
+    renderPresenti();
+}
+
+// ─────────────────────────────────────────────
+// MODAL AGGIUNGI PRESENTE
+// ─────────────────────────────────────────────
+async function mostraModalAggiungiPresente() {
+    const projectId = sessionStorage.getItem('currentProjectId');
+    const [personeAnas, personeTerzi, imprese] = await Promise.all([
+        getByIndex('persone_anas', 'projectId', projectId),
+        getByIndex('persone_terzi', 'projectId', projectId),
+        getByIndex('imprese', 'projectId', projectId)
+    ]);
+
+    const existing = document.getElementById('modal-aggiungi-presente');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-aggiungi-presente';
+    modal.className = 'fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[3000] flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="bg-slate-800 p-5 text-white flex justify-between items-center">
+                <h3 class="font-bold">Aggiungi Presente</h3>
+                <button onclick="document.getElementById('modal-aggiungi-presente').remove()" class="text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-500">Seleziona da anagrafica o inserisci manualmente.</p>
+
+                <!-- Selezione da anagrafica -->
+                ${personeAnas.length > 0 || personeTerzi.length > 0 ? `
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Da Anagrafica</label>
+                    <select id="sel-presente-anagrafica" class="w-full border rounded-xl p-3 text-sm">
+                        <option value="">-- Seleziona persona --</option>
+                        ${personeAnas.length > 0 ? `<optgroup label="Personale Sicurezza">
+                            ${personeAnas.map(p => `<option value="anas:${p.id}:${p.nome} ${p.cognome}:${p.ruolo || p.qualifica || ''}:">${p.nome} ${p.cognome} (${p.ruolo || 'Sicurezza'})</option>`).join('')}
+                        </optgroup>` : ''}
+                        ${personeTerzi.length > 0 ? `<optgroup label="Enti Terzi">
+                            ${personeTerzi.map(p => `<option value="terzi:${p.id}:${p.nome} ${p.cognome}:${p.qualifica || p.ente || ''}:">${p.nome} ${p.cognome} (${p.ente || 'Terzi'})</option>`).join('')}
+                        </optgroup>` : ''}
+                        ${imprese.length > 0 ? `<optgroup label="Referenti Imprese">
+                            ${imprese.map(imp => `<option value="impresa:${imp.id}:Referente ${imp.ragioneSociale}:Preposto:${imp.id}">${imp.ragioneSociale} (Referente)</option>`).join('')}
+                        </optgroup>` : ''}
+                    </select>
+                    <button onclick="aggiungiDaAnagrafica()" class="w-full bg-slate-800 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-slate-700 transition">Aggiungi selezionato</button>
+                </div>
+                <div class="border-t border-slate-100 my-2"></div>
+                ` : ''}
+
+                <!-- Inserimento manuale -->
+                <div class="space-y-3">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Inserimento Manuale</label>
+                    <input type="text" id="pres-nome" placeholder="Nome e Cognome" class="w-full border rounded-xl p-3 text-sm">
+                    <input type="text" id="pres-qualifica" placeholder="Qualifica / Ruolo" class="w-full border rounded-xl p-3 text-sm">
+                    <select id="pres-impresa" class="w-full border rounded-xl p-3 text-sm">
+                        <option value="">-- Impresa (opzionale) --</option>
+                        ${imprese.map(i => `<option value="${i.id}:${i.ragioneSociale}">${i.ragioneSociale}</option>`).join('')}
+                    </select>
+                    <button onclick="aggiungiPresenteManuale()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 transition">Aggiungi</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function aggiungiDaAnagrafica() {
+    const sel = document.getElementById('sel-presente-anagrafica');
+    if (!sel.value) return;
+    const [origine, personaId, nome, qualifica, impresaId] = sel.value.split(':');
+    const impresaNome = impresaId
+        ? sel.options[sel.selectedIndex].text.match(/\(([^)]+)\)/)?.[1] || ''
+        : '';
+    currentPresenti.push({
+        personaId, nome, qualifica,
+        impresaId: impresaId || '',
+        impresa: impresaNome,
+        origine,
+        firmato: false, firmaBase64: null, rifiuto: false, noteRifiuto: ''
+    });
+    document.getElementById('modal-aggiungi-presente').remove();
+    renderPresenti();
+}
+
+function aggiungiPresenteManuale() {
+    const nome = document.getElementById('pres-nome').value.trim();
+    const qualifica = document.getElementById('pres-qualifica').value.trim();
+    const impresaRaw = document.getElementById('pres-impresa').value;
+    if (!nome) { alert("Inserisci il nome."); return; }
+
+    const [impresaId, impresa] = impresaRaw ? impresaRaw.split(':') : ['', ''];
+    currentPresenti.push({
+        personaId: null, nome, qualifica,
+        impresaId: impresaId || '',
+        impresa: impresa || '',
+        origine: 'manuale',
+        firmato: false, firmaBase64: null, rifiuto: false, noteRifiuto: ''
+    });
+    document.getElementById('modal-aggiungi-presente').remove();
+    renderPresenti();
+}
+
+// ─────────────────────────────────────────────
+// FIRMA CSE — canvas
+// ─────────────────────────────────────────────
+function inizializzaFirmaCSE() {
+    const box = document.getElementById('cse-signature-box');
+    if (!box) return;
+    box.innerHTML = '';
+    const canvasId = 'canvas-cse-firma';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'w-full flex flex-col items-center gap-2';
+    wrapper.innerHTML = `
+        <div id="${canvasId}-container" class="w-full"></div>
+        <button onclick="confermFirmaCSECanvas()"
+                class="text-[10px] font-bold bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700">
+            ✓ Conferma firma
+        </button>
+    `;
+    box.appendChild(wrapper);
+    const sc = new SignatureCanvas(canvasId + '-container', { width: 340, height: 140 });
+    signatureCanvases['cse'] = sc;
+}
+
+function confermFirmaCSECanvas() {
+    const sc = signatureCanvases['cse'];
+    if (!sc) return;
+    const b64 = sc.toDataURL();
+    if (!b64) { showToast("Firma vuota, disegna prima la firma.", "warning"); return; }
+    window._lastPastedSignature = b64;
+    const box = document.getElementById('cse-signature-box');
+    if (box) box.innerHTML = `<img src="${b64}" class="max-h-full max-w-full object-contain">`;
+    showToast("Firma acquisita ✓", "success");
+}
+
+// ─────────────────────────────────────────────
+// FIRMA PRESENTE — canvas per ogni presente
+// ─────────────────────────────────────────────
+function inizializzaFirmaPresente(idx) {
+    // Crea mini-modal firma per il presente
+    const existing = document.getElementById('modal-firma-presente');
+    if (existing) existing.remove();
+
+    const p = currentPresenti[idx];
+    const modal = document.createElement('div');
+    modal.id = 'modal-firma-presente';
+    modal.className = 'fixed inset-0 bg-slate-900/70 z-[4000] flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-slate-800 p-4 text-white flex justify-between">
+                <span class="font-bold text-sm">Firma di ${escapeHtml(p.nome)}</span>
+                <button onclick="document.getElementById('modal-firma-presente').remove()" class="text-xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div id="canvas-presente-container-${idx}"></div>
+                <button onclick="confermaFirmaPresente(${idx})"
+                        class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-blue-700">
+                    ✓ Conferma firma
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const sc = new SignatureCanvas(`canvas-presente-container-${idx}`, { width: 380, height: 160 });
+    signatureCanvases[idx] = sc;
+}
+
+function confermaFirmaPresente(idx) {
+    const sc = signatureCanvases[idx];
+    if (!sc) return;
+    const b64 = sc.toDataURL();
+    if (!b64) { showToast("Firma vuota.", "warning"); return; }
+    currentPresenti[idx].firmaBase64 = b64;
+    currentPresenti[idx].firmato = true;
+    document.getElementById('modal-firma-presente').remove();
+    renderPresenti();
+    showToast("Firma acquisita ✓", "success");
 }

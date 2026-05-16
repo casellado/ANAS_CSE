@@ -137,7 +137,7 @@ async function caricaImpostazioni(skipCondivise = false) {
 //    BUG-8 FIX: propaga i campi condivisi su OneDrive
 // ─────────────────────────────────────────────
 async function salvaImpostazioni(dati) {
-  await saveItem('impostazioni', { id: IMPOSTAZIONI_KEY, data: dati });
+  await saveItem('impostazioni', { chiave: IMPOSTAZIONI_KEY, data: dati });
 
   // Invalida la cache condivise per forzare la rilettura (se necessario in futuro)
   _cachedCondivise = null;
@@ -433,7 +433,7 @@ async function aggiornaLogo(lato, input) {
   // Salva subito
   const imp = await caricaImpostazioni();
   if (lato === 'sx') imp.logoSinistro = base64;
-  else imp.logoDestro = base64;
+  else { imp.logoDestro = base64; imp.logo_aziendale = base64; } // logo_aziendale per docx-generator
   await salvaImpostazioni(imp);
   showToast('Logo aggiornato ✓', 'success');
 }
@@ -1177,3 +1177,51 @@ async function getFirmaPersistente() {
     return null;
   }
 }
+
+// ─────────────────────────────────────────────
+// migraImpostazioniLegacy
+// Migrazione una-tantum: allinea i campi vecchi ai nuovi nomi
+// (logo_aziendale, header_destro, footer_centrale) e
+// sincronizza il campo logo_aziendale per docx-generator.
+// ─────────────────────────────────────────────
+async function migraImpostazioniLegacy() {
+  try {
+    const item = await getItem('impostazioni', IMPOSTAZIONI_KEY);
+    if (!item || !item.data) return; // niente da migrare
+
+    const d = item.data;
+    let modificato = false;
+
+    // logo_aziendale: se non presente, tenta di ereditare da logoDestro o logoSinistro
+    if (!d.logo_aziendale && (d.logoDestro || d.logoSinistro)) {
+      d.logo_aziendale = d.logoDestro || d.logoSinistro;
+      modificato = true;
+    }
+
+    // header_destro: mantieni default se mancante
+    if (!d.header_destro) {
+      d.header_destro = IMPOSTAZIONI_DEFAULT.header_destro;
+      modificato = true;
+    }
+
+    // footer_centrale: mantieni default se mancante
+    if (!d.footer_centrale) {
+      d.footer_centrale = IMPOSTAZIONI_DEFAULT.footer_centrale;
+      modificato = true;
+    }
+
+    if (modificato) {
+      await saveItem('impostazioni', { chiave: IMPOSTAZIONI_KEY, data: d });
+      console.log('[Migrazione] Impostazioni legacy aggiornate.');
+    }
+  } catch (err) {
+    console.warn('[Migrazione] Errore:', err);
+  }
+}
+
+// Esponi al global scope
+window.migraImpostazioniLegacy = migraImpostazioniLegacy;
+window.caricaImpostazioni = caricaImpostazioni;
+window.salvaImpostazioni = salvaImpostazioni;
+window.renderViewImpostazioni = renderViewImpostazioni;
+window.getFirmaPersistente = getFirmaPersistente;

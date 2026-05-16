@@ -1,1017 +1,242 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CSE SafeHub · Hub Cantieri CSE</title>
-  <meta name="description" content="Suite professionale per Coordinatori della Sicurezza in fase di Esecuzione (CSE) — D.Lgs 81/08 Titolo IV">
-  <link rel="icon" type="image/png" href="icon-192.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
-  
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .page-hidden { display: none !important; }
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSE SafeHub v3 · Hub Cantieri</title>
+    <meta name="description" content="Suite professionale per Coordinatori della Sicurezza in Esecuzione">
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="icon-192.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Script Architettura v3 -->
-  <script defer src="./db.js"></script>
-  <script defer src="./app.js"></script>
-  
-  <!-- File legacy lasciati temporaneamente per non rimuoverli brutalmente (gestiti in fasi future) -->
-  <script defer src="./ui.js"></script>
-  <script defer src="./imprese.js"></script>
-  <script defer src="./persone-anas.js"></script>
-  <script defer src="./persone-terzi.js"></script>
-  <script defer src="./foto.js"></script>
-  <script defer src="./catalogo-tipologie-mezzi.js"></script>
-  <script defer src="./lavoratori.js"></script>
-  <script defer src="./mezzi.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .page-hidden { display: none !important; }
+        .card-hover:hover { transform: translateY(-4px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* Toast */
+        #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 700;
+                 box-shadow: 0 4px 24px rgba(0,0,0,0.15); animation: slideIn 0.2s ease; }
+        .toast-success { background: #166534; color: #dcfce7; }
+        .toast-error   { background: #991b1b; color: #fee2e2; }
+        .toast-info    { background: #1e3a5f; color: #dbeafe; }
+        .toast-warning { background: #854d0e; color: #fef9c3; }
+        @keyframes slideIn { from { opacity:0; transform:translateX(2rem); } to { opacity:1; transform:translateX(0); } }
+        /* Sidebar active */
+        .nav-active { background: #1e293b !important; color: #fff !important; }
+    </style>
 
-  <!-- Moduli Fase 5 — Verbali & Docx -->
-  <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.6/dist/pizzip.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.50.0/build/docxtemplater.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/imagemodule.js"></script>
-  
-  <script defer src="./signature-canvas.js"></script>
-  <script defer src="./docx-generator.js"></script>
-  <script defer src="./verbali-sopralluogo.js"></script>
+    <!-- Core DB + App -->
+    <script defer src="./db.js"></script>
+    <script defer src="./impostazioni.js"></script>
+    <script defer src="./app.js"></script>
+
+    <!-- Moduli Anagrafiche v3 (FASE 4) -->
+    <script defer src="./catalogo-tipologie-mezzi.js"></script>
+    <script defer src="./imprese.js"></script>
+    <script defer src="./persone-anas.js"></script>
+    <script defer src="./persone-terzi.js"></script>
+    <script defer src="./lavoratori.js"></script>
+    <script defer src="./mezzi.js"></script>
+
+    <!-- Moduli Verbali & Docx (FASE 5) -->
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.6/dist/pizzip.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.50.0/build/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/index.js"></script>
+    <script defer src="./signature-canvas.js"></script>
+    <script defer src="./docx-generator.js"></script>
+    <script defer src="./verbali-sopralluogo.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-  <!-- TOPBAR HOME -->
-  <header id="home-topbar" class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 transition-all duration-300">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl" aria-hidden="true">🚧</span>
-      <h1 class="text-xl font-bold tracking-tight">CSE SafeHub</h1>
-    </div>
-    <div class="flex items-center gap-3">
-      <span id="ai-status-badge" class="text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-tighter cursor-pointer transition-all bg-slate-100 text-slate-400 border-slate-200" onclick="typeof mostraGuidaAttivazioneAI === 'function' ? mostraGuidaAttivazioneAI() : alert('AI non caricata')">
-        🤖 AI <span id="ai-status-text">Verifica...</span>
-      </span>
-      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
-        <span>☁️</span> <span class="hidden sm:inline">OneDrive</span>
-      </button>
-      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition" aria-label="Impostazioni">
-        <span>⚙️</span>
-      </button>
-    </div>
-  </header>
+    <!-- TOPBAR -->
+    <header id="main-topbar" class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-xl z-[1000]">
+        <div class="flex items-center gap-4">
+            <div id="btn-back-home" class="page-hidden">
+                <button onclick="Router.nav('HOME')" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition-all">
+                    <span>← Home</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">🚧</span>
+                <h1 id="app-title" class="text-xl font-bold tracking-tight">CSE SafeHub</h1>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">AI</span>
+            <button onclick="Router.navSubView('IMPOSTAZIONI')" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition" title="Impostazioni">⚙️</button>
+        </div>
+    </header>
 
-  <!-- TOPBAR CANTIERE (Nascosta di default) -->
-  <header id="cantiere-topbar" class="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 page-hidden transition-all duration-300">
-    <div class="flex items-center gap-4">
-      <button onclick="tornaHome()" class="text-slate-300 hover:text-white font-bold bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded transition flex items-center gap-2 text-sm">
-        <span>←</span> <span class="hidden md:inline">Torna a I Miei Cantieri</span>
-      </button>
-      <h1 id="topbar-cantiere-title" class="text-lg md:text-xl font-bold tracking-tight truncate max-w-xs md:max-w-lg">Cantiere: ...</h1>
-    </div>
-    <div class="flex items-center gap-3">
-      <span id="ai-status-badge-cantiere" class="ai-status-badge-sync text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-tighter cursor-pointer transition-all bg-slate-100 text-slate-400 border-slate-200" onclick="typeof mostraGuidaAttivazioneAI === 'function' ? mostraGuidaAttivazioneAI() : alert('AI non caricata')">
-        🤖 AI <span id="ai-status-text-cantiere">Verifica...</span>
-      </span>
-      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition">
-        <span>☁️</span>
-      </button>
-      <button class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-semibold px-3 py-1.5 rounded border border-slate-700 transition" aria-label="Impostazioni">
-        <span>⚙️</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- VISTA HOME: I MIEI CANTIERI -->
-  <main id="home-view" class="flex-1 p-6 max-w-6xl mx-auto w-full space-y-10">
-    
-    <!-- Sezione Cantieri -->
-    <section>
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-slate-200 pb-3 gap-4">
-        <h2 class="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-          <span>📂</span> I MIEI CANTIERI
-        </h2>
-        <button onclick="apriModalNuovoCantiere()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 shrink-0">
-          <span>+</span> Nuovo Cantiere
-        </button>
-      </div>
-      
-      <!-- Grid dei cantieri -->
-      <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Renderizzato da app.js -->
-      </div>
-    </section>
-
-    <hr class="border-slate-300" />
-
-    <!-- Sezione Strumenti Globali -->
-    <section>
-      <h2 class="text-lg font-bold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
-        <span>🛠️</span> STRUMENTI GLOBALI
-      </h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50 transition flex flex-col items-center gap-2 text-slate-700 font-semibold" onclick="typeof mostraManualeUso === 'function' ? mostraManualeUso() : alert('Manuale non caricato')">
-          <span class="text-2xl">📖</span> Manuale
-        </button>
-        <button class="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-red-100 transition flex flex-col items-center gap-2 text-red-700 font-semibold" onclick="typeof apriNumeriEmergenza === 'function' ? apriNumeriEmergenza() : alert('Emergenze non caricate')">
-          <span class="text-2xl">☎️</span> Emergenze
-        </button>
-        <button class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-indigo-100 transition flex flex-col items-center gap-2 text-indigo-700 font-semibold" onclick="typeof apriPannelloRicerca === 'function' ? apriPannelloRicerca() : alert('Normativa AI non caricata')">
-          <span class="text-2xl">🤖</span> Normativa AI
-        </button>
-        <button class="bg-green-50 border border-green-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-green-100 transition flex flex-col items-center gap-2 text-green-700 font-semibold" onclick="typeof mostraPannelloSalvataggio === 'function' ? mostraPannelloSalvataggio({titolo: 'Backup Dati', nascondWord: true}) : alert('Pannello backup non trovato')">
-          <span class="text-2xl">💾</span> Backup
-        </button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- VISTA CANTIERE (FASE 3) -->
-  <main id="cantiere-view" class="page-hidden flex-1 flex overflow-hidden">
-    
-    <!-- Sidebar Cantiere -->
-    <aside class="w-64 bg-slate-800 text-slate-300 flex flex-col shrink-0 overflow-y-auto hidden md:flex border-r border-slate-700 shadow-xl">
-      <nav class="flex-1 p-3 space-y-6 mt-4">
-        
-        <div>
-          <button onclick="mostraViewCantiere('dashboard')" class="nav-btn w-full text-left px-3 py-2 rounded-lg font-semibold hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-white bg-slate-700 shadow-inner" data-view="dashboard">
-            <span>📊</span> Dashboard
-          </button>
-        </div>
-        
-        <div>
-          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">👷 Anagrafiche</div>
-          <div class="space-y-1">
-            <button onclick="mostraViewCantiere('imprese', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="imprese"><span>🏢</span> Imprese</button>
-            <button onclick="mostraViewCantiere('anas', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="anas"><span>👔</span> Sicurezza</button>
-            <button onclick="mostraViewCantiere('terzi', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="terzi"><span>👮</span> Terzi</button>
-            <button onclick="mostraViewCantiere('lavoratori', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="lavoratori"><span>👷</span> Lavoratori</button>
-            <button onclick="mostraViewCantiere('mezzi', 4)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="mezzi"><span>🚜</span> Mezzi</button>
-          </div>
-        </div>
-
-        <div>
-          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📋 Operatività</div>
-          <div class="space-y-1">
-            <button onclick="mostraViewCantiere('verbali')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verbali"><span>📝</span> Verbali</button>
-            <button onclick="mostraViewCantiere('verifiche_pos', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="verifiche_pos"><span>🛡️</span> Verifica POS</button>
-            <button onclick="mostraViewCantiere('nc', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="nc"><span>⚠️</span> NC</button>
-            <button onclick="mostraViewCantiere('ods_inviati', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_inviati"><span>📤</span> ODS Inviati</button>
-            <button onclick="mostraViewCantiere('ods_ricevuti', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="ods_ricevuti"><span>📥</span> ODS Ricevuti</button>
-            <button onclick="mostraViewCantiere('sospensioni', 6)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-red-400 hover:text-red-300" data-view="sospensioni"><span>🛑</span> Sospensioni</button>
-            <button onclick="mostraViewCantiere('diario_cse', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="diario_cse"><span>📓</span> Diario CSE</button>
-            <button onclick="mostraViewCantiere('eventi-incidentali', '6bis')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="eventi-incidentali"><span>🚨</span> Eventi Incidentali</button>
-          </div>
-        </div>
-        
-        <div>
-          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">📁 Documentale</div>
-          <div class="space-y-1">
-            <button onclick="mostraViewCantiere('doc_fondamentali', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="doc_fondamentali"><span>📑</span> Doc. Fondamentali</button>
-            <button onclick="mostraViewCantiere('registro-psc', '7bis')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="registro-psc"><span>📋</span> Registro PSC</button>
-            <button onclick="mostraViewCantiere('archivio', 7)" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm" data-view="archivio"><span>🗄️</span> Archivio File</button>
-          </div>
-        </div>
-
-      </nav>
-    </aside>
-
-    <!-- Contenuto Cantiere -->
-    <div class="flex-1 bg-slate-50 overflow-y-auto p-4 md:p-8 relative">
-      <!-- Hamburger Mobile per Cantiere -->
-      <button class="md:hidden absolute top-4 left-4 bg-slate-800 text-white p-2 rounded-lg shadow z-10" onclick="alert('Menu mobile non implementato, allarga lo schermo per ora!')">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-      </button>
-      
-      <!-- SUB-VIEWS CANTIERE -->
-      <div id="view-dashboard" class="cantiere-subview">
-        <h3 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><span>📊</span> Dashboard Cantiere</h3>
-        <div id="kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <!-- KPI generati da JS -->
-        </div>
-        <div id="kpi-alerts-container" class="mt-8 space-y-4">
-          <!-- Alerts generati da JS -->
-        </div>
-      </div>
-
-
-      <!-- VIEW IMPRESE (FASE 4.1) -->
-      <div id="view-imprese" class="cantiere-subview page-hidden">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🏢</span> Imprese del Cantiere</h3>
-          <button onclick="apriModalImpresa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
-            <span>+</span> Nuova Impresa
-          </button>
-        </div>
-        
-        <!-- Filtri Imprese -->
-        <div class="flex flex-wrap gap-2 mb-6" id="imprese-filters">
-          <button onclick="renderImprese('Tutte')" class="filter-btn-impresa filter-Tutte active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutte</button>
-          <button onclick="renderImprese('AFFIDATARIA')" class="filter-btn-impresa filter-AFFIDATARIA bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Affidataria</button>
-          <button onclick="renderImprese('ESECUTRICE')" class="filter-btn-impresa filter-ESECUTRICE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Esecutrice</button>
-          <button onclick="renderImprese('SUBAPPALTO')" class="filter-btn-impresa filter-SUBAPPALTO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">SubAppalto</button>
-          <button onclick="renderImprese('FORNITORE')" class="filter-btn-impresa filter-FORNITORE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Fornitore</button>
-        </div>
-        
-        <!-- Grid Imprese -->
-        <div id="imprese-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <!-- Popolato da JS -->
-        </div>
-      </div>
-
-      <!-- VIEW ANAS (FASE 4.2) -->
-      <div id="view-anas" class="cantiere-subview page-hidden">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>👔</span> Personale Gestione Sicurezza del Cantiere</h3>
-          <button onclick="apriModalAnas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
-            <span>+</span> Nuovo
-          </button>
-        </div>
-        
-        <!-- Filtri ANAS -->
-        <div class="flex flex-wrap gap-2 mb-6" id="anas-filters">
-          <button onclick="renderAnas('Tutti')" class="filter-btn-anas filter-anas-Tutti active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutti</button>
-          <button onclick="renderAnas('RUP')" class="filter-btn-anas filter-anas-RUP bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">RUP</button>
-          <button onclick="renderAnas('DL')" class="filter-btn-anas filter-anas-DL bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">DL</button>
-          <button onclick="renderAnas('RL')" class="filter-btn-anas filter-anas-RL bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">RL</button>
-          <button onclick="renderAnas('CSE_TITOLARE')" class="filter-btn-anas filter-anas-CSE_TITOLARE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">CSE Tit.</button>
-          <button onclick="renderAnas('CSE_DELEGATO')" class="filter-btn-anas filter-anas-CSE_DELEGATO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">CSE Del.</button>
-          <button onclick="renderAnas('ISPETTORE_CANTIERE')" class="filter-btn-anas filter-anas-ISPETTORE_CANTIERE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Ispettore</button>
-          <button onclick="renderAnas('DIRIGENTE')" class="filter-btn-anas filter-anas-DIRIGENTE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Dirigente</button>
-          <button onclick="renderAnas('ALTRO')" class="filter-btn-anas filter-anas-ALTRO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Altro</button>
-        </div>
-        
-        <!-- Controlli Extra -->
-        <div class="mb-4 flex justify-end">
-          <button onclick="renderAnas(null, true)" class="text-sm font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
-            <span>↕️</span> Ordina per Ruolo
-          </button>
-        </div>
-
-        <!-- Grid ANAS -->
-        <div id="anas-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <!-- Popolato da JS -->
-        </div>
-      </div>
-
-      <!-- VIEW TERZI (FASE 4.3) -->
-      <div id="view-terzi" class="cantiere-subview page-hidden">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🏢</span> Enti Terzi del Cantiere</h3>
-          <button onclick="apriModalTerzi()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
-            <span>+</span> Nuovo
-          </button>
-        </div>
-        
-        <!-- Filtri Terzi -->
-        <div class="flex flex-wrap gap-2 mb-6" id="terzi-filters">
-          <button onclick="renderTerzi('Tutti')" class="filter-btn-terzi filter-terzi-Tutti active bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition">Tutti</button>
-          <button onclick="renderTerzi('SPRESAL')" class="filter-btn-terzi filter-terzi-SPRESAL bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Spresal</button>
-          <button onclick="renderTerzi('VVF')" class="filter-btn-terzi filter-terzi-VVF bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">VVF</button>
-          <button onclick="renderTerzi('PROVINCIA')" class="filter-btn-terzi filter-terzi-PROVINCIA bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Provincia</button>
-          <button onclick="renderTerzi('CONSULENTE')" class="filter-btn-terzi filter-terzi-CONSULENTE bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Consulente</button>
-          <button onclick="renderTerzi('ALTRO')" class="filter-btn-terzi filter-terzi-ALTRO bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-1.5 rounded-full text-sm font-semibold transition">Altro</button>
-        </div>
-        
-        <!-- Grid Terzi -->
-        <div id="terzi-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <!-- Popolato da JS -->
-        </div>
-      </div>
-
-      <!-- VIEW LAVORATORI (FASE 4.4) -->
-      <div id="view-lavoratori" class="cantiere-subview page-hidden">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>👷</span> Lavoratori del Cantiere</h3>
-          <button onclick="apriModalLavoratore()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
-            <span>+</span> Nuovo Lavoratore
-          </button>
-        </div>
-        
-        <!-- Filtri Lavoratori -->
-        <div class="flex flex-col sm:flex-row gap-4 mb-6" id="lavoratori-filters">
-          <div class="flex-1">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Filtra per Impresa</label>
-            <select id="filter-lav-impresa" onchange="renderLavoratori()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
-              <!-- Popolato da JS -->
-            </select>
-          </div>
-          <div class="flex-1">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Stato Documenti</label>
-            <select id="filter-lav-docs" onchange="renderLavoratori()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
-              <option value="Tutti">Tutti</option>
-              <option value="Validi">✅ Validi</option>
-              <option value="In scadenza">⚠️ In scadenza (30gg)</option>
-              <option value="Scaduti">🚨 Scaduti</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- Grid Lavoratori -->
-        <div id="lavoratori-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <!-- Popolato da JS -->
-        </div>
-      </div>
-
-      <!-- VIEW MEZZI (FASE 4.5) -->
-      <div id="view-mezzi" class="cantiere-subview page-hidden">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>🚜</span> Mezzi e Attrezzature</h3>
-          <button onclick="apriModalMezzo()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
-            <span>+</span> Nuovo Mezzo
-          </button>
-        </div>
-        
-        <!-- Filtri Mezzi -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" id="mezzi-filters">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Impresa</label>
-            <select id="filter-mez-impresa" onchange="renderMezzi()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
-              <!-- Popolato da JS -->
-            </select>
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Categoria</label>
-            <select id="filter-mez-cat" onchange="renderMezzi()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
-              <option value="Tutte">Tutte le categorie</option>
-              <option value="SC">SC - Carichi</option>
-              <option value="SP">SP - Perforazione</option>
-              <option value="MT">MT - Terra</option>
-              <option value="OP">OP - Operatrici</option>
-              <option value="AT">AT - Speciali</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Presenza</label>
-            <select id="filter-mez-presenza" onchange="renderMezzi()" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 shadow-sm transition">
-              <option value="Tutti">Tutti</option>
-              <option value="In cantiere">In cantiere</option>
-              <option value="Non in cantiere">Non in cantiere</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- Grid Mezzi -->
-        <div id="mezzi-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <!-- Popolato da JS -->
-        </div>
-      </div>
-
-      <!-- VIEW VERBALI (FASE 5.1) -->
-      <div id="view-verbali" class="cantiere-subview page-hidden">
-        <!-- Renderizzato da verbali-sopralluogo.js -->
-        <div class="p-8 text-center text-slate-400 italic">Inizializzazione modulo verbali...</div>
-      </div>
-
-      <!-- Placeholder generico per le altre view -->
-      <div id="view-placeholder" class="cantiere-subview page-hidden">
-        <div class="bg-white rounded-xl shadow-sm p-8 text-center border border-slate-200 mt-10 max-w-2xl mx-auto">
-          <div class="text-5xl mb-4">🚧</div>
-          <h2 id="placeholder-title" class="text-2xl font-bold text-slate-800 mb-2">Sezione in Costruzione</h2>
-          <p class="text-slate-500 mb-4">Questa funzionalità è in fase di refactoring.</p>
-          <div class="inline-block bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-lg border border-blue-200" id="placeholder-fase">
-            Implementazione prevista in FASE X
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </main>
-
-  <!-- FOOTER -->
-  <footer class="bg-slate-900 border-t border-slate-800 p-4 text-center shrink-0 mt-auto">
-    <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-widest">
-      CSE SafeHub · by Geom. Dogano Casella
-    </div>
-  </footer>
-
-  <!-- MODAL NUOVO CANTIERE -->
-  <div id="modal-new-project" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-      <div class="bg-blue-600 p-4 text-white">
-        <h3 class="font-bold text-lg">Crea Nuovo Cantiere</h3>
-      </div>
-      <div class="p-6 space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Codice Cantiere (Univoco)</label>
-          <input type="text" id="new-project-id" placeholder="Es. CZ399" class="w-full border border-slate-300 rounded-lg p-2.5 font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-          <p class="text-[10px] text-slate-400 mt-1">Ammessi solo A-Z, 0-9, trattino, underscore.</p>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nome Cantiere / Intervento</label>
-          <input type="text" id="new-project-name" placeholder="Es. Viadotto S. Giorgio - S.S. 106" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-        </div>
-      </div>
-      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end gap-3">
-        <button onclick="chiudiModalNuovoCantiere()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-        <button onclick="salvaNuovoCantiere()" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Crea Cantiere</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL IMPRESA (FASE 4.1) -->
-  <div id="modal-impresa" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
-      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
-        <h3 id="modal-impresa-title" class="text-xl font-bold text-slate-800">Nuova Impresa</h3>
-        <button onclick="chiudiModalImpresa()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
-      </div>
-      
-      <div class="p-4 md:p-6 overflow-y-auto">
-        <form id="form-impresa" class="space-y-8">
-          <input type="hidden" id="impresa-id">
-          
-          <!-- STEP 1: Ruolo -->
-          <div>
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">1. Ruolo dell'impresa</h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                <input type="radio" name="impresa-ruolo" value="AFFIDATARIA" class="mt-1" required onchange="aggiornaFormImpresa()">
-                <div class="ml-3">
-                  <div class="font-bold text-slate-800">Affidataria</div>
-                  <div class="text-xs text-slate-500">Impresa principale appaltatrice</div>
+    <!-- LIVELLO 1: I MIEI CANTIERI -->
+    <main id="view-home" class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-10">
+        <section>
+            <div class="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold text-slate-900">I Miei Cantieri</h2>
+                    <p class="text-slate-500 text-sm mt-1">Seleziona un progetto per entrare nel contesto operativo.</p>
                 </div>
-              </label>
-              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                <input type="radio" name="impresa-ruolo" value="ESECUTRICE" class="mt-1" required onchange="aggiornaFormImpresa()">
-                <div class="ml-3">
-                  <div class="font-bold text-slate-800">Esecutrice</div>
-                  <div class="text-xs text-slate-500">Impresa di lavorazioni specifiche</div>
+                <button onclick="UI.apriModalCantiere()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg transition-all flex items-center gap-2">
+                    <span>+</span> Nuovo Progetto
+                </button>
+            </div>
+            <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Card renderizzate da app.js -->
+            </div>
+        </section>
+
+        <!-- STRUMENTI GLOBALI -->
+        <section class="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Strumenti Globali</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <button onclick="Router.navSubView('IMPOSTAZIONI')" class="flex flex-col items-center gap-3 p-6 rounded-3xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
+                    <span class="text-3xl">⚙️</span>
+                    <span class="font-bold text-sm">Impostazioni</span>
+                </button>
+                <button class="flex flex-col items-center gap-3 p-6 rounded-3xl hover:bg-red-50 transition-all border border-transparent hover:border-red-100 text-red-700">
+                    <span class="text-3xl">☎️</span>
+                    <span class="font-bold text-sm">Emergenze</span>
+                </button>
+                <button class="flex flex-col items-center gap-3 p-6 rounded-3xl hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100 text-indigo-700">
+                    <span class="text-3xl">🤖</span>
+                    <span class="font-bold text-sm">Normativa AI</span>
+                </button>
+                <button class="flex flex-col items-center gap-3 p-6 rounded-3xl hover:bg-green-50 transition-all border border-transparent hover:border-green-100 text-green-700">
+                    <span class="text-3xl">💾</span>
+                    <span class="font-bold text-sm">Backup</span>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- LIVELLO 2: CONTESTO CANTIERE -->
+    <main id="view-cantiere" class="page-hidden flex-1 flex flex-col md:flex-row overflow-hidden">
+
+        <!-- SIDEBAR CANTIERE -->
+        <aside class="w-72 bg-slate-900 text-slate-400 flex flex-col border-r border-slate-800 shrink-0">
+            <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+
+                <!-- Operatività -->
+                <div>
+                    <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-3">Operatività</h4>
+                    <div class="space-y-1">
+                        <button onclick="Router.navSubView('DASHBOARD')" id="nav-DASHBOARD"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📊</span> Dashboard
+                        </button>
+                        <button onclick="Router.navSubView('VERBALI')" id="nav-VERBALI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📝</span> Verbali Sopralluogo
+                        </button>
+                        <button onclick="Router.navSubView('NC')" id="nav-NC"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>⚠️</span> Non Conformità
+                        </button>
+                    </div>
                 </div>
-              </label>
-              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                <input type="radio" name="impresa-ruolo" value="SUBAPPALTO" class="mt-1" required onchange="aggiornaFormImpresa()">
-                <div class="ml-3">
-                  <div class="font-bold text-slate-800">SubAppalto</div>
-                  <div class="text-xs text-slate-500">Subappaltatrice di altra impresa</div>
+
+                <!-- Anagrafiche -->
+                <div>
+                    <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-3">Anagrafiche</h4>
+                    <div class="space-y-1">
+                        <button onclick="Router.navSubView('IMPRESE')" id="nav-IMPRESE"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🏗️</span> Imprese
+                        </button>
+                        <button onclick="Router.navSubView('ANAS')" id="nav-ANAS"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>👷</span> Sicurezza & Personale
+                        </button>
+                        <button onclick="Router.navSubView('TERZI')" id="nav-TERZI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🏛️</span> Enti Terzi
+                        </button>
+                        <button onclick="Router.navSubView('LAVORATORI')" id="nav-LAVORATORI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>👤</span> Lavoratori
+                        </button>
+                        <button onclick="Router.navSubView('MEZZI')" id="nav-MEZZI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🚜</span> Mezzi & Attrezzature
+                        </button>
+                    </div>
                 </div>
-              </label>
-              <label class="border border-slate-200 rounded-lg p-3 flex cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                <input type="radio" name="impresa-ruolo" value="FORNITORE" class="mt-1" required onchange="aggiornaFormImpresa()">
-                <div class="ml-3">
-                  <div class="font-bold text-slate-800">Fornitore</div>
-                  <div class="text-xs text-slate-500">Fornitore di materiali o servizi</div>
+
+                <!-- Documentazione -->
+                <div>
+                    <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-3">Documentazione</h4>
+                    <div class="space-y-1">
+                        <button onclick="Router.navSubView('VERIFICHE_POS')" id="nav-VERIFICHE_POS"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📋</span> Verifica POS
+                        </button>
+                        <button onclick="Router.navSubView('ODS')" id="nav-ODS"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📨</span> ODS
+                        </button>
+                        <button onclick="Router.navSubView('SOSPENSIONI')" id="nav-SOSPENSIONI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🛑</span> Sospensioni
+                        </button>
+                    </div>
                 </div>
-              </label>
-            </div>
-            <!-- Dettagli Subappalto (mostrato solo se ruolo = SUBAPPALTO) -->
-            <div id="sezione-subappalto" class="mt-4 page-hidden p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-              <h4 class="text-xs font-bold text-yellow-800 mb-2 uppercase tracking-wide">Dettagli Subappalto</h4>
-              <label class="block text-[10px] font-semibold text-yellow-700 uppercase tracking-wide mb-1">Sub-appaltatrice di *</label>
-              <select id="impresa-subappalto-di" class="w-full border border-yellow-300 rounded px-3 py-1.5 bg-white focus:ring-2 focus:ring-yellow-500 outline-none transition text-sm">
-                <!-- Popolato dinamicamente -->
-              </select>
-              <p id="msg-subappalto-locked" class="text-[10px] text-red-600 mt-1 page-hidden font-bold">⚠️ Non modificabile: l'impresa ha lavoratori/mezzi associati.</p>
-            </div>
-          </div>
-          
-          <!-- STEP 2: Anagrafica -->
-          <div>
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">2. Dati Anagrafici</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ragione Sociale *</label>
-                <input type="text" id="impresa-ragione-sociale" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Partita IVA *</label>
-                <input type="text" id="impresa-piva" required pattern="[0-9]{11}" placeholder="11 cifre numeriche" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Codice Fiscale *</label>
-                <input type="text" id="impresa-cf" required pattern="([0-9]{11}|[A-Za-z0-9]{16})" placeholder="11 o 16 caratteri" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-              </div>
-              <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Sede Legale *</label>
-                <input type="text" id="impresa-sede" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Indirizzo PEC *</label>
-                <input type="email" id="impresa-pec" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-            </div>
-          </div>
-          
-          <!-- STEP 3: Contatti -->
-          <div>
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Contatti e Referenti</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Referente Aziendale</label>
-                <input type="text" id="impresa-referente" placeholder="Nome e Cognome" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Telefono/Cellulare</label>
-                <input type="tel" id="impresa-telefono" placeholder="Es. 0961..." class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email di Contatto</label>
-                <input type="email" id="impresa-email" placeholder="info@impresa.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-            </div>
-          </div>
-          
-          <!-- STEP 4: Documenti -->
-          <div>
-            <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">4. Scadenze Documenti</h4>
-              <button type="button" onclick="aggiungiRigaDocImpresa()" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1 bg-blue-50 rounded">+ Aggiungi Scadenza</button>
-            </div>
-            <div id="impresa-docs-container" class="space-y-3">
-              <!-- Righe generate da JS -->
-            </div>
-          </div>
-          
-        </form>
-      </div>
-      
-      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
-        <button onclick="chiudiModalImpresa()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-        <button onclick="salvaImpresa(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Impresa</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- MODAL ELIMINA IMPRESA -->
-  <div id="modal-elimina-impresa" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-      <div class="p-6 text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
-        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
-        <p class="text-slate-600 mb-4">Vuoi davvero eliminare l'impresa <strong id="elimina-impresa-nome"></strong>?</p>
-        <div id="elimina-impresa-cascade-info" class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200 page-hidden">
-          <div class="font-bold mb-1">Saranno eliminati anche:</div>
-          <ul class="list-disc pl-5 space-y-1" id="elimina-impresa-cascade-list">
-            <!-- Popolato da JS -->
-          </ul>
+                <!-- Gestione -->
+                <div>
+                    <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-3">Gestione</h4>
+                    <div class="space-y-1">
+                        <button onclick="Router.navSubView('DIARIO')" id="nav-DIARIO"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📖</span> Diario CSE
+                        </button>
+                        <button onclick="Router.navSubView('EVENTI')" id="nav-EVENTI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🚨</span> Eventi Incidentali
+                        </button>
+                        <button onclick="Router.navSubView('DOCUMENTI')" id="nav-DOCUMENTI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📁</span> Archivio Documenti
+                        </button>
+                        <button onclick="Router.navSubView('IMPOSTAZIONI')" id="nav-IMPOSTAZIONI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>⚙️</span> Impostazioni
+                        </button>
+                    </div>
+                </div>
+
+            </nav>
+
+            <!-- Info cantiere corrente -->
+            <div id="sidebar-cantiere-info" class="p-4 border-t border-slate-800 text-[10px] text-slate-500"></div>
+        </aside>
+
+        <!-- AREA CONTENUTO CANTIERE -->
+        <div id="cantiere-content" class="flex-1 p-8 overflow-y-auto bg-slate-50">
+            <!-- View dinamiche cantiere renderizzate da app.js -->
         </div>
-        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-6">Operazione irreversibile</p>
-        
-        <div class="flex gap-3">
-          <button onclick="chiudiModalEliminaImpresa()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-          <button onclick="eseguiEliminaImpresa()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
+    </main>
+
+    <!-- MODAL NUOVO CANTIERE -->
+    <div id="modal-new-project" class="page-hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div class="p-8 space-y-6">
+                <h3 class="text-2xl font-bold">Crea Nuovo Cantiere</h3>
+                <div class="space-y-4">
+                    <input type="text" id="new-p-id" placeholder="Codice (es. CZ399)" class="w-full p-4 rounded-2xl border bg-slate-50 uppercase font-mono text-sm">
+                    <input type="text" id="new-p-name" placeholder="Nome Intervento / Lotto" class="w-full p-4 rounded-2xl border bg-slate-50">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="UI.chiudiModalCantiere()" class="flex-1 p-4 text-slate-400 font-bold">Annulla</button>
+                    <button onclick="CantiereController.crea()" class="flex-1 p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">Crea Progetto</button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- MODAL ANAS (FASE 4.2) -->
-  <div id="modal-anas" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
-        <h3 id="modal-anas-title" class="text-xl font-bold text-slate-800">Nuova Persona</h3>
-        <button onclick="chiudiModalAnas()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
-      </div>
-      
-      <div class="p-4 md:p-6 overflow-y-auto">
-        <form id="form-anas" class="space-y-6">
-          <input type="hidden" id="anas-id">
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
-              <input type="text" id="anas-nome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
-              <input type="text" id="anas-cognome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Qualifica *</label>
-              <input type="text" id="anas-qualifica" placeholder="Es. Funzionario Tecnico" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ruolo *</label>
-              <select id="anas-ruolo" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-                <option value="RUP">RUP</option>
-                <option value="DL">DL</option>
-                <option value="RL">RL</option>
-                <option value="CSE_TITOLARE">CSE Titolare</option>
-                <option value="CSE_DELEGATO">CSE Delegato</option>
-                <option value="ISPETTORE_CANTIERE">Ispettore Cantiere</option>
-                <option value="DIRIGENTE">Dirigente</option>
-                <option value="ALTRO">Altro</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Codice Identificativo / Matricola</label>
-              <input type="text" id="anas-matricola" placeholder="Opzionale" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Struttura Territoriale</label>
-              <input type="text" id="anas-struttura" value="Struttura Territoriale" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</label>
-              <input type="email" id="anas-email" placeholder="m.rossi@email.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
-              <input type="tel" id="anas-telefono" placeholder="Es. +39 333..." class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-          </div>
-          
-        </form>
-      </div>
-      
-      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
-        <button onclick="chiudiModalAnas()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-        <button onclick="salvaAnas(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Persona</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ELIMINA ANAS -->
-  <div id="modal-elimina-anas" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-      <div class="p-6 text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
-        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
-        <p class="text-slate-600 mb-4">Vuoi davvero eliminare <strong id="elimina-anas-nome"></strong>?</p>
-        <div class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
-          <strong>Attenzione:</strong> questa persona potrebbe essere associata a verbali esistenti. L'eliminazione non rimuove i verbali ma potrebbe lasciare riferimenti orfani nelle future visualizzazioni.
-        </div>
-        
-        <div class="flex gap-3">
-          <button onclick="chiudiModalEliminaAnas()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-          <button onclick="eseguiEliminaAnas()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL TERZI (FASE 4.3) -->
-  <div id="modal-terzi" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
-        <h3 id="modal-terzi-title" class="text-xl font-bold text-slate-800">Nuova Persona Terza</h3>
-        <button onclick="chiudiModalTerzi()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
-      </div>
-      
-      <div class="p-4 md:p-6 overflow-y-auto">
-        <form id="form-terzi" class="space-y-6">
-          <input type="hidden" id="terzi-id">
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
-              <input type="text" id="terzi-nome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
-              <input type="text" id="terzi-cognome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Qualifica *</label>
-              <input type="text" id="terzi-qualifica" placeholder="Es. Ispettore tecnico" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tipo Ente *</label>
-              <select id="terzi-tipoente" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-                <option value="SPRESAL">SPRESAL</option>
-                <option value="VVF">VVF (Vigili del Fuoco)</option>
-                <option value="PROVINCIA">Provincia</option>
-                <option value="CONSULENTE">Consulente Esterno</option>
-                <option value="ALTRO">Altro</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="md:col-span-2">
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ente / Denominazione *</label>
-              <input type="text" id="terzi-ente" placeholder="Es. ASP Catanzaro - Spresal" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</label>
-              <input type="email" id="terzi-email" placeholder="nome@ente.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Telefono</label>
-              <input type="tel" id="terzi-telefono" placeholder="Es. +39 333..." class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-          </div>
-          
-        </form>
-      </div>
-      
-      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
-        <button onclick="chiudiModalTerzi()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-        <button onclick="salvaTerzi(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Persona</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ELIMINA TERZI -->
-  <div id="modal-elimina-terzi" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-      <div class="p-6 text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
-        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
-        <p class="text-slate-600 mb-4">Vuoi davvero eliminare <strong id="elimina-terzi-nome"></strong>?</p>
-        <div class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
-          <strong>Attenzione:</strong> questa persona potrebbe essere associata a verbali esistenti. L'eliminazione non rimuove i verbali ma potrebbe lasciare riferimenti orfani nelle future visualizzazioni.
-        </div>
-        
-        <div class="flex gap-3">
-          <button onclick="chiudiModalEliminaTerzi()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-          <button onclick="eseguiEliminaTerzi()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL LAVORATORE (FASE 4.4) -->
-  <div id="modal-lavoratore" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
-      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
-        <h3 id="modal-lavoratore-title" class="text-xl font-bold text-slate-800">Nuovo Lavoratore</h3>
-        <button onclick="chiudiModalLavoratore()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
-      </div>
-      
-      <div class="p-4 md:p-6 overflow-y-auto">
-        <form id="form-lavoratore" class="space-y-8">
-          <input type="hidden" id="lavoratore-id">
-          
-          <!-- STEP 1 & 2: Impresa e Anagrafica -->
-          <div>
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-2">1. Impresa e Dati Anagrafici</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Impresa di Appartenenza *</label>
-                <select id="lavoratore-impresa" required class="w-full border border-blue-300 rounded px-3 py-2 bg-blue-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition font-semibold">
-                  <!-- Popolato dinamicamente da JS -->
-                </select>
-                <p id="lavoratore-cambio-impresa-warn" class="text-xs text-orange-600 mt-1 font-semibold page-hidden">⚠️ Modificando l'impresa, il lavoratore sarà trasferito alla nuova nel cantiere corrente.</p>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Nome *</label>
-                <input type="text" id="lavoratore-nome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cognome *</label>
-                <input type="text" id="lavoratore-cognome" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Codice Fiscale *</label>
-                <input type="text" id="lavoratore-cf" required pattern="^[A-Za-z0-9]{16}$" placeholder="16 caratteri alfanumerici" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Data di Nascita *</label>
-                <input type="date" id="lavoratore-data-nascita" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Luogo di Nascita *</label>
-                <input type="text" id="lavoratore-luogo-nascita" required placeholder="Es. Catanzaro (CZ)" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Cellulare</label>
-                <input type="tel" id="lavoratore-telefono" placeholder="Es. 333 1234567" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</label>
-                <input type="email" id="lavoratore-email" placeholder="nome@email.it" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Mansione *</label>
-                <input type="text" id="lavoratore-mansione" required placeholder="Es. Operaio specializzato" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-            </div>
-          </div>
-          
-          <!-- STEP 3: Formazione -->
-          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">2. Attestato Formazione Base/Specifica</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Numero Attestato</label>
-                <input type="text" id="lav-formazione-num" placeholder="Opzionale" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Scadenza</label>
-                <input type="date" id="lav-formazione-scad" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              </div>
-              <div class="flex items-end">
-                <input type="file" id="input-formazione" class="hidden" onchange="gestisciUploadFileLav(this, 'lav-formazione')">
-                <button type="button" id="btn-upload-formazione" class="w-full bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-300 border border-slate-300 transition" onclick="document.getElementById('input-formazione').click()">📎 Upload PDF</button>
-                <input type="hidden" id="lav-formazione-base64">
-                <input type="hidden" id="lav-formazione-filename">
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 4: Visita Medica -->
-          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Idoneità Sanitaria (Visita Medica)</h4>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div class="md:col-span-2">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Ente / Medico Competente</label>
-                <input type="text" id="lav-visita-ente" placeholder="Opzionale" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Data Visita</label>
-                <input type="date" id="lav-visita-data" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Scadenza</label>
-                <input type="date" id="lav-visita-scad" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              </div>
-              <div class="flex items-end">
-                <input type="file" id="input-visita" class="hidden" onchange="gestisciUploadFileLav(this, 'lav-visita')">
-                <button type="button" id="btn-upload-visita" class="w-full bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-300 border border-slate-300 transition" onclick="document.getElementById('input-visita').click()">📎 PDF</button>
-                <input type="hidden" id="lav-visita-base64">
-                <input type="hidden" id="lav-visita-filename">
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 5: Abilitazioni -->
-          <div>
-            <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-1 flex-1">4. Abilitazioni e Patentini (Mezzi)</h4>
-              <button type="button" onclick="aggiungiRigaAbilitazioneLav()" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1 bg-blue-50 rounded ml-4">+ Aggiungi Patentino</button>
-            </div>
-            <div id="lav-abilitazioni-container" class="space-y-3">
-              <!-- Righe generate da JS -->
-            </div>
-          </div>
-          
-          <!-- Foto Lavoratore -->
-          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">5. Foto e Riconoscimento</h4>
-            <div class="flex items-center gap-4">
-              <div id="lavoratore-foto-count" class="flex-1 text-xs text-slate-500">Nessuna foto caricata.</div>
-              <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="aggiungiFotoEntita('lavoratore', document.getElementById('lavoratore-id').value, 'lavoratore-foto-count')">📷 Aggiungi Foto</button>
-            </div>
-          </div>
-          
-        </form>
-      </div>
-      
-      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
-        <button onclick="chiudiModalLavoratore()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-        <button onclick="salvaLavoratore(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Lavoratore</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ELIMINA LAVORATORE -->
-  <div id="modal-elimina-lavoratore" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-      <div class="p-6 text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
-        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
-        <p class="text-slate-600 mb-4">Vuoi davvero eliminare <strong id="elimina-lavoratore-nome"></strong>?</p>
-        <div class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
-          I dati personali e le abilitazioni del lavoratore saranno rimossi definitivamente. I documenti correlati (formazione, visita medica, patentini) verranno eliminati.
-        </div>
-        
-        <div class="flex gap-3">
-          <button onclick="chiudiModalEliminaLavoratore()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-          <button onclick="eseguiEliminaLavoratore()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL MEZZO (FASE 4.5) -->
-  <div id="modal-mezzo" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
-      <div class="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl shrink-0">
-        <h3 id="modal-mezzo-title" class="text-xl font-bold text-slate-800">Nuovo Mezzo / Attrezzatura</h3>
-        <button onclick="chiudiModalMezzo()" class="text-slate-400 hover:text-slate-600 p-1 font-bold text-xl leading-none">&times;</button>
-      </div>
-      
-      <div class="p-4 md:p-6 overflow-y-auto">
-        <form id="form-mezzo" class="space-y-8">
-          <input type="hidden" id="mezzo-id">
-          
-          <!-- STEP 1 & 2: Impresa e Tipologia -->
-          <div>
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-2">1. Proprietà e Tipologia</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Impresa Proprietaria *</label>
-                <select id="mezzo-impresa" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition font-semibold">
-                  <!-- Popolato dinamicamente -->
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tipologia Mezzo *</label>
-                <select id="mezzo-tipologia" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition font-semibold">
-                  <!-- Popolato da catalogo-tipologie-mezzi.js -->
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          <!-- STEP 3: Dati Anagrafici -->
-          <div>
-            <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-2">2. Dati Identificativi</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Marca *</label>
-                <input type="text" id="mezzo-marca" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Modello *</label>
-                <input type="text" id="mezzo-modello" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Matricola (INAIL/Altro) *</label>
-                <input type="text" id="mezzo-matricola" required class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Numero di Serie</label>
-                <input type="text" id="mezzo-serie" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Anno Immatricolazione</label>
-                <input type="number" id="mezzo-anno" min="1950" max="2026" class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition">
-              </div>
-              <div class="flex items-end pb-2">
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" id="mezzo-presenza" checked class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                  <span class="text-sm font-bold text-slate-700 uppercase tracking-wide">Presente in Cantiere</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 4: Documentazione e Verifiche -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Libretto -->
-            <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-              <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">3. Libretto Uso e Manutenzione</h4>
-              <div class="flex items-center gap-4">
-                <div class="flex-1 text-xs text-slate-500">Carica il manuale tecnico del fabbricante (PDF).</div>
-                <input type="file" id="input-libretto" class="hidden" onchange="gestisciUploadFileMezzo(this, 'mezzo-libretto')">
-                <button type="button" id="btn-upload-libretto" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="document.getElementById('input-libretto').click()">📎 Upload Libretto</button>
-                <input type="hidden" id="mezzo-libretto-base64">
-                <input type="hidden" id="mezzo-libretto-filename">
-              </div>
-            </div>
-            
-            <!-- Foto -->
-            <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-              <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide">4. Foto del Mezzo</h4>
-              <div class="flex items-center gap-4">
-                <div id="mezzo-foto-count" class="flex-1 text-xs text-slate-500">Nessuna foto caricata.</div>
-                <button type="button" class="bg-white text-slate-700 px-3 py-1.5 rounded text-sm hover:bg-slate-100 border border-slate-300 transition shrink-0" onclick="aggiungiFotoEntita('mezzo', document.getElementById('mezzo-id').value, 'mezzo-foto-count')">📷 Aggiungi Foto</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 5: Verifiche Periodiche -->
-          <div>
-            <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-1 flex-1">5. Verifiche Periodiche e Verbali</h4>
-              <button type="button" onclick="aggiungiRigaVerificaMezzo()" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1 bg-blue-50 rounded ml-4">+ Aggiungi Verifica</button>
-            </div>
-            <div id="mezzo-verifiche-container" class="space-y-3">
-              <!-- Righe generate da JS -->
-            </div>
-          </div>
-          
-        </form>
-      </div>
-      
-      <div class="p-4 md:p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3 shrink-0">
-        <button onclick="chiudiModalMezzo()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-        <button onclick="salvaMezzo(event)" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">Salva Mezzo</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ELIMINA MEZZO -->
-  <div id="modal-elimina-mezzo" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 page-hidden opacity-0 transition-opacity">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-      <div class="p-6 text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">⚠️</div>
-        <h3 class="text-xl font-bold text-slate-800 mb-2">Conferma Eliminazione</h3>
-        <p class="text-slate-600 mb-4">Vuoi davvero eliminare il mezzo <strong id="elimina-mezzo-nome"></strong>?</p>
-        <div id="elimina-mezzo-cascade-info" class="bg-red-50 text-red-800 text-sm p-3 rounded-lg text-left mb-6 border border-red-200">
-          I dati del mezzo e i documenti correlati (libretto, verbali, foto) saranno rimossi definitivamente.
-        </div>
-        
-        <div class="flex gap-3">
-          <button onclick="chiudiModalEliminaMezzo()" class="flex-1 px-4 py-3 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Annulla</button>
-          <button onclick="eseguiEliminaMezzo()" class="flex-1 px-4 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow transition">Sì, elimina</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
 
 </body>
 </html>

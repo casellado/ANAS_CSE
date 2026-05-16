@@ -1,4 +1,5 @@
-// db.js - Gestione IndexedDB for CSE SafeHub v3
+// db.js - Gestione IndexedDB for SafeHub v3 (v11)
+// Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
 const DB_VERSION = 11;
@@ -50,16 +51,16 @@ const STORES_CONFIG = {
       { name: 'tipologia', keyPath: 'tipologia' }
     ]
   },
-  verbali: { 
+  verbali: {
     keyPath: 'id',
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
       { name: 'tipo', keyPath: 'tipo' },
-      { name: 'data', keyPath: 'data' },
+      { name: 'dataSopralluogo', keyPath: 'dataSopralluogo' },
       { name: 'stato', keyPath: 'stato' }
     ]
   },
-  eventi_incidentali: { 
+  eventi_incidentali: {
     keyPath: 'id',
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
@@ -67,7 +68,7 @@ const STORES_CONFIG = {
       { name: 'data', keyPath: 'data' }
     ]
   },
-  aggiornamenti_psc: { 
+  aggiornamenti_psc: {
     keyPath: 'id',
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
@@ -82,7 +83,7 @@ const STORES_CONFIG = {
       { name: 'impresaId', keyPath: 'impresaId' }
     ]
   },
-  nc: { 
+  nc: {
     keyPath: 'id',
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
@@ -131,9 +132,9 @@ const STORES_CONFIG = {
 
 let db = null;
 
-// ─────────────────────────────────────────────
-// INIZIALIZZAZIONE DB
-// ─────────────────────────────────────────────
+/**
+ * Inizializzazione DB con schema v10
+ */
 function initDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -167,99 +168,53 @@ function initDB() {
 }
 
 // ─────────────────────────────────────────────
-// CRUD GENERICI
+// CRUD HELPERS (Globali)
 // ─────────────────────────────────────────────
 
-/** Salva (insert o update) un elemento in uno store */
 function saveItem(storeName, item) {
   return new Promise((resolve, reject) => {
-    if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
+    if (!db) { reject('DB non inizializzato.'); return; }
     const t = db.transaction(storeName, 'readwrite');
     const s = t.objectStore(storeName);
-    try {
-      const req = s.put(item);
-      req.onsuccess = () => resolve(item);
-      req.onerror = () => {
-        console.error(req.error);
-        if (req.error && req.error.name === 'QuotaExceededError') {
-          reject('Spazio di archiviazione esaurito. Elimina alcuni file o libera spazio sul dispositivo.');
-        } else {
-          reject('Errore di archiviazione locale. Riprovare.');
-        }
-      };
-    } catch (e) {
-      if (e.name === 'QuotaExceededError') {
-        reject('Spazio di archiviazione esaurito. Elimina alcuni file o libera spazio sul dispositivo.');
-      } else {
-        reject('Errore di archiviazione locale. Riprovare.');
-      }
-    }
+    item.modifiedAt = new Date().toISOString();
+    const req = s.put(item);
+    req.onsuccess = () => resolve(item);
+    req.onerror = () => reject(req.error);
   });
 }
 
-/** Recupera tutti gli elementi di uno store */
-function getAll(storeName) {
-  return new Promise((resolve, reject) => {
-    if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t = db.transaction(storeName, 'readonly');
-    const s = t.objectStore(storeName);
-    const req = s.getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
-  });
-}
-
-/** Recupera un singolo elemento per chiave primaria */
 function getItem(storeName, id) {
   return new Promise((resolve, reject) => {
-    if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
+    if (!db) { reject('DB non inizializzato.'); return; }
     const t = db.transaction(storeName, 'readonly');
-    const s = t.objectStore(storeName);
-    const req = s.get(id);
+    const req = t.objectStore(storeName).get(id);
     req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
+    req.onerror = () => reject(req.error);
   });
 }
 
-/** Recupera elementi tramite indice */
 function getByIndex(storeName, indexName, value) {
   return new Promise((resolve, reject) => {
-    if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
+    if (!db) { reject('DB non inizializzato.'); return; }
     const t = db.transaction(storeName, 'readonly');
-    const s = t.objectStore(storeName);
-    const idx = s.index(indexName);
+    const idx = t.objectStore(storeName).index(indexName);
     const req = idx.getAll(value);
     req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
+    req.onerror = () => reject(req.error);
   });
 }
 
-// Alias per compatibilità con il documento di refactoring
 function getAllByIndex(storeName, indexName, value) {
   return getByIndex(storeName, indexName, value);
 }
 
-/** Elimina un elemento per chiave primaria */
 function deleteItem(storeName, id) {
   return new Promise((resolve, reject) => {
-    if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
+    if (!db) { reject('DB non inizializzato.'); return; }
     const t = db.transaction(storeName, 'readwrite');
-    const s = t.objectStore(storeName);
-    const req = s.delete(id);
+    const req = t.objectStore(storeName).delete(id);
     req.onsuccess = () => resolve();
-    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
-  });
-}
-
-/** Cancella tutti i record di uno store (per import completo) */
-function clearStore(storeName) {
-  return new Promise((resolve, reject) => {
-    if (!db) { reject('DB non inizializzato. Chiamare initDB() prima.'); return; }
-    const t = db.transaction(storeName, 'readwrite');
-    const s = t.objectStore(storeName);
-    const req = s.clear();
-    req.onsuccess = () => resolve();
-    req.onerror = () => { console.error(req.error); reject('Errore di archiviazione locale. Riprovare.'); };
+    req.onerror = () => reject(req.error);
   });
 }
 
@@ -269,15 +224,13 @@ function clearStore(storeName) {
 async function eliminaCantiere(projectId) {
   const STORES_CANTIERE = [
     'imprese', 'persone_anas', 'persone_terzi', 'lavoratori',
-    'mezzi', 'verbali', 'verifiche_pos', 'nc', 'ods_inviati',
-    'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 
-    'documenti', 
-    'eventi_incidentali',
-    'aggiornamenti_psc'
+    'mezzi', 'verbali', 'eventi_incidentali', 'aggiornamenti_psc',
+    'verifiche_pos', 'nc', 'ods_inviati',
+    'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 'documenti'
   ];
   
   for (const storeName of STORES_CANTIERE) {
-    const items = await getByIndex(storeName, 'projectId', projectId);
+    const items = await getAllByIndex(storeName, 'projectId', projectId);
     for (const item of items) {
       await deleteItem(storeName, item.id);
     }
@@ -285,10 +238,19 @@ async function eliminaCantiere(projectId) {
   
   await deleteItem('projects', projectId);
   
-  // Aggiorna anche OneDrive se attivo
+  // Bridge con OneDrive (se presenti funzioni globali)
   if (typeof isArchivioOneDriveAttivo === 'function' && await isArchivioOneDriveAttivo()) {
     if (typeof _eliminaCartellaLotto === 'function') await _eliminaCartellaLotto(projectId);
     if (typeof _eliminaJsonLotto === 'function') await _eliminaJsonLotto(projectId);
     if (typeof _aggiornaRegistroLotti === 'function') await _aggiornaRegistroLotti(projectId, 'remove');
   }
 }
+
+// Esposizione globale per script legacy
+window.initDB = initDB;
+window.saveItem = saveItem;
+window.getItem = getItem;
+window.getByIndex = getByIndex;
+window.getAllByIndex = getAllByIndex;
+window.deleteItem = deleteItem;
+window.eliminaCantiere = eliminaCantiere;

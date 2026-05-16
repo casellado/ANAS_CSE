@@ -13,10 +13,10 @@ const DocxGenerator = {
      */
     async getTemplate() {
         const templateData = await getItem('impostazioni', 'template_verbale_sopralluogo');
-        if (!templateData || !templateData.file) {
-            throw new Error("Template Word per il sopralluogo non trovato. Caricalo nelle impostazioni.");
+        if (!templateData || !templateData.valore) {
+            throw new Error("Template Word non trovato. Carica il file .docx dal pulsante Template nella sezione Verbali.");
         }
-        return templateData.file; // Presumiamo sia un ArrayBuffer o base64
+        return templateData.valore; // ArrayBuffer salvato in handleTemplateUpload
     },
 
     /**
@@ -30,18 +30,22 @@ const DocxGenerator = {
             const zip = new PizZip(content);
             
             // Configurazione modulo immagini
+            const ImageModuleCtor = window.ImageModule || window.docxtemplaterImageModuleFree;
+            if (!ImageModuleCtor) {
+                throw new Error("ImageModule non caricato. Controlla la connessione internet per il CDN.");
+            }
             const imageOptions = {
                 getImage(tagValue) {
                     return DocxGenerator.base64ToBinary(tagValue);
                 },
-                getSize(img, tagValue, tagName) {
+                getSize(_img, _tagValue, tagName) {
                     // Dimensioni predefinite per firme e loghi
                     if (tagName.includes('logo')) return [120, 60];
                     if (tagName.includes('firma')) return [180, 80];
                     return [150, 75];
                 }
             };
-            const imageModule = new ImageModule(imageOptions);
+            const imageModule = new ImageModuleCtor(imageOptions);
 
             const doc = new window.docxtemplater(zip, {
                 modules: [imageModule],
@@ -68,17 +72,18 @@ const DocxGenerator = {
     },
 
     /**
-     * Recupera loghi e testi intestazione dalle impostazioni.
+     * Recupera logo, header, footer dal blocco impostazioni principale.
+     * I 3 campi sono campi dentro l'oggetto impostazioni (non item separati).
      */
     async getGlobalSettings() {
-        const logo = await getItem('impostazioni', 'logo_aziendale');
-        const header = await getItem('impostazioni', 'header_destro');
-        const footer = await getItem('impostazioni', 'footer_centrale');
-        
+        let imp = {};
+        if (typeof window.caricaImpostazioni === 'function') {
+            imp = await window.caricaImpostazioni(true); // skipCondivise=true per velocità
+        }
         return {
-            logo_aziendale: logo ? logo.valore : null, // Base64 (usato valore come da specifica)
-            header_destro: header ? header.valore : '',
-            footer_centrale: footer ? footer.valore : 'CSE SafeHub'
+            logo_aziendale: imp.logo_aziendale || null,
+            header_destro:  imp.header_destro  || '',
+            footer_centrale: imp.footer_centrale || 'CSE SafeHub'
         };
     },
 

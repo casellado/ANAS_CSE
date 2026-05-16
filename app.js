@@ -1,422 +1,511 @@
-// app.js - CSE SafeHub v3 - SPA entry point
+// app.js - SafeHub v3 Core Engine
 
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    await initDB();
-    await renderHome();
-    
-    // Ripristino contesto SPA
-    const projId = sessionStorage.getItem('currentProjectId');
-    if (projId) {
-      await caricaContestoCantiere(projId);
-    } else {
-      // Home è visibile di default
+/**
+ * ROUTER: Gestisce il passaggio tra i livelli e le view
+ */
+const Router = {
+    state: 'HOME', // 'HOME' | 'CANTIERE'
+    currentProjectId: null,
+
+    init() {
+        window.addEventListener('load', async () => {
+            await initDB();
+            this.nav('HOME');
+        });
+    },
+
+    async nav(target, projectId = null) {
+        this.state = target;
+        this.currentProjectId = projectId || sessionStorage.getItem('currentProjectId');
+        
+        const homeView = document.getElementById('view-home');
+        const cantiereView = document.getElementById('view-cantiere');
+        const btnBack = document.getElementById('btn-back-home');
+        const appTitle = document.getElementById('app-title');
+
+        if (target === 'HOME') {
+            homeView.classList.remove('page-hidden');
+            cantiereView.classList.add('page-hidden');
+            btnBack.classList.add('page-hidden');
+            appTitle.innerText = "SafeHub v3 · Home";
+            sessionStorage.removeItem('currentProjectId');
+            await CantiereController.renderGrid();
+        } else if (target === 'CANTIERE') {
+            homeView.classList.add('page-hidden');
+            cantiereView.classList.remove('page-hidden');
+            btnBack.classList.remove('page-hidden');
+            if (projectId) sessionStorage.setItem('currentProjectId', projectId);
+            
+            const p = await getItem('projects', this.currentProjectId);
+            appTitle.innerText = `Cantiere: ${p?.id || '?'}`;
+
+            // Info sidebar
+            const sidebarInfo = document.getElementById('sidebar-cantiere-info');
+            if (sidebarInfo && p) {
+                sidebarInfo.innerHTML = `<div class="font-bold text-slate-300 truncate">${p.nome}</div><div class="text-slate-600 font-mono">${p.id}</div>`;
+            }
+
+            // Default sub-view: Dashboard
+            this.navSubView('DASHBOARD');
+        }
+    },
+
+    async navSubView(target) {
+        const container = document.getElementById('cantiere-content');
+        container.innerHTML = `<div class="p-8 text-center text-slate-400 italic">Caricamento ${target}...</div>`;
+
+        // Aggiorna stato attivo sidebar
+        document.querySelectorAll('[id^="nav-"]').forEach(btn => btn.classList.remove('nav-active'));
+        const activeBtn = document.getElementById('nav-' + target);
+        if (activeBtn) activeBtn.classList.add('nav-active');
+
+        switch(target) {
+            case 'DASHBOARD':
+                await DashboardController.render();
+                break;
+            case 'IMPRESE':
+                if (window.ImpreseModulo) await window.ImpreseModulo.render(container);
+                else await ImpreseController.render();
+                break;
+            case 'ANAS':
+                if (window.PersoneAnasModulo) await window.PersoneAnasModulo.render(container);
+                else await PersoneController.render('ANAS');
+                break;
+            case 'TERZI':
+                if (window.PersoneTerziModulo) await window.PersoneTerziModulo.render(container);
+                else await PersoneController.render('TERZI');
+                break;
+            case 'LAVORATORI':
+                if (window.LavoratoriModulo) await window.LavoratoriModulo.render(container);
+                else await RisorseController.render('LAVORATORI');
+                break;
+            case 'MEZZI':
+                if (window.MezziModulo) await window.MezziModulo.render(container);
+                else await RisorseController.render('MEZZI');
+                break;
+            case 'VERBALI':
+                container.innerHTML = `<div id="view-verbali"></div>`;
+                if (window.renderVerbali) await window.renderVerbali();
+                break;
+            case 'IMPOSTAZIONI':
+                container.innerHTML = `<div id="view-impostazioni"></div>`;
+                if (window.renderViewImpostazioni) await window.renderViewImpostazioni('view-impostazioni');
+                else container.innerHTML = `<div class="p-8 text-slate-400">Impostazioni non disponibili.</div>`;
+                break;
+            default:
+                container.innerHTML = `
+                    <div class="p-20 text-center bg-white rounded-[2.5rem] border">
+                        <span class="text-5xl block mb-4">🚧</span>
+                        <h3 class="text-xl font-bold">Sezione ${target} in costruzione</h3>
+                        <p class="text-slate-400 mt-2">Implementazione prevista nelle fasi successive del refactoring.</p>
+                    </div>
+                `;
+        }
     }
-  } catch (err) {
-    console.error("Errore inizializzazione DB", err);
-    alert("Errore avvio: " + err);
-  }
-});
+};
 
-// ─────────────────────────────────────────────
-// VISTA HOME: I MIEI CANTIERI (FASE 2)
-// ─────────────────────────────────────────────
+/**
+ * DASHBOARD: KPI e riepilogo cantiere
+ */
+const DashboardController = {
+    async render() {
+        const p = await getItem('projects', sessionStorage.getItem('currentProjectId'));
+        const verbali = await getByIndex('verbali', 'projectId', p.id);
+        const nc = await getByIndex('nc', 'projectId', p.id);
 
-async function renderHome() {
-  const grid = document.getElementById('projects-grid');
-  if (!grid) return;
-  
-  const projects = await getAll('projects');
-  
-  if (projects.length === 0) {
-    grid.innerHTML = `
-      <div class="col-span-full text-center py-12 text-slate-500 bg-white border border-slate-200 rounded-xl shadow-sm">
-        <div class="text-4xl mb-3">🚧</div>
-        <h3 class="text-lg font-bold text-slate-700">Nessun cantiere presente</h3>
-        <p class="text-sm">Inizia creando il tuo primo cantiere dal pulsante in alto.</p>
-      </div>
-    `;
-    return;
-  }
-  
-  grid.innerHTML = '';
-  
-  for (const p of projects) {
-    // Recupera numero NC aperte
-    let ncAperte = 0;
-    try {
-      const ncList = await getByIndex('nc', 'projectId', p.id);
-      ncAperte = ncList.filter(nc => nc.stato !== 'chiusa').length;
-    } catch (e) {
-      // Ignore if store not fully ready
+        const container = document.getElementById('cantiere-content');
+        container.innerHTML = `
+            <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                <header>
+                    <h2 class="text-4xl font-extrabold text-slate-900">${p.nome}</h2>
+                    <p class="text-slate-500 font-medium mt-1">Sintesi operativa e indicatori di sicurezza</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Verbali Emessi</span>
+                        <div class="text-4xl font-black text-blue-600">${verbali.length}</div>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">NC Aperte</span>
+                        <div class="text-4xl font-black text-red-600">${nc.filter(n => n.stato === 'aperta').length}</div>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Ultimo Sopralluogo</span>
+                        <div class="text-lg font-bold text-slate-800">${verbali.length > 0 ? new Date(verbali[0].data).toLocaleDateString() : 'Nessuno'}</div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-2xl flex justify-between items-center">
+                    <div>
+                        <h4 class="text-xl font-bold mb-1">Stato Cantiere: ${p.stato.toUpperCase()}</h4>
+                        <p class="text-blue-100 text-sm">Tutti i sistemi di sicurezza sono attivi.</p>
+                    </div>
+                    <button class="bg-white text-blue-600 font-bold px-6 py-3 rounded-2xl shadow-lg">Esporta Report</button>
+                </div>
+            </div>
+        `;
     }
-    
-    // Status visual
-    let statIcon = '🟢';
-    let statColor = 'text-green-700 bg-green-50 border-green-200';
-    let statText = 'Attivo';
-    
-    if (p.stato === 'sospeso') {
-      statIcon = '🟡';
-      statColor = 'text-yellow-700 bg-yellow-50 border-yellow-200';
-      statText = 'Sospeso';
-    } else if (p.stato === 'chiuso') {
-      statIcon = '🔴';
-      statColor = 'text-red-700 bg-red-50 border-red-200';
-      statText = 'Chiuso';
+};
+
+/**
+ * CONTROLLER: Logica di business per i cantieri
+ */
+const CantiereController = {
+    async crea() {
+        const id = document.getElementById('new-p-id').value.trim().toUpperCase();
+        const nome = document.getElementById('new-p-name').value.trim();
+
+        if (!id || !nome) {
+            alert("Compila tutti i campi!");
+            return;
+        }
+
+        const project = { id, nome, stato: 'attivo', createdAt: new Date().toISOString() };
+        await saveItem('projects', project);
+        
+        UI.chiudiModalCantiere();
+        await Router.nav('CANTIERE', id);
+    },
+
+    async renderGrid() {
+        const grid = document.getElementById('projects-grid');
+        if (!grid) return;
+
+        const projects = await getByIndex('projects', 'stato', 'attivo');
+        
+        if (projects.length === 0) {
+            grid.innerHTML = `
+                <div class="col-span-full py-20 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+                    <span class="text-5xl block mb-4">📂</span>
+                    <p class="text-slate-400 font-medium italic">Nessun cantiere attivo. Inizia creandone uno!</p>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = projects.map(p => `
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm card-hover cursor-pointer flex flex-col justify-between group" onclick="Router.nav('CANTIERE', '${p.id}')">
+                <div>
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">${p.id}</span>
+                        <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="event.stopPropagation(); CantiereController.elimina('${p.id}')">🗑️</button>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${p.nome}</h3>
+                </div>
+                <div class="mt-8 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                    <span>Creato: ${new Date(p.createdAt).toLocaleDateString()}</span>
+                    <span class="text-blue-600">Entra →</span>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    async elimina(id) {
+        if (confirm(`Sei sicuro di voler eliminare il cantiere ${id} e TUTTI i suoi dati?`)) {
+            if (typeof eliminaCantiere === 'function') {
+                await eliminaCantiere(id);
+                await this.renderGrid();
+            }
+        }
     }
-    
-    const card = document.createElement('div');
-    card.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-lg transition flex flex-col h-full relative group";
-    card.innerHTML = `
-      <div class="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onclick="event.stopPropagation(); typeof apriModalModificaCantiere === 'function' ? apriModalModificaCantiere('${escapeHtml(p.id)}') : alert('Modal modifica non ancora migrato')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Modifica">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-        </button>
-        <button onclick="event.stopPropagation(); apriModalEliminaCantiere('${escapeHtml(p.id)}', '${escapeHtml(p.nome)}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Elimina">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        </button>
-      </div>
-      <div class="font-mono text-xs font-bold text-slate-400 mb-1 tracking-wider">${escapeHtml(p.id)}</div>
-      <h3 class="font-extrabold text-lg leading-tight text-slate-800 mb-4 flex-1 pr-16">${escapeHtml(p.nome)}</h3>
-      
-      <div class="flex items-center gap-2 mb-6">
-        <span class="inline-flex items-center gap-1 border px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest ${statColor}">
-          ${statIcon} ${statText}
-        </span>
-        ${ncAperte > 0 
-          ? `<span class="inline-flex items-center text-[10px] uppercase tracking-widest font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">${ncAperte} NC aperte</span>` 
-          : `<span class="inline-flex items-center text-[10px] uppercase tracking-widest font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">0 NC aperte</span>`}
-      </div>
-      
-      <button onclick="entraCantiere('${escapeHtml(p.id)}')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-blue-600 border border-slate-200 hover:border-blue-600 font-bold py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-        ENTRA <span class="text-lg leading-none mb-0.5">→</span>
-      </button>
-    `;
-    grid.appendChild(card);
-  }
-}
+};
 
-function apriModalNuovoCantiere() {
-  document.getElementById('modal-new-project').classList.remove('hidden');
-  document.getElementById('new-project-id').value = '';
-  document.getElementById('new-project-name').value = '';
-  document.getElementById('new-project-id').focus();
-}
-
-function chiudiModalNuovoCantiere() {
-  document.getElementById('modal-new-project').classList.add('hidden');
-}
-
-async function salvaNuovoCantiere() {
-  const idInput = document.getElementById('new-project-id').value.trim().toUpperCase();
-  const nameInput = document.getElementById('new-project-name').value.trim();
-  
-  if (!/^[A-Z0-9_\-]+$/.test(idInput)) {
-    alert("Codice non valido. Usa solo lettere maiuscole, numeri, trattini e underscore.");
-    return;
-  }
-  
-  if (!nameInput) {
-    alert("Inserisci il nome del cantiere.");
-    return;
-  }
-  
-  const existing = await getItem('projects', idInput);
-  if (existing) {
-    alert("Esiste già un cantiere con questo codice.");
-    return;
-  }
-  
-  const newProject = {
-    id: idInput,
-    nome: nameInput,
-    localizzazione: '',
-    dataInizio: new Date().toISOString().split('T')[0],
-    dataFinePrevista: '',
-    stato: 'attivo',
-    modifiedAt: new Date().toISOString(),
-    modifiedBy: 'Utente'
-  };
-  
-  await saveItem('projects', newProject);
-  chiudiModalNuovoCantiere();
-  await renderHome();
-}
-
-// ─────────────────────────────────────────────
-// NAVIGAZIONE SPA CANTIERE (FASE 3)
-// ─────────────────────────────────────────────
-
-async function entraCantiere(projectId) {
-  sessionStorage.setItem('currentProjectId', projectId);
-  await caricaContestoCantiere(projectId);
-}
-
-async function caricaContestoCantiere(projectId) {
-  try {
-    const project = await getItem('projects', projectId);
-    if (!project) {
-      alert("Cantiere non trovato!");
-      return tornaHome();
+/**
+ * UI: Gestione elementi grafici
+ */
+const UI = {
+    apriModalCantiere() {
+        document.getElementById('modal-new-project').classList.remove('page-hidden');
+    },
+    chiudiModalCantiere() {
+        document.getElementById('modal-new-project').classList.add('page-hidden');
+        document.getElementById('new-p-id').value = '';
+        document.getElementById('new-p-name').value = '';
     }
-    
-    // Mostra topbar cantiere, nascondi topbar home
-    document.getElementById('home-topbar').classList.add('page-hidden');
-    document.getElementById('cantiere-topbar').classList.remove('page-hidden');
-    
-    // Aggiorna intestazione
-    document.getElementById('topbar-cantiere-title').textContent = "Cantiere: " + project.id + " - " + project.nome;
-    
-    // Passa alla view
-    document.getElementById('home-view').classList.add('page-hidden');
-    document.getElementById('cantiere-view').classList.remove('page-hidden');
-    
-    // Inizializza Dashboard
-    await mostraViewCantiere('dashboard');
-    
-  } catch (err) {
-    console.error(err);
-    alert("Errore nel caricamento del cantiere.");
-    tornaHome();
-  }
-}
+};
 
-async function mostraViewCantiere(viewName, faseAttesa = null) {
-  const projectId = sessionStorage.getItem('currentProjectId');
-  if (!projectId) return tornaHome();
-  
-  // 1. Reset bottoni nav
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.classList.remove('text-white', 'bg-slate-700', 'shadow-inner');
-    btn.classList.add('hover:bg-slate-700', 'hover:text-white');
-    if (btn.dataset.view === viewName) {
-      btn.classList.remove('hover:bg-slate-700', 'hover:text-white');
-      btn.classList.add('text-white', 'bg-slate-700', 'shadow-inner');
+// Inizializzazione
+Router.init();
+
+// Esposizione per HTML
+window.Router = Router;
+window.UI = UI;
+window.CantiereController = CantiereController;
+
+/**
+ * showToast — feedback visivo non bloccante
+ * @param {string} msg  Messaggio
+ * @param {string} tipo 'success' | 'error' | 'info' | 'warning'
+ * @param {number} ms   Durata in ms (default 3000)
+ */
+function showToast(msg, tipo = 'success', ms = 3000) {
+    const container = document.getElementById('toast-container');
+    if (!container) { console.log('[Toast]', msg); return; }
+    const t = document.createElement('div');
+    t.className = `toast toast-${tipo}`;
+    t.textContent = msg;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), ms);
+}
+window.showToast = showToast;
+
+/**
+ * IMPRESE: Gestione anagrafica scoped a cantiere
+ */
+const ImpreseController = {
+    async render() {
+        const projectId = sessionStorage.getItem('currentProjectId');
+        const container = document.getElementById('cantiere-content');
+        
+        container.innerHTML = `
+            <div class="space-y-8 animate-in fade-in">
+                <header class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900">Imprese</h2>
+                        <p class="text-slate-500">Anagrafica delle imprese operanti nel lotto</p>
+                    </div>
+                    <button onclick="ImpreseController.apriModal()" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all">+ Nuova Impresa</button>
+                </header>
+                <div id="imprese-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        `;
+        await this.loadList();
+    },
+
+    async loadList() {
+        const grid = document.getElementById('imprese-grid');
+        const items = await getByIndex('imprese', 'projectId', sessionStorage.getItem('currentProjectId'));
+        
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 italic">Nessuna impresa registrata.</div>`;
+            return;
+        }
+
+        grid.innerHTML = items.map(i => `
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative group">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="bg-slate-100 text-slate-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">${i.ruolo}</span>
+                    <button class="text-slate-300 hover:text-red-500" onclick="ImpreseController.elimina('${i.id}')">🗑️</button>
+                </div>
+                <h4 class="text-lg font-bold text-slate-800 mb-1">${i.ragioneSociale}</h4>
+                <p class="text-xs text-slate-400 font-mono">P.IVA: ${i.partitaIva}</p>
+                <div class="mt-6 pt-4 border-t border-slate-50 flex gap-2">
+                    <button class="flex-1 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 p-2 rounded-xl text-[10px] font-bold uppercase transition-all">Dettagli</button>
+                    <button class="flex-1 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 p-2 rounded-xl text-[10px] font-bold uppercase transition-all">Doc</button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    apriModal() {
+        // Implementerò il modal dinamico nel prossimo step
+        const rag = prompt("Ragione Sociale:");
+        const piva = prompt("Partita IVA (11 cifre):");
+        const ruolo = prompt("Ruolo (AFFIDATARIA|ESECUTRICE|SUBAPPALTO):");
+        if(rag && piva && ruolo) this.salva({ ragioneSociale: rag, partitaIva: piva, ruolo: ruolo.toUpperCase() });
+    },
+
+    async salva(data) {
+        const id = 'imp_' + Date.now();
+        const item = { ...data, id, projectId: sessionStorage.getItem('currentProjectId') };
+        await saveItem('imprese', item);
+        await this.loadList();
+    },
+
+    async elimina(id) {
+        if(confirm("Eliminare l'impresa?")) {
+            await deleteItem('imprese', id);
+            await this.loadList();
+        }
     }
-  });
+};
 
-  // 2. Nascondi tutte le sub-view
-  document.querySelectorAll('.cantiere-subview').forEach(v => v.classList.add('page-hidden'));
-  
-  // 3. Mostra view richiesta o placeholder
-  const viewEl = document.getElementById('view-' + viewName);
-  if (viewEl) {
-    viewEl.classList.remove('page-hidden');
-    // Genera dati specifici
-    if (viewName === 'dashboard') {
-      await generaDashboardKPI(projectId);
-    } else if (viewName === 'imprese') {
-      if (typeof renderImprese === 'function') {
-        await renderImprese('Tutte');
-      }
-    } else if (viewName === 'anas') {
-      if (typeof renderAnas === 'function') {
-        await renderAnas('Tutti');
-      }
-    } else if (viewName === 'terzi') {
-      if (typeof renderTerzi === 'function') {
-        await renderTerzi('Tutti');
-      }
-    } else if (viewName === 'lavoratori') {
-      if (typeof renderLavoratori === 'function') {
-        await renderLavoratori();
-      }
-    } else if (viewName === 'mezzi') {
-      if (typeof renderMezzi === 'function') {
-        await renderMezzi();
-      }
-    } else if (viewName === 'verbali') {
-      if (typeof renderVerbali === 'function') {
-        await renderVerbali();
-      }
+window.ImpreseController = ImpreseController;
+
+/**
+ * PERSONE: Gestione anagrafica personale ANAS e Terzi
+ */
+const PersoneController = {
+    async render(tipo = 'ANAS') {
+        const container = document.getElementById('cantiere-content');
+        const isAnas = tipo === 'ANAS';
+        
+        container.innerHTML = `
+            <div class="space-y-8 animate-in fade-in">
+                <header class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900">${isAnas ? 'Sicurezza & ANAS' : 'Enti Terzi'}</h2>
+                        <p class="text-slate-500">${isAnas ? 'Referenti tecnici e ruoli di coordinamento' : 'Autorità e consulenti esterni'}</p>
+                    </div>
+                    <button onclick="PersoneController.apriModal('${tipo}')" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all">+ Nuovo</button>
+                </header>
+                <div id="persone-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        `;
+        await this.loadList(tipo);
+    },
+
+    async loadList(tipo) {
+        const grid = document.getElementById('persone-grid');
+        const store = tipo === 'ANAS' ? 'persone_anas' : 'persone_terzi';
+        const items = await getByIndex(store, 'projectId', sessionStorage.getItem('currentProjectId'));
+        
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 italic">Nessun referente registrato.</div>`;
+            return;
+        }
+
+        grid.innerHTML = items.map(p => `
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative group card-hover">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="bg-indigo-50 text-indigo-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">${p.ruolo || p.ente || 'Referente'}</span>
+                    <button class="text-slate-300 hover:text-red-500" onclick="PersoneController.elimina('${p.id}', '${tipo}')">🗑️</button>
+                </div>
+                <h4 class="text-lg font-bold text-slate-800 mb-1">${p.nome} ${p.cognome}</h4>
+                <p class="text-xs text-slate-400">${p.qualifica}</p>
+                <div class="mt-6 pt-4 border-t border-slate-50 flex flex-col gap-2">
+                    <div class="flex items-center gap-2 text-xs text-slate-500"><span>📧</span> ${p.email || '-'}</div>
+                    <div class="flex items-center gap-2 text-xs text-slate-500"><span>📞</span> ${p.telefono || '-'}</div>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    apriModal(tipo) {
+        const nome = prompt("Nome:");
+        const cognome = prompt("Cognome:");
+        const qualifica = prompt("Qualifica:");
+        const ruolo = prompt(tipo === 'ANAS' ? "Ruolo (RUP|DL|CSE):" : "Ente:");
+        if(nome && cognome) {
+            const data = { nome, cognome, qualifica };
+            if(tipo === 'ANAS') data.ruolo = ruolo; else data.ente = ruolo;
+            this.salva(data, tipo);
+        }
+    },
+
+    async salva(data, tipo) {
+        const store = tipo === 'ANAS' ? 'persone_anas' : 'persone_terzi';
+        const id = (tipo === 'ANAS' ? 'pa_' : 'pt_') + Date.now();
+        const item = { ...data, id, projectId: sessionStorage.getItem('currentProjectId') };
+        await saveItem(store, item);
+        await this.loadList(tipo);
+    },
+
+    async elimina(id, tipo) {
+        if(confirm("Eliminare il referente?")) {
+            const store = tipo === 'ANAS' ? 'persone_anas' : 'persone_terzi';
+            await deleteItem(store, id);
+            await this.loadList(tipo);
+        }
     }
-  } else {
-    // Fallback al placeholder per view non ancora implementate
-    const placeholder = document.getElementById('view-placeholder');
-    placeholder.classList.remove('page-hidden');
-    
-    // Titolo formattato (es. ods_inviati -> ODS Inviati)
-    const title = viewName.toUpperCase().replace('_', ' ');
-    document.getElementById('placeholder-title').textContent = title;
-    
-    // Update FASE
-    if (faseAttesa) {
-      document.getElementById('placeholder-fase').textContent = "Implementazione prevista in FASE " + faseAttesa;
-    } else {
-      document.getElementById('placeholder-fase').textContent = "Sezione in refactoring";
+};
+
+window.PersoneController = PersoneController;
+
+/**
+ * RISORSE: Gestione Lavoratori e Mezzi scoped a Impresa e Cantiere
+ */
+const RisorseController = {
+    async render(tipo = 'LAVORATORI') {
+        const container = document.getElementById('cantiere-content');
+        const isLav = tipo === 'LAVORATORI';
+        const projectId = sessionStorage.getItem('currentProjectId');
+        const imprese = await getByIndex('imprese', 'projectId', projectId);
+        
+        container.innerHTML = `
+            <div class="space-y-8 animate-in fade-in">
+                <header class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900">${isLav ? 'Lavoratori' : 'Mezzi & Attrezzature'}</h2>
+                        <p class="text-slate-500">${isLav ? 'Maestranze operanti nel lotto' : 'Parco macchine e attrezzature di cantiere'}</p>
+                    </div>
+                    <button onclick="RisorseController.apriModal('${tipo}')" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all">+ Nuovo</button>
+                </header>
+                <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filtra per Impresa:</span>
+                    <select id="filter-resource-impresa" onchange="RisorseController.loadList('${tipo}', this.value)" class="bg-slate-50 border-none rounded-xl px-4 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none">
+                        <option value="">Tutte le Imprese</option>
+                        ${imprese.map(i => `<option value="${i.id}">${i.ragioneSociale}</option>`).join('')}
+                    </select>
+                </div>
+                <div id="resources-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        `;
+        await this.loadList(tipo);
+    },
+
+    async loadList(tipo, impresaId = null) {
+        const grid = document.getElementById('resources-grid');
+        const store = tipo === 'LAVORATORI' ? 'lavoratori' : 'mezzi';
+        let items = await getByIndex(store, 'projectId', sessionStorage.getItem('currentProjectId'));
+        
+        if (impresaId) {
+            items = items.filter(i => i.impresaId === impresaId);
+        }
+
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 italic">Nessuna risorsa trovata.</div>`;
+            return;
+        }
+
+        const imprese = await getByIndex('imprese', 'projectId', sessionStorage.getItem('currentProjectId'));
+
+        grid.innerHTML = items.map(item => {
+            const imp = imprese.find(i => i.id === item.impresaId);
+            return `
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm card-hover relative group">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="bg-blue-50 text-blue-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">${imp ? imp.ragioneSociale : 'Indipendente'}</span>
+                        <button class="text-slate-300 hover:text-red-500" onclick="RisorseController.elimina('${item.id}', '${tipo}')">🗑️</button>
+                    </div>
+                    <h4 class="text-lg font-bold text-slate-800 mb-1">${tipo === 'LAVORATORI' ? `${item.nome} ${item.cognome}` : `${item.marca} ${item.modello}`}</h4>
+                    <p class="text-xs text-slate-400">${item.mansione || item.tipologia || '-'}</p>
+                    <div class="mt-6 pt-4 border-t border-slate-50">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-2">Stato Documentazione</div>
+                        <div class="flex gap-1">
+                            <div class="h-1.5 flex-1 rounded-full bg-green-500"></div>
+                            <div class="h-1.5 flex-1 rounded-full bg-green-500"></div>
+                            <div class="h-1.5 flex-1 rounded-full bg-slate-200"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    async apriModal(tipo) {
+        const projectId = sessionStorage.getItem('currentProjectId');
+        const imprese = await getByIndex('imprese', 'projectId', projectId);
+        if (imprese.length === 0) { alert("Crea prima un'impresa!"); return; }
+
+        const impId = prompt("ID Impresa (scegli tra: " + imprese.map(i => i.ragioneSociale + "[" + i.id + "]").join(', ') + "):");
+        const val1 = prompt(tipo === 'LAVORATORI' ? "Nome:" : "Marca:");
+        const val2 = prompt(tipo === 'LAVORATORI' ? "Cognome:" : "Modello:");
+        
+        if(impId && val1 && val2) {
+            const data = { impresaId: impId };
+            if(tipo === 'LAVORATORI') { data.nome = val1; data.cognome = val2; } 
+            else { data.marca = val1; data.modello = val2; }
+            await this.salva(data, tipo);
+        }
+    },
+
+    async salva(data, tipo) {
+        const store = tipo === 'LAVORATORI' ? 'lavoratori' : 'mezzi';
+        const id = (tipo === 'LAVORATORI' ? 'lav_' : 'mzo_') + Date.now();
+        const item = { ...data, id, projectId: sessionStorage.getItem('currentProjectId') };
+        await saveItem(store, item);
+        await this.loadList(tipo);
+    },
+
+    async elimina(id, tipo) {
+        if(confirm("Eliminare la risorsa?")) {
+            const store = tipo === 'LAVORATORI' ? 'lavoratori' : 'mezzi';
+            await deleteItem(store, id);
+            await this.loadList(tipo);
+        }
     }
-  }
-}
+};
 
-async function generaDashboardKPI(projectId) {
-  const grid = document.getElementById('kpi-grid');
-  const alertsContainer = document.getElementById('kpi-alerts-container');
-  grid.innerHTML = '<div class="col-span-full text-center text-slate-400 py-8">Caricamento indicatori...</div>';
-  alertsContainer.innerHTML = '';
-  
-  try {
-    // Fetch asincrono parallelo dai vari store FASE 1
-    const [
-      ncs, verbali, odsInv, imprese, lavs, mezzi, docF
-    ] = await Promise.all([
-      getByIndex('nc', 'projectId', projectId).catch(() => []),
-      getByIndex('verbali', 'projectId', projectId).catch(() => []),
-      getByIndex('ods_inviati', 'projectId', projectId).catch(() => []),
-      getByIndex('imprese', 'projectId', projectId).catch(() => []),
-      getByIndex('lavoratori', 'projectId', projectId).catch(() => []),
-      getByIndex('mezzi', 'projectId', projectId).catch(() => []),
-      getByIndex('doc_fondamentali', 'projectId', projectId).catch(() => [])
-    ]);
-
-    // Calcoli NC
-    const ncAperteList = ncs.filter(n => n.stato !== 'chiusa');
-    const ncAperte = ncAperteList.length;
-    const ncScadute = ncAperteList.filter(n => n.scadenza && new Date(n.scadenza) < new Date()).length;
-    const ncChiuse = ncs.length - ncAperte;
-    
-    // Calcoli temporali (mese corrente)
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const verbaliMese = verbali.filter(v => {
-      // Verbali di sopralluogo del mese
-      if (v.tipo !== 'sopralluogo' && !v.tipo) return true; // assumiamo default sopralluogo per ora
-      if (!v.data) return false;
-      const d = new Date(v.data);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).length;
-    
-    // Mezzi in cantiere
-    const mezziPresenti = mezzi.filter(m => m.presenteInCantiere === true || m.presenteInCantiere === 'true' || m.presenteInCantiere === 1).length;
-
-    // Doc fondamentali
-    const docValidi = docF.filter(d => d.stato === 'valido').length;
-    const docScadutiList = docF.filter(d => d.scadenza && new Date(d.scadenza) < new Date() && d.stato !== 'valido');
-
-    // Rendering KPI Cards
-    grid.innerHTML = `
-      ${createKPICard('Non Conformità', `${ncAperte} aperte / ${ncScadute} scad. / ${ncChiuse} chiuse`, ncScadute > 0 ? 'bg-red-50 border-red-200 text-red-700' : (ncAperte > 0 ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-white'))}
-      ${createKPICard('Verbali (mese)', verbaliMese, 'bg-white')}
-      ${createKPICard('Imprese', imprese.length, 'bg-white')}
-      ${createKPICard('Lavoratori', lavs.length, 'bg-white')}
-      ${createKPICard('Mezzi', mezziPresenti, 'bg-white')}
-      ${createKPICard('Doc. Fondamentali', `${docValidi} validi / ${docF.length} totali`, docValidi < docF.length ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-green-50 border-green-200 text-green-700')}
-    `;
-    
-    // Rendering Alerts
-    if (ncScadute > 0) {
-      alertsContainer.innerHTML += `
-        <div class="bg-red-100 border border-red-300 text-red-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
-          <span class="text-2xl">🚨</span>
-          <div>
-            <div class="font-bold">Attenzione: NC in Scadenza</div>
-            <div class="text-sm">Ci sono ${ncScadute} Non Conformità scadute e non ancora chiuse.</div>
-          </div>
-        </div>
-      `;
-    }
-    
-    if (docScadutiList.length > 0) {
-      alertsContainer.innerHTML += `
-        <div class="bg-orange-100 border border-orange-300 text-orange-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
-          <span class="text-2xl">⚠️</span>
-          <div>
-            <div class="font-bold">Attenzione: Documenti in Scadenza</div>
-            <div class="text-sm">Ci sono ${docScadutiList.length} documenti fondamentali scaduti o in scadenza imminente.</div>
-          </div>
-        </div>
-      `;
-    }
-    
-  } catch (err) {
-    console.error("Errore generazione KPI:", err);
-    grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-8">Errore caricamento indicatori.</div>';
-  }
-}
-
-function createKPICard(label, value, colorClass = "bg-white") {
-  return `
-    <div class="border border-slate-200 rounded-xl p-4 shadow-sm ${colorClass}">
-      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">${label}</div>
-      <div class="text-2xl font-extrabold text-slate-800">${value}</div>
-    </div>
-  `;
-}
-
-function tornaHome() {
-  sessionStorage.removeItem('currentProjectId');
-  document.getElementById('cantiere-view').classList.add('page-hidden');
-  document.getElementById('home-view').classList.remove('page-hidden');
-  document.getElementById('cantiere-topbar').classList.add('page-hidden');
-  document.getElementById('home-topbar').classList.remove('page-hidden');
-  renderHome();
-}
-
-function apriModalEliminaCantiere(id, nome) {
-  const existing = document.getElementById('modal-elimina-cantiere');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-elimina-cantiere';
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
-      <div class="bg-red-600 text-white px-6 py-4 flex items-center gap-3">
-        <span class="text-2xl">⚠️</span>
-        <h2 class="font-bold text-lg">Elimina Cantiere</h2>
-      </div>
-      <div class="p-6 space-y-4">
-        <p class="text-sm text-slate-600 leading-relaxed">
-          Vuoi eliminare il cantiere <strong>${escapeHtml(nome)}</strong>?<br><br>
-          <span class="font-bold text-red-700">Saranno eliminati permanentemente anche:</span>
-        </p>
-        <ul class="text-xs text-slate-500 space-y-1 list-disc ml-5">
-          <li>Tutte le anagrafiche collegate</li>
-          <li>Tutti i verbali, NC e ODS</li>
-          <li>Tutti i documenti e le foto</li>
-          <li>L'archivio su OneDrive (se attivo)</li>
-        </ul>
-        <p class="text-xs text-red-500 font-bold italic border-t pt-3">
-          Operazione IRREVERSIBILE.
-        </p>
-        <div class="flex gap-3 pt-2">
-          <button onclick="document.getElementById('modal-elimina-cantiere').remove()"
-                  class="flex-1 bg-slate-100 text-slate-700 py-2 rounded-xl font-bold text-sm hover:bg-slate-200 transition">
-            Annulla
-          </button>
-          <button onclick="eseguiEliminaCantiere('${escapeHtml(id)}')"
-                  class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold text-sm hover:bg-red-700 transition shadow-md shadow-red-200">
-            Sì, Elimina
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-}
-
-async function eseguiEliminaCantiere(id) {
-  if (typeof eliminaCantiere === 'function') {
-    await eliminaCantiere(id);
-    document.getElementById('modal-elimina-cantiere')?.remove();
-    renderHome();
-  } else {
-    alert('Funzione di eliminazione non disponibile.');
-  }
-}
-
-// ─────────────────────────────────────────────
-// UTILITY
-// ─────────────────────────────────────────────
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str).replace(/[&<>"']/g, function(m) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-  });
-}
+window.RisorseController = RisorseController;
