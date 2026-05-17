@@ -1,8 +1,8 @@
-// db.js - Gestione IndexedDB for SafeHub v3 (v11)
+// db.js - Gestione IndexedDB for SafeHub v3 (v12)
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 
 const STORES_CONFIG = {
   // Globali
@@ -120,12 +120,22 @@ const STORES_CONFIG = {
       { name: 'data', keyPath: 'data' }
     ]
   },
-  documenti: { 
+  documenti: {
     keyPath: 'id',
     indexes: [
       { name: 'projectId', keyPath: 'projectId' },
       { name: 'tipologia', keyPath: 'tipologia' },
       { name: 'entitaCollegataId', keyPath: 'entitaCollegataId' }
+    ]
+  },
+  verbali_riunione: {
+    keyPath: 'id',
+    autoIncrement: true,
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'dataRiunione', keyPath: 'dataRiunione' },
+      { name: 'stato', keyPath: 'stato' },
+      { name: 'numeroProgressivo', keyPath: 'numeroProgressivo' }
     ]
   }
 };
@@ -224,7 +234,7 @@ function deleteItem(storeName, id) {
 async function eliminaCantiere(projectId) {
   const STORES_CANTIERE = [
     'imprese', 'persone_anas', 'persone_terzi', 'lavoratori',
-    'mezzi', 'verbali', 'eventi_incidentali', 'aggiornamenti_psc',
+    'mezzi', 'verbali', 'verbali_riunione', 'eventi_incidentali', 'aggiornamenti_psc',
     'verifiche_pos', 'nc', 'ods_inviati',
     'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 'documenti'
   ];
