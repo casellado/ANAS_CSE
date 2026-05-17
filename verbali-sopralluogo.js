@@ -52,33 +52,48 @@ async function renderVerbali() {
     
     const tbody = document.getElementById('verbali-tbody');
     const verbali = await getByIndex('verbali', 'projectId', projectId);
-    verbali.sort((a,b) => new Date(b.data) - new Date(a.data));
+    // Ordinamento DESC per data sopralluogo (più recente in cima)
+    verbali.sort((a, b) => (b.dataSopralluogo || '').localeCompare(a.dataSopralluogo || ''));
 
     if (verbali.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-12 text-center text-slate-400">Nessun verbale emesso per questo cantiere.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = verbali.map(v => `
+    tbody.innerHTML = verbali.map(v => {
+        const nFoto = v.allegatiFoto?.length || 0;
+        const isDelegato = v.redattoreInfo?.isDelegato;
+        const vistoApposto = isDelegato && v.vistoTitolareNome != null;
+        const badgeVisto = isDelegato
+            ? (vistoApposto
+                ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-100 text-green-700">✅ Vistato</span>'
+                : '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700">⚠ Visto mancante</span>')
+            : '';
+        const badgeFoto = nFoto > 0
+            ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600">📷 ${nFoto}</span>`
+            : '';
+        return `
         <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
             <td class="px-4 py-3 font-mono text-xs font-bold">${v.numeroProgressivo || 'BOZZA'}</td>
-            <td class="px-4 py-3 text-sm">${v.dataSopralluogo ? new Date(v.dataSopralluogo).toLocaleDateString() : '-'}</td>
-            <td class="px-4 py-3 text-sm font-semibold truncate max-w-xs">${escapeHtml(v.oggetto || 'Senza oggetto')}</td>
+            <td class="px-4 py-3 text-sm">${v.dataSopralluogo ? new Date(v.dataSopralluogo + 'T00:00:00').toLocaleDateString('it-IT') : '-'}</td>
+            <td class="px-4 py-3 text-sm font-semibold truncate max-w-xs">
+                ${escapeHtml(v.oggetto || 'Senza oggetto')}
+                <div class="flex gap-1 mt-1">${badgeFoto}${badgeVisto}</div>
+            </td>
             <td class="px-4 py-3 text-center">
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${v.stato === 'finalizzato' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
                     ${v.stato}
                 </span>
             </td>
             <td class="px-4 py-3 text-right space-x-1">
-                <button onclick="apriVerbale('${v.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="${v.stato === 'finalizzato' ? 'Visualizza' : 'Modifica'}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                </button>
-                <button onclick="eliminaVerbale('${v.id}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Elimina">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
+                <button onclick="apriVerbale('${v.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="${v.stato === 'finalizzato' ? 'Visualizza' : 'Modifica'}">✏️</button>
+                <button onclick="mostraAnteprimaVerbale('${v.id}')" class="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Anteprima stampa">👁</button>
+                ${v.stato === 'finalizzato' ? `<button onclick="_scaricaWordVerbaleById('${v.id}')" class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Scarica Word">📄</button>` : ''}
+                ${nFoto > 0 ? `<button onclick="scaricaAllegatiFotoVerbale('${v.id}')" class="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Scarica foto ZIP">🗜️</button>` : ''}
+                <button onclick="eliminaVerbale('${v.id}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Elimina">🗑️</button>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
 /**
@@ -359,10 +374,72 @@ async function apriVerbale(id = null) {
                 </div>
             </div>
 
+                <!-- FASE 5.1-bis: Sezione Allegati Foto -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h4 class="text-xs font-bold text-slate-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-slate-600 rounded-full"></span> 7. Allegati Fotografici
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-3">Le foto NON entrano nel Word — scaricabili come ZIP separato. Max 20 foto / 5 MB cad.</p>
+                    ${!isFinalizzato ? `
+                    <label class="block border-2 border-dashed border-slate-300 rounded-xl p-5 text-center cursor-pointer hover:border-slate-500 hover:bg-slate-50 transition mb-3"
+                           ondragover="event.preventDefault()" ondrop="handleFotoDropVS(event)">
+                        <input type="file" accept="image/*" multiple onchange="handleFotoUploadVS(this.files)" class="hidden">
+                        <span class="text-slate-400 text-sm">📷 Trascina qui o clicca per selezionare</span>
+                    </label>` : ''}
+                    <div id="vs-lista-allegati-foto"></div>
+                </div>
+
+                <!-- FASE 5.1-bis: Visto CSE Titolare (solo se Delegato) -->
+                <div id="vs-visto-titolare-section" class="${verbale.redattoreInfo?.isDelegato ? '' : 'hidden'} bg-white rounded-2xl border border-amber-200 p-6 shadow-sm">
+                    <h4 class="text-xs font-bold text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-amber-500 rounded-full"></span> 8. Visto CSE Titolare (opzionale)
+                    </h4>
+                    <p class="text-xs text-slate-500 mb-4">ℹ Il visto è opzionale e può essere apposto in qualsiasi momento, anche dopo la finalizzazione.</p>
+                    ${verbale.vistoTitolareNome ? `
+                    <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-4">
+                        <span class="text-green-600 text-xl">✅</span>
+                        <div>
+                            <p class="font-bold text-green-700 text-sm">Visto apposto il ${new Date(verbale.vistoTitolareTimestamp).toLocaleString('it-IT')}</p>
+                            <p class="text-slate-600 text-xs">${escapeHtml(verbale.vistoTitolareNome)}</p>
+                        </div>
+                        ${verbale.vistoTitolareFirma ? `<img src="${verbale.vistoTitolareFirma}" class="h-10 border border-slate-200 rounded p-0.5 bg-white ml-auto" alt="Visto">` : ''}
+                    </div>` : `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nome CSE Titolare</label>
+                            <input type="text" id="vs-visto-nome" placeholder="Nome e Cognome CSE Titolare"
+                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-2">Firma Titolare</label>
+                            <div class="flex gap-2 mb-2 flex-wrap">
+                                <button onclick="inizializzaFirmaVistoTitolare()" class="bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-600">✏️ Disegna</button>
+                                <button onclick="usaFirmaPermanenteVisto()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700">✓ Permanente</button>
+                                <button onclick="abilitaPasteFirmaVisto()" class="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-300">📋 Incolla</button>
+                            </div>
+                            <div id="vs-visto-firma-canvas-container"></div>
+                            <div id="vs-visto-firma-paste-area" class="hidden">
+                                <textarea placeholder="Incolla qui l'immagine firma (Ctrl+V)…"
+                                          class="w-full h-20 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                                          onpaste="handlePasteFirmaVisto(event)"></textarea>
+                            </div>
+                            <div id="vs-visto-firma-preview"></div>
+                        </div>
+                        <button onclick="confermaVistoTitolare()" class="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-amber-600 transition">
+                            ✅ Applica Visto
+                        </button>
+                    </div>`}
+                </div>
+
+            </div>
+
             <footer class="bg-slate-50 p-6 border-t flex justify-between items-center shrink-0">
                 <button onclick="document.getElementById('modal-editor-verbale').remove()" class="text-sm font-bold text-slate-500 hover:text-slate-700">Annulla</button>
                 <div class="flex gap-3">
                     ${!isFinalizzato ? `<button onclick="salvaVerbale('bozza')" class="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition">Salva Bozza</button>` : ''}
+                    <button onclick="mostraAnteprimaVerbale(${id ? `'${id}'` : 'null'})" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow hover:bg-indigo-700 transition">
+                        👁 Anteprima
+                    </button>
                     <button onclick="eseguiFinalizzazione()" class="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
                         <span>💾</span> ${isFinalizzato ? 'Scarica Word' : 'Finalizza e Scarica'}
                     </button>
@@ -372,8 +449,13 @@ async function apriVerbale(id = null) {
     `;
 
     document.body.appendChild(modal);
+    // Inizializza stato allegati foto dal verbale salvato
+    window._vsAllegatiFoto = verbale.allegatiFoto ? verbale.allegatiFoto.map(f => ({...f})) : [];
+    window._vsVistoFirma = null;
+    window._vsVistoCanvases = {};
     renderPresenti();
     renderNCDrafts();
+    renderAllegatiFotoVS();
 }
 
 /**
@@ -381,7 +463,82 @@ async function apriVerbale(id = null) {
  */
 function toggleDelegaUI(checked) {
     document.getElementById('delega-ui').classList.toggle('hidden', !checked);
+    document.getElementById('vs-visto-titolare-section')?.classList.toggle('hidden', !checked);
 }
+
+// Visto Titolare — firma nel form
+function inizializzaFirmaVistoTitolare() {
+    const container = document.getElementById('vs-visto-firma-canvas-container');
+    if (!container) return;
+    container.innerHTML = `
+    <div class="border border-slate-200 rounded-xl overflow-hidden mb-2">
+        <div id="vs-visto-canvas-wrap"></div>
+        <button onclick="confermaFirmaVistoCanvas()" class="w-full bg-blue-600 text-white py-2 text-xs font-bold hover:bg-blue-700">✓ Conferma</button>
+    </div>`;
+    window._vsVistoCanvases = window._vsVistoCanvases || {};
+    window._vsVistoCanvases['visto'] = new SignatureCanvas('vs-visto-canvas-wrap', { width: 400, height: 120 });
+}
+function confermaFirmaVistoCanvas() {
+    const sc = window._vsVistoCanvases?.['visto'];
+    if (!sc) return;
+    const b64 = sc.toDataURL();
+    if (!b64) { showToast('Firma vuota.', 'warning'); return; }
+    window._vsVistoFirma = b64;
+    _aggiornaPreviewFirmaVisto(b64);
+    showToast('Firma visto acquisita ✓', 'success');
+}
+async function usaFirmaPermanenteVisto() {
+    const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => null) : null;
+    const firma = imp?.firmaDigitale || imp?.firmaCse || imp?.firmaImmagine || null;
+    if (!firma) { showToast('Nessuna firma permanente in Impostazioni.', 'warning'); return; }
+    window._vsVistoFirma = firma;
+    _aggiornaPreviewFirmaVisto(firma);
+    showToast('Firma permanente caricata ✓', 'success');
+}
+function abilitaPasteFirmaVisto() {
+    const area = document.getElementById('vs-visto-firma-paste-area');
+    if (area) { area.classList.remove('hidden'); area.querySelector('textarea')?.focus(); }
+}
+function handlePasteFirmaVisto(event) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+        if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            const reader = new FileReader();
+            reader.onload = e => {
+                window._vsVistoFirma = e.target.result;
+                _aggiornaPreviewFirmaVisto(e.target.result);
+                document.getElementById('vs-visto-firma-paste-area')?.classList.add('hidden');
+                showToast('Firma incollata ✓', 'success');
+            };
+            reader.readAsDataURL(file);
+            break;
+        }
+    }
+}
+function _aggiornaPreviewFirmaVisto(dataUrl) {
+    const p = document.getElementById('vs-visto-firma-preview');
+    if (p) p.innerHTML = `<img src="${dataUrl}" class="h-14 border border-slate-200 rounded-lg p-1 mt-2" alt="Firma Visto">`;
+}
+async function confermaVistoTitolare() {
+    const nome = document.getElementById('vs-visto-nome')?.value?.trim();
+    if (!nome) { showToast('Inserisci il nome del CSE Titolare.', 'warning'); return; }
+    if (!window._vsVistoFirma) { showToast('Apponi la firma del CSE Titolare.', 'warning'); return; }
+    const verbaleId = currentVerbaleId;
+    if (!verbaleId) { showToast('Salva prima il verbale.', 'warning'); return; }
+    await applicaVistoTitolare(verbaleId, { nome, firmaBase64: window._vsVistoFirma });
+    // Ricarica il form per mostrare il visto apposto
+    apriVerbale(verbaleId);
+}
+
+window.toggleDelegaUI              = toggleDelegaUI;
+window.inizializzaFirmaVistoTitolare = inizializzaFirmaVistoTitolare;
+window.confermaFirmaVistoCanvas    = confermaFirmaVistoCanvas;
+window.usaFirmaPermanenteVisto     = usaFirmaPermanenteVisto;
+window.abilitaPasteFirmaVisto      = abilitaPasteFirmaVisto;
+window.handlePasteFirmaVisto       = handlePasteFirmaVisto;
+window.confermaVistoTitolare       = confermaVistoTitolare;
 
 /**
  * GAP 1: Logica NC Dinamica
@@ -535,7 +692,12 @@ function _raccogliDatiForm() {
             timestampFirma: window._lastPastedSignature
                 ? new Date().toISOString()
                 : (verbaleEsistente_ref?.redattoreInfo?.timestampFirma || null)
-        }
+        },
+        allegatiFoto: window._vsAllegatiFoto || [],
+        // Preserva visto titolare esistente (non sovrascrivere con il form)
+        vistoTitolareNome: verbaleEsistente_ref?.vistoTitolareNome || null,
+        vistoTitolareFirma: verbaleEsistente_ref?.vistoTitolareFirma || null,
+        vistoTitolareTimestamp: verbaleEsistente_ref?.vistoTitolareTimestamp || null
     };
 }
 
@@ -1221,8 +1383,23 @@ async function applicaVistoTitolare(verbaleId, vistoData) {
     return verbale;
 }
 
+async function _scaricaWordVerbaleById(verbaleId) {
+    const verbale = await getItem('verbali', verbaleId);
+    if (!verbale) { showToast('Verbale non trovato.', 'error'); return; }
+    try {
+        const blob = await _generaDocxVerbaleVS(verbale);
+        const numProg = (verbale.numeroProgressivo || String(verbale.id)).replace(/\//g, '_');
+        const dataStr = (verbale.dataSopralluogo || '').replace(/-/g, '');
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Verbale_Sopralluogo_${dataStr}_${numProg}.docx`;
+        link.click();
+    } catch (err) { showToast('Errore generazione Word: ' + err.message, 'error'); }
+}
+
 window.mostraAnteprimaVerbale        = mostraAnteprimaVerbale;
 window._scaricaWordDaBlob_VS         = _scaricaWordDaBlob_VS;
+window._scaricaWordVerbaleById       = _scaricaWordVerbaleById;
 window.handleFotoUploadVS            = handleFotoUploadVS;
 window.handleFotoDropVS              = handleFotoDropVS;
 window.rimuoviFotoVS                 = rimuoviFotoVS;
