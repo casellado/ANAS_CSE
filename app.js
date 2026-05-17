@@ -87,6 +87,10 @@ const Router = {
                 container.innerHTML = `<div id="view-verbali"></div>`;
                 if (window.renderVerbali) await window.renderVerbali();
                 break;
+            case 'VERBALI_RIUNIONE':
+                container.innerHTML = `<div id="view-verbali-riunione"></div>`;
+                if (window.renderVerbaliRiunione) await window.renderVerbaliRiunione();
+                break;
             case 'IMPOSTAZIONI':
                 container.innerHTML = `<div id="view-impostazioni"></div>`;
                 if (window.renderViewImpostazioni) await window.renderViewImpostazioni('view-impostazioni');

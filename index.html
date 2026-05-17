@@ -44,9 +44,13 @@
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.6/dist/pizzip.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.50.0/build/docxtemplater.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/index.js"></script>
+    <!-- FASE 5.2: JSZip (allegati foto ZIP) + docx-preview (anteprima in-browser) -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js"></script>
     <script defer src="./signature-canvas.js"></script>
     <script defer src="./docx-generator.js"></script>
     <script defer src="./verbali-sopralluogo.js"></script>
+    <script defer src="./verbali-riunione.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -129,6 +133,10 @@
                         <button onclick="Router.navSubView('VERBALI')" id="nav-VERBALI"
                                 class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
                             <span>📝</span> Verbali Sopralluogo
+                        </button>
+                        <button onclick="Router.navSubView('VERBALI_RIUNIONE')" id="nav-VERBALI_RIUNIONE"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🤝</span> Verbali Riunione
                         </button>
                         <button onclick="Router.navSubView('NC')" id="nav-NC"
                                 class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
