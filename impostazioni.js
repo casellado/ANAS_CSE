@@ -9,7 +9,7 @@ const IMPOSTAZIONI_KEY = 'impostazioni_verbale';
 // Valori di default
 const IMPOSTAZIONI_DEFAULT = {
   // Intestazione destra (committente)
-  committenteNome: 'ANAS SpA',
+  committenteNome: '',
   committenteContrat: '',   // es. "Contratto rep. n. 1234/2024"
 
   // Dati cantiere (pre-compilazione suggerita)
@@ -25,11 +25,13 @@ const IMPOSTAZIONI_DEFAULT = {
   footerDestro: 'Documento riservato — uso interno',
   header_destro: 'Mod.Verbale.01 - Rev.1.0',
   footer_centrale: 'CSE SafeHub',
+  modulo_codice: 'Mod.VS.01',
+  modulo_versione: 'Rev.1.0',
   logo_aziendale: null,
 
   // Loghi (base64 PNG/JPG) — null se non caricati
   logoSinistro: null,   // logo studio / CSE
-  logoDestro: null,   // logo ANAS o committente
+  logoDestro: null,   // logo committente
 
   // Firma pre-impostata (nome stampato sotto la firma canvas)
   firmaNome: '',
@@ -41,7 +43,7 @@ const IMPOSTAZIONI_DEFAULT = {
   // Il CSE è sempre lo stesso, la firma è sempre la stessa.
   firmaImmagine: null,
 
-  // Modello Qualità ANAS Mod. RE. 01-5 (Verifica POS)
+  // Mod. RE. 01-5 (Verifica POS)
   posTecnicoNome: '',
   posTecnicoQualifica: '',
   posTecnicoAlbo: '',
@@ -53,7 +55,7 @@ const IMPOSTAZIONI_DEFAULT = {
   posStruttura: '',
   posCodicePpm: '',
 
-  // Modello Qualità ANAS Mod. RE. 01-10 (Riunione di Coordinamento)
+  // Mod. RE. 01-10 (Riunione di Coordinamento)
   riuTecnicoNome: '',
   riuTecnicoQualifica: '',
   riuRup: '',
@@ -219,7 +221,7 @@ async function renderViewImpostazioni(containerId) {
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
           <div class="flex items-center justify-between gap-2 flex-wrap">
             <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-              📂 Configurazione Modello Qualità ANAS Mod. RE. 01-5 (Verifica POS)
+              📂 Configurazione Mod. RE. 01-5 — Verifica POS
             </h4>
             <button onclick="exportPOSWord(null, 'anteprima')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs focus:outline-none transition">
               👁️ Anteprima di Stampa
@@ -259,7 +261,7 @@ async function renderViewImpostazioni(containerId) {
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
           <div class="flex items-center justify-between gap-2 flex-wrap">
             <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-              📂 Configurazione Modello Qualità ANAS Mod. RE. 01-10 (Riunioni di Coordinamento)
+              📂 Configurazione Mod. RE. 01-10 — Riunioni di Coordinamento
             </h4>
             <button onclick="exportRiunioneWord(null, 'anteprima')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs focus:outline-none transition">
               👁️ Anteprima di Stampa
@@ -280,24 +282,24 @@ async function renderViewImpostazioni(containerId) {
         </div>
       </div>
 
-      <!-- TAB 3: DATI DI BASE ANAS -->
+      <!-- TAB 3: DATI DI BASE -->
       <div id="tab-content-dati-anas" class="space-y-4 hidden">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
           <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">
-            🏢 Logo e Dati Generali ANAS
+            🏢 Logo e Dati del Committente
           </h4>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
-            <!-- Logo Destro (ANAS / Committente) -->
+            <!-- Logo Committente -->
             <div>
               <div class="text-xs font-semibold text-slate-600 mb-2">
-                Logo Ufficiale ANAS
+                Logo Committente
               </div>
               <div id="preview-logo-dx"
                    class="w-full h-20 border-2 border-dashed border-slate-300 rounded-xl
                           flex items-center justify-center bg-slate-50 mb-2 overflow-hidden">
                 ${imp.logoDestro
-        ? `<img src="${imp.logoDestro}" class="max-h-16 max-w-full object-contain" alt="Logo ANAS">`
+        ? `<img src="${imp.logoDestro}" class="max-h-16 max-w-full object-contain" alt="Logo Committente">`
         : `<span class="text-xs text-slate-400">Nessun logo caricato</span>`}
               </div>
               <div class="flex gap-2">
@@ -320,9 +322,11 @@ async function renderViewImpostazioni(containerId) {
 
             <!-- Metadati Generali -->
             <div class="space-y-3">
-              ${_campo('committenteNome', 'Nome Committente', imp.committenteNome || 'ANAS SpA', 'Es. ANAS SpA')}
+              ${_campo('committenteNome', 'Nome Committente', imp.committenteNome || '', 'Es. Nome committente')}
               ${_campo('header_destro', 'Intestazione Destra (Word)', imp.header_destro, 'Es. Mod.Verbale.01 - Rev.1.0')}
-              ${_campo('footer_centrale', 'Piè di Pagina Centrale (Word)', imp.footer_centrale, 'Es. ANAS S.p.A.')}
+              ${_campo('footer_centrale', 'Piè di Pagina Centrale (Word)', imp.footer_centrale, 'Es. Nome ente / azienda')}
+              ${_campo('modulo_codice', 'Codice Modulo (segnaposto {{modulo_codice}})', imp.modulo_codice || '', 'Es. Mod.VS.01')}
+              ${_campo('modulo_versione', 'Versione Modulo (segnaposto {{modulo_versione}})', imp.modulo_versione || '', 'Es. Rev.1.0')}
               ${_campo('committenteContrat', 'Contratto / Rep.', imp.committenteContrat, 'Es. Contratto rep. n. 1234/2024')}
             </div>
           </div>
@@ -369,7 +373,7 @@ async function renderViewImpostazioni(containerId) {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               ${_campo('footerSinistro', 'Piè di pagina sinistro PDF', imp.footerSinistro, 'Es. Coordinatore Sicurezza — CSE')}
-              ${_campo('footerDestro', 'Piè di pagina destro PDF', imp.footerDestro, 'Es. Uso interno ANAS SpA')}
+              ${_campo('footerDestro', 'Piè di pagina destro PDF', imp.footerDestro, 'Es. Uso interno')}
             </div>
             ${_campo('normativa', 'Riferimenti normativi', imp.normativa, 'Es. D.Lgs 81/2008 · D.I. 22/01/2019')}
           </div>
@@ -478,7 +482,7 @@ async function salvaImpostazioniUI() {
     'committenteNome', 'committenteContrat',
     'cantiereDescrizione', 'rup', 'dl',
     'firmaNome', 'firmaQualifica', 'firmaAlbo',
-    'footerSinistro', 'footerDestro', 'normativa', 'header_destro', 'footer_centrale',
+    'footerSinistro', 'footerDestro', 'normativa', 'header_destro', 'footer_centrale', 'modulo_codice', 'modulo_versione',
     'posTecnicoNome', 'posTecnicoQualifica', 'posTecnicoAlbo', 'posRup', 'posDl', 'posCUP', 'posCIG', 'posCommessa', 'posStruttura', 'posCodicePpm',
     'riuTecnicoNome', 'riuTecnicoQualifica', 'riuRup', 'riuDl'
   ];
@@ -541,7 +545,7 @@ function generaHTMLVerbale(v, imp) {
     : `<div style="font-size:11px;color:#64748b;">LOGO STUDIO</div>`;
 
   const logoDx = imp.logoDestro
-    ? `<img src="${imp.logoDestro}" style="max-height:60px; max-width:180px; object-fit:contain;" alt="Logo ANAS">`
+    ? `<img src="${imp.logoDestro}" style="max-height:60px; max-width:180px; object-fit:contain;" alt="Logo Committente">`
     : `<div style="font-size:11px;color:#64748b;">LOGO COMMITTENTE</div>`;
 
   const dataLabel = v.data

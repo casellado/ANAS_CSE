@@ -83,7 +83,9 @@ const DocxGenerator = {
         return {
             logo_aziendale: imp.logo_aziendale || null,
             header_destro:  imp.header_destro  || '',
-            footer_centrale: imp.footer_centrale || 'CSE SafeHub'
+            footer_centrale: imp.footer_centrale || 'CSE SafeHub',
+            modulo_codice:  imp.modulo_codice  || '',
+            modulo_versione: imp.modulo_versione || ''
         };
     },
 
