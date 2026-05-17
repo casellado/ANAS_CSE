@@ -1,8 +1,8 @@
-// db.js - Gestione IndexedDB for SafeHub v3 (v12)
+// db.js - Gestione IndexedDB for SafeHub v3 (v13)
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 12;
+const DB_VERSION = 13;
 
 const STORES_CONFIG = {
   // Globali
