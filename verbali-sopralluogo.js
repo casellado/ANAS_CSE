@@ -782,7 +782,9 @@ async function eseguiFinalizzazione() {
     }
 
     // Solo ora salva come finalizzato
-    const verbale = { ...dati, stato: 'finalizzato', modifiedAt: new Date().toISOString() };
+    const _cantiereSnap = await getItem('projects', dati.projectId);
+    const _snapshot = typeof risolviSnapshotRuoli === 'function' ? await risolviSnapshotRuoli(_cantiereSnap) : {};
+    const verbale = { ...dati, ..._snapshot, stato: 'finalizzato', modifiedAt: new Date().toISOString() };
     await saveItem('verbali', verbale);
 
     // GAP 1: Creazione Record NC Reali

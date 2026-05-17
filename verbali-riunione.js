@@ -799,6 +799,9 @@ async function eseguiFinalizzazioneRiunione() {
     }
     verbale.stato = 'FINALIZZATO';
     verbale.dataFinalizzazione = new Date().toISOString();
+    const _cantiereSnap = await getItem('projects', verbale.projectId);
+    const _snapshot = typeof risolviSnapshotRuoli === 'function' ? await risolviSnapshotRuoli(_cantiereSnap) : {};
+    Object.assign(verbale, _snapshot);
     await _saveVerbaleRiunioneDB(verbale);
     _verbaleRiunioneEsistente = verbale;
 

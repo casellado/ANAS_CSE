@@ -459,6 +459,31 @@ async function apriAnagraficaEditMode() {
 }
 
 // ─────────────────────────────────────────────
+// SNAPSHOT RUOLI (per finalizzazione verbali)
+// ─────────────────────────────────────────────
+
+async function risolviSnapshotRuoli(cantiere) {
+    if (!cantiere) return {};
+    const snapshot = {};
+    const MAPPA = {
+        rupId:               'rupSnapshot',
+        dlId:                'dlSnapshot',
+        responsabileLavoriId: 'responsabileLavoriSnapshot',
+        ispettoreCantiereId: 'ispettoreCantiereSnapshot'
+    };
+    for (const [fkField, snapField] of Object.entries(MAPPA)) {
+        const id = cantiere[fkField];
+        if (id) {
+            const p = await getItem('persone_anas', id);
+            snapshot[snapField] = p ? `${p.cognome || ''} ${p.nome || ''}`.trim() : null;
+        } else {
+            snapshot[snapField] = null;
+        }
+    }
+    return snapshot;
+}
+
+// ─────────────────────────────────────────────
 // EXPORTS
 // ─────────────────────────────────────────────
 
@@ -467,6 +492,7 @@ window.salvaAnagraficaCantiere   = salvaAnagraficaCantiere;
 window.calcolaDataFineLavori     = calcolaDataFineLavori;
 window.datiAmministrativiIncompleti = datiAmministrativiIncompleti;
 window.apriAnagraficaEditMode    = apriAnagraficaEditMode;
+window.risolviSnapshotRuoli      = risolviSnapshotRuoli;
 window._aggiornaDataFineCalcolata = _aggiornaDataFineCalcolata;
 window._validaCupCig             = _validaCupCig;
 window._validaDateOperative      = _validaDateOperative;
