@@ -1004,3 +1004,229 @@ function confermaFirmaPresente(idx) {
     renderPresenti();
     showToast("Firma acquisita ✓", "success");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 5.1-bis — Allegati foto, anteprima stampa, visto Titolare
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Allegati foto ────────────────────────────────────────────────────────────
+function _fileToDataUrlVS(file) {
+    return new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsDataURL(file); });
+}
+
+async function handleFotoUploadVS(files) {
+    if (!window._vsAllegatiFoto) window._vsAllegatiFoto = [];
+    for (const file of Array.from(files)) {
+        if (window._vsAllegatiFoto.length >= 20) { showToast('Max 20 foto per verbale.', 'warning'); break; }
+        if (file.size > 5 * 1024 * 1024) { showToast(`${file.name}: supera 5 MB, ignorato.`, 'warning'); continue; }
+        const dataUrl = await _fileToDataUrlVS(file);
+        window._vsAllegatiFoto.push({
+            id: 'foto_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+            nome: file.name, mimeType: file.type,
+            dimensioneBytes: file.size, timestamp: new Date().toISOString(), dataUrl
+        });
+    }
+    renderAllegatiFotoVS();
+}
+
+function handleFotoDropVS(event) {
+    event.preventDefault();
+    if (event.dataTransfer?.files) handleFotoUploadVS(event.dataTransfer.files);
+}
+
+function rimuoviFotoVS(idx) {
+    if (!window._vsAllegatiFoto) return;
+    window._vsAllegatiFoto.splice(idx, 1);
+    renderAllegatiFotoVS();
+}
+
+function renderAllegatiFotoVS() {
+    const container = document.getElementById('vs-lista-allegati-foto');
+    if (!container) return;
+    const foto = window._vsAllegatiFoto || [];
+    const isFin = !document.getElementById('v-data') || document.getElementById('v-data').disabled;
+    if (!foto.length) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-2">Nessun allegato fotografico.</p>';
+        return;
+    }
+    container.innerHTML = '<div class="grid grid-cols-3 md:grid-cols-5 gap-3">' + foto.map((f, i) => `
+    <div class="relative group">
+        <img src="${f.dataUrl}" alt="${escapeHtml(f.nome)}" class="w-full h-24 object-cover rounded-xl border border-slate-200">
+        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition rounded-xl flex flex-col items-center justify-center gap-1">
+            <span class="text-white text-[9px] font-bold px-1 truncate w-full text-center">${escapeHtml(f.nome)}</span>
+            <span class="text-slate-300 text-[9px]">${(f.dimensioneBytes/1024).toFixed(0)} KB</span>
+            ${!isFin ? `<button onclick="rimuoviFotoVS(${i})" class="bg-red-600 text-white px-2 py-0.5 rounded text-[9px] font-bold">✕</button>` : ''}
+        </div>
+    </div>`).join('') + '</div>';
+}
+
+async function scaricaAllegatiFotoVerbale(verbaleId) {
+    const verbale = await getItem('verbali', verbaleId);
+    if (!verbale?.allegatiFoto?.length) { showToast('Nessuna foto da scaricare.', 'warning'); return; }
+    if (typeof JSZip === 'undefined') { showToast('Libreria JSZip non disponibile.', 'error'); return; }
+    const zip = new JSZip();
+    const folder = zip.folder('Foto_Sopralluogo');
+    verbale.allegatiFoto.forEach((f, i) => {
+        const prefix = String(i + 1).padStart(3, '0') + '_';
+        folder.file(prefix + f.nome, f.dataUrl.split(',')[1], { base64: true });
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const numProg = (verbale.numeroProgressivo || String(verbale.id)).replace(/\//g, '_');
+    const dataStr = (verbale.dataSopralluogo || '').replace(/-/g, '');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Foto_Verbale_VS_${numProg}_${dataStr}.zip`;
+    link.click();
+    showToast('ZIP foto scaricato ✓', 'success');
+}
+
+// ─── Anteprima stampa ─────────────────────────────────────────────────────────
+async function mostraAnteprimaVerbale(verbaleId) {
+    let verbale;
+    if (verbaleId) {
+        verbale = await getItem('verbali', verbaleId);
+    } else {
+        // genera da form corrente senza salvare
+        verbale = { ...(window._verbaleEsistente || {}), ..._raccogliDatiForm(), allegatiFoto: window._vsAllegatiFoto || [] };
+    }
+    if (!verbale) { showToast('Verbale non trovato.', 'error'); return; }
+
+    let blob;
+    try { blob = await _generaDocxVerbaleVS(verbale); }
+    catch (err) { alert('Impossibile generare anteprima: ' + err.message); return; }
+
+    const isBozza = verbale.stato !== 'finalizzato';
+    document.getElementById('modal-anteprima-vs')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modal-anteprima-vs';
+    modal.className = 'fixed inset-0 bg-black/80 z-[4000] flex flex-col';
+    modal.innerHTML = `
+    <div class="bg-slate-900 text-white px-6 py-4 flex items-center gap-4 shrink-0">
+        <span class="font-bold">📝 Anteprima Verbale di Sopralluogo</span>
+        ${isBozza ? '<span class="bg-yellow-400 text-black text-xs font-black px-3 py-1 rounded-full">⚠ BOZZA — non legalmente valida</span>' : '<span class="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">FINALIZZATO</span>'}
+        <div class="ml-auto flex gap-2">
+            <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm font-semibold">🖨 Stampa</button>
+            <button onclick="_scaricaWordDaBlob_VS()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold">📄 Scarica Word</button>
+            <button onclick="document.getElementById('modal-anteprima-vs').remove()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-semibold">✕ Chiudi</button>
+        </div>
+    </div>
+    <div class="flex-1 overflow-auto bg-white p-4">
+        <div id="docx-preview-inner-vs" class="max-w-4xl mx-auto"></div>
+    </div>`;
+    document.body.appendChild(modal);
+    window._currentAnteprimaBlobVS = blob;
+
+    const renderLib = (typeof docx !== 'undefined' && typeof docx.renderAsync === 'function') ? docx
+                    : (typeof window.docxPreview !== 'undefined' && typeof window.docxPreview.renderAsync === 'function') ? window.docxPreview
+                    : null;
+    if (renderLib) {
+        try {
+            const arrayBuffer = await blob.arrayBuffer();
+            const bodyEl = document.getElementById('docx-preview-inner-vs');
+            const styleEl = document.createElement('div');
+            styleEl.id = 'docx-style-vs';
+            document.head.appendChild(styleEl);
+            await renderLib.renderAsync(arrayBuffer, bodyEl, styleEl, {
+                className: 'docx-preview', inWrapper: true, ignoreHeight: true, breakPages: true, renderHeaders: true, renderFooters: true
+            });
+        } catch (e) {
+            console.error('[docx-preview VS]', e);
+            document.getElementById('docx-preview-inner-vs').innerHTML = `<p class="text-red-500 text-sm p-4">Errore rendering: ${e.message}</p>`;
+        }
+    } else {
+        document.getElementById('docx-preview-inner-vs').innerHTML = `
+        <div class="text-center py-16 text-slate-400">
+            <p class="text-4xl mb-4">📄</p><p class="font-semibold">Anteprima non disponibile.</p>
+            <p class="text-sm mt-2">Usa "Scarica Word" per visualizzare il documento.</p>
+        </div>`;
+    }
+}
+
+function _scaricaWordDaBlob_VS() {
+    const blob = window._currentAnteprimaBlobVS;
+    if (!blob) return;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Verbale_Sopralluogo_Anteprima.docx';
+    link.click();
+}
+
+// Genera docx dal verbale (usato da anteprima + applicaVistoTitolare)
+async function _generaDocxVerbaleVS(verbale) {
+    const imprese = await getByIndex('imprese', 'projectId', verbale.projectId);
+    const mezziCantiere = verbale.includiTabellaMezzi ? await getByIndex('mezzi', 'projectId', verbale.projectId) : [];
+    const cantiere = await getItem('projects', verbale.projectId);
+    const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => ({})) : {};
+
+    const vistoApposto = verbale.redattoreInfo?.isDelegato && verbale.vistoTitolareNome != null;
+
+    const dataWord = {
+        numero_progressivo: verbale.numeroProgressivo || 'BOZZA',
+        data_sopralluogo: verbale.dataSopralluogo ? new Date(verbale.dataSopralluogo + 'T00:00:00').toLocaleDateString('it-IT') : '—',
+        codice_cantiere: cantiere?.id || cantiere?.codice || '-',
+        nome_cantiere: cantiere?.nome || '-',
+        condizioni_meteo: (verbale.condizioniMeteo || '').toUpperCase(),
+        progressiva_inizio: verbale.progressivaChilometrica?.inizio || '',
+        progressiva_fine: verbale.progressivaChilometrica?.fine || '',
+        oggetto: verbale.oggetto || '',
+        stato_luoghi: verbale.statoLuoghi || '',
+        note_prescrizioni: verbale.notePrescrizioni || '',
+        modulo_codice: imp.modulo_codice || '',
+        modulo_versione: imp.modulo_versione || '',
+
+        imprese_presenti: Array.from(new Set((verbale.presenti || []).map(p => p.impresa))).map(impName => {
+            const impObj = imprese.find(i => i.ragioneSociale === impName);
+            return { ragione_sociale: impName, ruolo: impObj ? impObj.ruolo : 'Esecutrice' };
+        }),
+        referenti_presenti: (verbale.presenti || []).map(p => ({
+            nome_completo: p.nome, qualifica: p.qualifica, impresa: p.impresa
+        })),
+        mezzi_attrezzature: mezziCantiere.map(m => ({
+            tipologia: m.tipologia, marca: m.marca, modello: m.modello,
+            matricola: m.matricolaInail || m.targa || '-'
+        })),
+        non_conformita: [],  // già chiuse al momento dell'anteprima
+        presenti_firme: (verbale.presenti || []).map(p => ({
+            nome_completo: p.nome, qualifica: p.qualifica,
+            firma_image: p.firmaBase64 || null,
+            rifiutato: p.rifiuto ? [{}] : [],
+            note_rifiuto: p.noteRifiuto || ''
+        })),
+        firma_cse: verbale.redattoreInfo?.firmaBase64 || null,
+        nome_cse: verbale.redattoreInfo?.nomeRedattore || '',
+        ruolo_cse: verbale.redattoreInfo?.qualifica || '',
+        atto_delega: verbale.redattoreInfo?.isDelegato ? (verbale.redattoreInfo?.attoDelegaRiferimento || '-') : '-',
+        timestamp_firma_cse: verbale.redattoreInfo?.timestampFirma ? new Date(verbale.redattoreInfo.timestampFirma).toLocaleString('it-IT') : '-',
+        data_finalizzazione: verbale.dataFinalizzazione ? new Date(verbale.dataFinalizzazione).toLocaleString('it-IT') : '',
+
+        // Visto titolare (condizionale)
+        mostra_visto: vistoApposto ? [{}] : [],
+        visto_titolare_nome: verbale.vistoTitolareNome || '',
+        visto_titolare_timestamp: verbale.vistoTitolareTimestamp ? new Date(verbale.vistoTitolareTimestamp).toLocaleString('it-IT') : '',
+        visto_titolare_firma: verbale.vistoTitolareFirma || null
+    };
+
+    return DocxGenerator.generate(dataWord);
+}
+
+// ─── Visto CSE Titolare ───────────────────────────────────────────────────────
+async function applicaVistoTitolare(verbaleId, vistoData) {
+    const verbale = await getItem('verbali', verbaleId);
+    if (!verbale) { showToast('Verbale non trovato.', 'error'); return; }
+    verbale.vistoTitolareNome = vistoData.nome;
+    verbale.vistoTitolareFirma = vistoData.firmaBase64;
+    verbale.vistoTitolareTimestamp = new Date().toISOString();
+    await saveItem('verbali', verbale);
+    showToast('Visto Titolare applicato ✓', 'success');
+    return verbale;
+}
+
+window.mostraAnteprimaVerbale        = mostraAnteprimaVerbale;
+window._scaricaWordDaBlob_VS         = _scaricaWordDaBlob_VS;
+window.handleFotoUploadVS            = handleFotoUploadVS;
+window.handleFotoDropVS              = handleFotoDropVS;
+window.rimuoviFotoVS                 = rimuoviFotoVS;
+window.renderAllegatiFotoVS          = renderAllegatiFotoVS;
+window.scaricaAllegatiFotoVerbale    = scaricaAllegatiFotoVerbale;
+window.applicaVistoTitolare          = applicaVistoTitolare;
+window._generaDocxVerbaleVS          = _generaDocxVerbaleVS;
