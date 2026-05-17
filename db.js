@@ -2,7 +2,7 @@
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 15;
+const DB_VERSION = 16;
 
 const STORES_CONFIG = {
   // Globali
@@ -199,6 +199,27 @@ function initDB() {
           for (const [campo, def] of Object.entries(NUOVI_CAMPI_DEFAULT)) {
             if (!(campo in record)) { record[campo] = def; aggiornato = true; }
           }
+          if (aggiornato) cursor.update(record);
+          cursor.continue();
+        };
+      }
+
+      // Migrazione v16: estensione store nc (workflow stato + audit log)
+      if (event.oldVersion < 16 && database.objectStoreNames.contains('nc')) {
+        const ncStore = tx.objectStore('nc');
+        ncStore.openCursor().onsuccess = function(e) {
+          const cursor = e.target.result;
+          if (!cursor) return;
+          const record = cursor.value;
+          let aggiornato = false;
+          // Normalizza stato legacy lowercase → uppercase
+          if (!record.stato || record.stato === 'aperta') { record.stato = 'APERTA'; aggiornato = true; }
+          else if (record.stato === 'in_risoluzione') { record.stato = 'IN_RISOLUZIONE'; aggiornato = true; }
+          else if (record.stato === 'chiusa') { record.stato = 'CHIUSA'; aggiornato = true; }
+          if (!('dataPresaInCarico' in record)) { record.dataPresaInCarico = null; aggiornato = true; }
+          if (!('dataChiusura' in record)) { record.dataChiusura = null; aggiornato = true; }
+          if (!('notaChiusura' in record)) { record.notaChiusura = null; aggiornato = true; }
+          if (!('auditLog' in record)) { record.auditLog = []; aggiornato = true; }
           if (aggiornato) cursor.update(record);
           cursor.continue();
         };
