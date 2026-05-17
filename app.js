@@ -95,6 +95,10 @@ const Router = {
                 container.innerHTML = `<div id="view-anagrafica-cantiere"></div>`;
                 if (window.renderAnagraficaCantiere) await window.renderAnagraficaCantiere();
                 break;
+            case 'VERIFICA_POS':
+                container.innerHTML = `<div id="view-verifica-pos"></div>`;
+                if (window.renderVerifichePos) await window.renderVerifichePos();
+                break;
             case 'IMPOSTAZIONI':
                 container.innerHTML = `<div id="view-impostazioni"></div>`;
                 if (window.renderViewImpostazioni) await window.renderViewImpostazioni('view-impostazioni');
