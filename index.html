@@ -52,6 +52,7 @@
     <script defer src="./docx-generator.js"></script>
     <script defer src="./verbali-sopralluogo.js"></script>
     <script defer src="./verbali-riunione.js"></script>
+    <script defer src="./cantiere-anagrafica.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -122,6 +123,17 @@
         <!-- SIDEBAR CANTIERE -->
         <aside class="w-72 bg-slate-900 text-slate-400 flex flex-col border-r border-slate-800 shrink-0">
             <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+
+                <!-- Cantiere -->
+                <div>
+                    <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-3">Cantiere</h4>
+                    <div class="space-y-1">
+                        <button onclick="Router.navSubView('ANAGRAFICA_CANTIERE')" id="nav-ANAGRAFICA_CANTIERE"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>📋</span> Anagrafica Cantiere
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Operatività -->
                 <div>

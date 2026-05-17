@@ -91,6 +91,10 @@ const Router = {
                 container.innerHTML = `<div id="view-verbali-riunione"></div>`;
                 if (window.renderVerbaliRiunione) await window.renderVerbaliRiunione();
                 break;
+            case 'ANAGRAFICA_CANTIERE':
+                container.innerHTML = `<div id="view-anagrafica-cantiere"></div>`;
+                if (window.renderAnagraficaCantiere) await window.renderAnagraficaCantiere();
+                break;
             case 'IMPOSTAZIONI':
                 container.innerHTML = `<div id="view-impostazioni"></div>`;
                 if (window.renderViewImpostazioni) await window.renderViewImpostazioni('view-impostazioni');
@@ -188,7 +192,17 @@ const CantiereController = {
             return;
         }
 
-        grid.innerHTML = projects.map(p => `
+        grid.innerHTML = projects.map(p => {
+            const incompleto = typeof datiAmministrativiIncompleti === 'function' && datiAmministrativiIncompleti(p);
+            const badge = incompleto
+                ? `<div class="mt-2">
+                       <button onclick="event.stopPropagation(); Router.nav('CANTIERE','${p.id}').then(()=>apriAnagraficaEditMode())"
+                               class="bg-red-50 text-red-600 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-red-200 hover:bg-red-100 transition">
+                           ⚠ Dati amministrativi incompleti
+                       </button>
+                   </div>`
+                : '';
+            return `
             <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm card-hover cursor-pointer flex flex-col justify-between group" onclick="Router.nav('CANTIERE', '${p.id}')">
                 <div>
                     <div class="flex justify-between items-start mb-4">
@@ -196,13 +210,14 @@ const CantiereController = {
                         <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="event.stopPropagation(); CantiereController.elimina('${p.id}')">🗑️</button>
                     </div>
                     <h3 class="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${p.nome}</h3>
+                    ${badge}
                 </div>
                 <div class="mt-8 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                     <span>Creato: ${new Date(p.createdAt).toLocaleDateString()}</span>
                     <span class="text-blue-600">Entra →</span>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     },
 
     async elimina(id) {
