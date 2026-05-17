@@ -284,7 +284,7 @@ function renderViewAnas(container) {
       <div class="flex justify-between items-center">
         <div>
           <h2 class="text-3xl font-bold text-slate-900">Sicurezza &amp; Personale</h2>
-          <p class="text-slate-500 text-sm mt-1">Referenti tecnici e ruoli di coordinamento ANAS</p>
+          <p class="text-slate-500 text-sm mt-1">Referenti tecnici e ruoli di coordinamento</p>
         </div>
         <button onclick="apriModalAnas()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition">+ Nuovo</button>
       </div>
@@ -336,12 +336,12 @@ function renderViewAnas(container) {
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Matricola ANAS</label>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Matricola</label>
               <input type="text" id="anas-matricola" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400" placeholder="Opzionale">
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Struttura Territoriale</label>
-              <input type="text" id="anas-struttura" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Es. ST Calabria">
+              <input type="text" id="anas-struttura" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="Es. Struttura Territoriale">
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Email</label>
