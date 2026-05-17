@@ -831,7 +831,10 @@ async function _generaDocxRiunione(verbale) {
         : '—';
 
     const zip = new PizZip(tplRecord.valore);
-    const imageModule = new window.ImageModule({
+    const _ImgModCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
+                     || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
+    if (!_ImgModCtor) throw new Error('ImageModule non caricato. Verifica la connessione internet.');
+    const imageModule = new _ImgModCtor({
         centered: false,
         fileType: 'docx',
         getImage: (tagValue) => DocxGenerator.base64ToBinary(tagValue),

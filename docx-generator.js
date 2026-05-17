@@ -30,7 +30,8 @@ const DocxGenerator = {
             const zip = new PizZip(content);
             
             // Configurazione modulo immagini
-            const ImageModuleCtor = window.ImageModule || window.docxtemplaterImageModuleFree;
+            const ImageModuleCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
+                                 || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
             if (!ImageModuleCtor) {
                 throw new Error("ImageModule non caricato. Controlla la connessione internet per il CDN.");
             }
