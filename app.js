@@ -99,6 +99,10 @@ const Router = {
                 container.innerHTML = `<div id="view-verifica-pos"></div>`;
                 if (window.renderVerifichePos) await window.renderVerifichePos();
                 break;
+            case 'NC':
+                container.innerHTML = `<div id="view-nc"></div>`;
+                if (window.renderNcCruscotto) await window.renderNcCruscotto();
+                break;
             case 'IMPOSTAZIONI':
                 container.innerHTML = `<div id="view-impostazioni"></div>`;
                 if (window.renderViewImpostazioni) await window.renderViewImpostazioni('view-impostazioni');
@@ -138,15 +142,17 @@ const DashboardController = {
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Verbali Emessi</span>
                         <div class="text-4xl font-black text-blue-600">${verbali.length}</div>
                     </div>
-                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition" onclick="Router.navSubView('NC')">
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">NC Aperte</span>
-                        <div class="text-4xl font-black text-red-600">${nc.filter(n => n.stato === 'aperta').length}</div>
+                        <div class="text-4xl font-black text-red-600">${nc.filter(n => n.stato === 'APERTA' || n.stato === 'aperta').length}</div>
                     </div>
                     <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Ultimo Sopralluogo</span>
                         <div class="text-lg font-bold text-slate-800">${verbali.length > 0 ? new Date(verbali[0].data).toLocaleDateString() : 'Nessuno'}</div>
                     </div>
                 </div>
+
+                <div id="dashboard-widget-nc"></div>
 
                 <div class="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-2xl flex justify-between items-center">
                     <div>
@@ -157,6 +163,8 @@ const DashboardController = {
                 </div>
             </div>
         `;
+
+        if (window.renderWidgetNcDashboard) await window.renderWidgetNcDashboard(p.id);
     }
 };
 
