@@ -2,7 +2,7 @@
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 14;
+const DB_VERSION = 15;
 
 const STORES_CONFIG = {
   // Globali
@@ -137,6 +137,17 @@ const STORES_CONFIG = {
       { name: 'stato', keyPath: 'stato' },
       { name: 'numeroProgressivo', keyPath: 'numeroProgressivo' }
     ]
+  },
+  verifica_pos: {
+    keyPath: 'id',
+    autoIncrement: true,
+    indexes: [
+      { name: 'projectId', keyPath: 'projectId' },
+      { name: 'dataDocumento', keyPath: 'dataDocumento' },
+      { name: 'stato', keyPath: 'stato' },
+      { name: 'numeroProgressivo', keyPath: 'numeroProgressivo' },
+      { name: 'impresaId', keyPath: 'impresaId' }
+    ]
   }
 };
 
@@ -264,7 +275,7 @@ async function eliminaCantiere(projectId) {
   const STORES_CANTIERE = [
     'imprese', 'persone_anas', 'persone_terzi', 'lavoratori',
     'mezzi', 'verbali', 'verbali_riunione', 'eventi_incidentali', 'aggiornamenti_psc',
-    'verifiche_pos', 'nc', 'ods_inviati',
+    'verifiche_pos', 'verifica_pos', 'nc', 'ods_inviati',
     'ods_ricevuti', 'lettere_sospensione', 'diario_cse', 'documenti'
   ];
   
