@@ -917,11 +917,32 @@ async function _mostraAnteprimaConVerbale(verbale) {
     document.body.appendChild(modal);
     window._currentAnteprimaBlobRC = blob;
 
-    if (typeof docx !== 'undefined' && docx.renderAsync) {
+    const renderLib = (typeof docx !== 'undefined' && typeof docx.renderAsync === 'function') ? docx
+                    : (typeof window.docxPreview !== 'undefined' && typeof window.docxPreview.renderAsync === 'function') ? window.docxPreview
+                    : null;
+
+    if (renderLib) {
         try {
-            await docx.renderAsync(blob, document.getElementById('docx-preview-inner-rc'), null, { className: 'docx-preview', inWrapper: true, ignoreHeight: true });
+            // Converte Blob → ArrayBuffer (richiesto da alcune versioni della libreria)
+            const arrayBuffer = await blob.arrayBuffer();
+            const bodyContainer = document.getElementById('docx-preview-inner-rc');
+            // styleContainer dedicato per evitare contaminazione CSS globale
+            const styleContainer = document.createElement('div');
+            styleContainer.id = 'docx-style-container-rc';
+            document.head.appendChild(styleContainer);
+            await renderLib.renderAsync(arrayBuffer, bodyContainer, styleContainer, {
+                className: 'docx-preview',
+                inWrapper: true,
+                ignoreWidth: false,
+                ignoreHeight: true,
+                breakPages: true,
+                renderHeaders: true,
+                renderFooters: true,
+                renderFootnotes: true
+            });
         } catch (e) {
-            document.getElementById('docx-preview-inner-rc').innerHTML = `<p class="text-red-500 text-sm p-4">Rendering non disponibile: ${e.message}</p>`;
+            console.error('[docx-preview]', e);
+            document.getElementById('docx-preview-inner-rc').innerHTML = `<p class="text-red-500 text-sm p-4">Errore rendering: ${e.message}</p>`;
         }
     } else {
         document.getElementById('docx-preview-inner-rc').innerHTML = `
