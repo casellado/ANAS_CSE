@@ -2,7 +2,7 @@
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 13;
+const DB_VERSION = 14;
 
 const STORES_CONFIG = {
   // Globali
@@ -151,7 +151,8 @@ function initDB() {
 
     req.onupgradeneeded = (event) => {
       const database = event.target.result;
-      
+      const tx = event.target.transaction;
+
       // Creazione automatica degli store basata su STORES_CONFIG
       for (const [storeName, config] of Object.entries(STORES_CONFIG)) {
         if (!database.objectStoreNames.contains(storeName)) {
@@ -162,6 +163,34 @@ function initDB() {
             });
           }
         }
+      }
+
+      // Migrazione v14: estensione anagrafica cantiere (projects)
+      if (event.oldVersion < 14 && database.objectStoreNames.contains('projects')) {
+        const projectsStore = tx.objectStore('projects');
+        const NUOVI_CAMPI_DEFAULT = {
+          ssNumero: null, progressivaInizio: null, progressivaFine: null, strutturaTerritoriale: null,
+          codicePpmSil: null, commessaNumero: null, voceBudget: null, cup: null, cig: null,
+          contrattoNumero: null, contrattoData: null, importoContratto: null,
+          dataConsegnaLavori: null, durataContrattuale: null, giorniSospensione: 0,
+          rupId: null, dlId: null, cseTitolareId: null, cseDelegatoId: null,
+          ispettoreCantiereId: null, responsabileLavoriId: null,
+          cspNome: null, cspQualifica: null, cspRecapito: null,
+          committente: null,
+          dataInizioEffettiva: null, dataFineEffettiva: null,
+          impresaAffidatariaId: null, direttoreTecnicoNome: null, direttoreCantiereNome: null
+        };
+        projectsStore.openCursor().onsuccess = function(e) {
+          const cursor = e.target.result;
+          if (!cursor) return;
+          const record = cursor.value;
+          let aggiornato = false;
+          for (const [campo, def] of Object.entries(NUOVI_CAMPI_DEFAULT)) {
+            if (!(campo in record)) { record[campo] = def; aggiornato = true; }
+          }
+          if (aggiornato) cursor.update(record);
+          cursor.continue();
+        };
       }
     };
 
