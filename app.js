@@ -353,7 +353,7 @@ const PersoneController = {
             <div class="space-y-8 animate-in fade-in">
                 <header class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-900">${isAnas ? 'Sicurezza & ANAS' : 'Enti Terzi'}</h2>
+                        <h2 class="text-3xl font-bold text-slate-900">${isAnas ? 'Sicurezza & Personale' : 'Enti Terzi'}</h2>
                         <p class="text-slate-500">${isAnas ? 'Referenti tecnici e ruoli di coordinamento' : 'Autorità e consulenti esterni'}</p>
                     </div>
                     <button onclick="PersoneController.apriModal('${tipo}')" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all">+ Nuovo</button>
