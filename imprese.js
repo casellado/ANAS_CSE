@@ -155,10 +155,12 @@ async function apriModalImpresa(id = null) {
   document.getElementById('msg-subappalto-locked').classList.add('page-hidden');
 
   // Popola Dropdown Affidatarie/Esecutrici
+  // Bug fix: allImprese dichiarata fuori dal try, altrimenti è out-of-scope nel blocco if(id) sotto
+  let allImprese = [];
   const selectSub = document.getElementById('impresa-subappalto-di');
   selectSub.innerHTML = '<option value="">-- Seleziona impresa --</option>';
   try {
-    const allImprese = await getByIndex('imprese', 'projectId', projectId);
+    allImprese = await getByIndex('imprese', 'projectId', projectId);
     const primarie = allImprese.filter(i => (i.ruolo === 'AFFIDATARIA' || i.ruolo === 'ESECUTRICE') && i.id !== id);
     primarie.forEach(p => {
       const opt = document.createElement('option');
@@ -171,7 +173,7 @@ async function apriModalImpresa(id = null) {
   }
 
   if (id) {
-    // Modifica: pre-popola i dati (usa la cache già caricata per il dropdown)
+    // Modifica: pre-popola i dati (allImprese già caricata sopra)
     try {
       const impresa = allImprese.find(i => i.id === id);
       if (impresa) {

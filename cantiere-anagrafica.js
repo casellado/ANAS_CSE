@@ -234,7 +234,8 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
     };
 
     const dropdownImprese = (id, valore) => {
-        const affidatarie = imprese.filter(i => i.ruolo === 'Affidataria');
+        // Bug fix: le imprese sono salvate con ruolo 'AFFIDATARIA' (uppercase), non 'Affidataria'
+        const affidatarie = imprese.filter(i => i.ruolo === 'AFFIDATARIA');
         if (affidatarie.length === 0) {
             return `<select id="${id}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-amber-50 text-amber-700">
                 <option value="">⚠ Nessuna impresa Affidataria</option>

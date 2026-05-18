@@ -166,7 +166,8 @@ async function apriFormVerificaPos(id) {
     const projectId = sessionStorage.getItem('currentProjectId');
     const cantiere = await getItem('projects', projectId);
     const imprese = await getByIndex('imprese', 'projectId', projectId);
-    const affidatarie = imprese.filter(i => i.ruolo === 'Affidataria');
+    // Bug fix: ruolo salvato come 'AFFIDATARIA' uppercase, non 'Affidataria'
+    const affidatarie = imprese.filter(i => i.ruolo === 'AFFIDATARIA');
 
     let record = null;
     if (id) {
