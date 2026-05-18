@@ -4,6 +4,12 @@
 // 1. Gestione Tabs Dashboard (accessibilità)
 // ─────────────────────────────────────────────
 function initDashboardTabs() {
+  // Fix HIGH: reset del lazy-load cache ad ogni ingresso nel cantiere.
+  // Senza questo, navigando tra cantieri diversi nella SPA i tab mostrano
+  // i dati del cantiere precedente (Cross-Project Data Leakage).
+  loadedPanels.clear();
+  loadedPanels.add('kpi');
+
   const tabs   = document.querySelectorAll('[data-tab]');
   const panels = document.querySelectorAll('[data-panel]');
 
@@ -67,6 +73,10 @@ async function activateTab(target, tabs, panels) {
 // ─────────────────────────────────────────────
 async function aggiornaBadgeDashboard() {
   try {
+    // TODO ARCH (OOM): getNCList() e getVerbaliForCurrentProject() deserializzano
+    // l'intera collezione in RAM, incluse le foto Base64 e gli ArrayBuffer degli allegati.
+    // Soluzione: contatori separati (es. store 'kpi_cache' aggiornato ad ogni write)
+    // oppure IDBKeyRange cursor limitato per projectId senza materializzare l'array.
     const nc      = await getNCList();
     const verbali = await getVerbaliForCurrentProject();
 

@@ -3,6 +3,7 @@
 let currentFiltroAnas = 'Tutti';
 let currentOrdinamentoAnas = 'alfabetico'; // 'alfabetico' o 'ruolo'
 let anasDaEliminare = null;
+let _anasCache = []; // cache locale per evitare double-fetch
 
 // Ordine gerarchico dei ruoli per l'ordinamento
 const RUOLI_ORDER = {
@@ -40,12 +41,15 @@ async function renderAnas(filtroRuolo = null, toggleOrdinamento = false) {
     btnActive.classList.remove('bg-white', 'text-slate-600');
     btnActive.classList.add('active', 'bg-slate-800', 'text-white');
   }
+  const btnSort = document.getElementById('btn-sort-anas');
+  if (btnSort) btnSort.textContent = currentOrdinamentoAnas === 'ruolo' ? '⇅ Ordine: Ruolo' : '⇅ Ordine: A→Z';
 
   const grid = document.getElementById('anas-grid');
   grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Caricamento personale...</div>';
 
   try {
     const allAnas = await getByIndex('persone_anas', 'projectId', projectId);
+    _anasCache = allAnas;
     
     // Filtro per ruolo
     let filtered = allAnas;
@@ -82,7 +86,8 @@ async function renderAnas(filtroRuolo = null, toggleOrdinamento = false) {
     }
 
     grid.innerHTML = '';
-    
+    const fragment = document.createDocumentFragment();
+
     for (const persona of filtered) {
       const card = document.createElement('div');
       card.className = "bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col hover:shadow-md transition overflow-hidden";
@@ -141,8 +146,9 @@ async function renderAnas(filtroRuolo = null, toggleOrdinamento = false) {
           </button>
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     }
+    grid.appendChild(fragment);
   } catch (err) {
     console.error("Errore render Sicurezza:", err);
     grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento del personale di sicurezza.</div>';
@@ -165,7 +171,7 @@ async function apriModalAnas(id = null) {
   if (id) {
     // Modifica: pre-popola i dati
     try {
-      const persona = await getItem('persone_anas', id);
+      const persona = _anasCache.find(p => p.id === id) || await getItem('persone_anas', id);
       if (persona) {
         document.getElementById('anas-id').value = persona.id;
         document.getElementById('anas-nome').value = persona.nome || '';
@@ -261,6 +267,27 @@ async function eseguiEliminaAnas() {
   if (!anasDaEliminare) return;
 
   try {
+    // Guard: blocca se la persona è FK attiva nell'organigramma del cantiere corrente
+    const projectId = sessionStorage.getItem('currentProjectId');
+    if (projectId) {
+      const cantiere = await getItem('projects', projectId);
+      if (cantiere) {
+        const FK_ETICHETTE = {
+          rupId: 'RUP', dlId: 'Direttore Lavori', cseTitolareId: 'CSE Titolare',
+          cseDelegatoId: 'CSE Delegato', ispettoreCantiereId: 'Ispettore di Cantiere',
+          responsabileLavoriId: 'Responsabile Lavori'
+        };
+        const ruoloAttivo = Object.keys(FK_ETICHETTE).find(k => cantiere[k] === anasDaEliminare);
+        if (ruoloAttivo) {
+          showToast(
+            `Impossibile eliminare: questa persona è incaricata come ${FK_ETICHETTE[ruoloAttivo]} nel cantiere. Rimuovere l'incarico dall'Anagrafica Cantiere prima di procedere.`,
+            'error'
+          );
+          return;
+        }
+      }
+    }
+
     // FASE 4.2: Nessun cascade sui verbali (storicità)
     await deleteItem('persone_anas', anasDaEliminare);
 
@@ -296,6 +323,7 @@ function renderViewAnas(container) {
         <button onclick="renderAnas('CSE_TITOLARE')" class="filter-btn-anas filter-anas-CSE_TITOLARE px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">CSE Titolare</button>
         <button onclick="renderAnas('CSE_DELEGATO')" class="filter-btn-anas filter-anas-CSE_DELEGATO px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">CSE Delegato</button>
         <button onclick="renderAnas('ISPETTORE_CANTIERE')" class="filter-btn-anas filter-anas-ISPETTORE_CANTIERE px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 transition">Ispettore</button>
+        <button id="btn-sort-anas" onclick="renderAnas(null, true)" class="ml-auto px-4 py-2 rounded-lg text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition" title="Alterna ordinamento alfabetico / per ruolo">⇅ Ordine: A→Z</button>
       </div>
       <div id="anas-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
@@ -307,7 +335,7 @@ function renderViewAnas(container) {
           <h3 id="modal-anas-title" class="text-xl font-bold text-slate-800">Nuova Persona</h3>
           <button onclick="chiudiModalAnas()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
         </div>
-        <form id="form-anas" onsubmit="salvaAnas(event)" class="p-6 space-y-4">
+        <form id="form-anas" class="p-6 space-y-4">
           <input type="hidden" id="anas-id">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -372,6 +400,8 @@ function renderViewAnas(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('form-anas').addEventListener('submit', salvaAnas);
 
   renderAnas();
 }

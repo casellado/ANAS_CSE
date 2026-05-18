@@ -29,7 +29,10 @@ async function calcolaKPI() {
       if (!n.dataApertura || !n.dataChiusura) return acc;
       return acc + (new Date(n.dataChiusura) - new Date(n.dataApertura));
     }, 0);
-    tempoMedio = Math.round(totMs / chiuse.length / (1000 * 60 * 60)); // ore
+    // Fix MEDIUM: divisore = solo NC con entrambe le date, non tutte le chiuse
+    // (le NC senza dataChiusura contribuiscono 0 al numeratore ma gonfierebbero il divisore)
+    const denom = chiuse.filter(n => n.dataApertura && n.dataChiusura).length || 1;
+    tempoMedio = Math.round(totMs / denom / (1000 * 60 * 60)); // ore
   }
 
   const score = Math.max(0, 100 - (aperte.length * 10 + gravissime.length * 20));
@@ -62,12 +65,14 @@ function animateCountUp(el, targetStr, duration = 600) {
   const startTime = performance.now();
   
   function step(now) {
+    // Fix LOW: uscita early se il nodo è stato rimosso dal DOM durante l'animazione
+    if (!el.isConnected) return;
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-    
+
     el.textContent = Math.round(startNum + range * eased) + suffix;
-    
+
     if (progress < 1) requestAnimationFrame(step);
     else el.textContent = targetStr; // fine
   }
@@ -143,6 +148,10 @@ async function renderAttivitaRecente() {
   if (!projectId) return;
 
   try {
+    // TODO ARCH (OOM): getNCForCurrentProject() e getVerbaliForCurrentProject() deserializzano
+    // l'intera collezione in RAM, incluse le foto Base64 e gli ArrayBuffer degli allegati.
+    // Soluzione: splitting in object store dedicati (allegati_nc, allegati_verbali) in modo
+    // che i record root restino < 2KB; oppure cursor IDBKeyRange limitato per projectId.
     // Recupera tutto del cantiere (NC e Verbali)
     const ncList = await getNCForCurrentProject();
     const verList = await getVerbaliForCurrentProject();

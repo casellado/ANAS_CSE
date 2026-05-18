@@ -7,6 +7,8 @@
 let _ncSortCol = 'data';
 let _ncSortDir = 'desc';
 let _ncFiltriCorrente = {};
+let _ncFilterRendering = false;
+let _ncFilterPending = false;
 
 // ─────────────────────────────────────────────
 // UTILITY
@@ -14,8 +16,8 @@ let _ncFiltriCorrente = {};
 
 function isScaduta(nc) {
     if (nc.stato === 'CHIUSA') return false;
-    if (!nc.scadenza) return false;
-    return new Date(nc.scadenza + 'T23:59:59') < new Date();
+    if (!nc.dataScadenza) return false;
+    return new Date(nc.dataScadenza).getTime() < Date.now();
 }
 
 function _badgeLivello(livello) {
@@ -159,6 +161,11 @@ async function riaperturaNc(ncId, motivoRiapertura) {
 // EXPORT CSV
 // ─────────────────────────────────────────────
 
+function _sanitizeCsvField(val) {
+    const s = String(val ?? '');
+    return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
+
 async function esportaCsvNc(projectId, filtri = {}) {
     const lista = await listaNcCantiere(projectId, filtri);
     const imprese = await getByIndex('imprese', 'projectId', projectId);
@@ -171,13 +178,13 @@ async function esportaCsvNc(projectId, filtri = {}) {
         nc.livello || '',
         _fmtData(nc.data || nc.createdAt),
         impMap[nc.impresaId] || '',
-        (nc.descrizione || '').replace(/"/g, '""'),
-        _fmtData(nc.scadenza),
+        _sanitizeCsvField(nc.descrizione || '').replace(/"/g, '""'),
+        _fmtData(nc.dataScadenza),
         nc.stato || '',
         isScaduta(nc) ? 'SI' : 'NO',
         nc.dataPresaInCarico ? _fmtDataOra(nc.dataPresaInCarico) : '',
         nc.dataChiusura ? _fmtDataOra(nc.dataChiusura) : '',
-        (nc.notaChiusura || '').replace(/"/g, '""'),
+        _sanitizeCsvField(nc.notaChiusura || '').replace(/"/g, '""'),
         nc.verbaleOrigineId || ''
     ]);
 
@@ -297,9 +304,16 @@ function _debounceNc() {
 }
 
 async function _applicaFiltriNc() {
-    const projectId = sessionStorage.getItem('currentProjectId');
-    _ncFiltriCorrente = _leggiFiltriForms();
-    await _renderListaNc(projectId);
+    if (_ncFilterRendering) { _ncFilterPending = true; return; }
+    _ncFilterRendering = true;
+    try {
+        const projectId = sessionStorage.getItem('currentProjectId');
+        _ncFiltriCorrente = _leggiFiltriForms();
+        await _renderListaNc(projectId);
+    } finally {
+        _ncFilterRendering = false;
+        if (_ncFilterPending) { _ncFilterPending = false; _applicaFiltriNc(); }
+    }
 }
 
 function _resetFiltriNc() {
@@ -347,7 +361,7 @@ async function _renderListaNc(projectId) {
                     ${_thSort('livello', 'Livello')}
                     <th class="px-3 py-3">Impresa</th>
                     <th class="px-3 py-3">Descrizione</th>
-                    ${_thSort('scadenza', 'Scadenza')}
+                    ${_thSort('dataScadenza', 'Scadenza')}
                     ${_thSort('stato', 'Stato')}
                     <th class="px-3 py-3 text-right">Azioni</th>
                 </tr>
@@ -372,7 +386,7 @@ async function _renderListaNc(projectId) {
                     <td class="px-3 py-2.5">${_badgeLivello(nc.livello)}</td>
                     <td class="px-3 py-2.5 text-xs max-w-[120px] truncate">${escapeHtml(impMap[nc.impresaId] || '—')}</td>
                     <td class="px-3 py-2.5 text-xs max-w-[200px]"><span class="line-clamp-2">${escapeHtml(nc.descrizione || '—')}</span></td>
-                    <td class="px-3 py-2.5 text-xs whitespace-nowrap ${nc.scadenza && new Date(nc.scadenza) < new Date() && nc.stato !== 'CHIUSA' ? 'text-red-600 font-bold' : ''}">${_fmtData(nc.scadenza)}</td>
+                    <td class="px-3 py-2.5 text-xs whitespace-nowrap ${nc.dataScadenza && new Date(nc.dataScadenza) < new Date() && nc.stato !== 'CHIUSA' ? 'text-red-600 font-bold' : ''}">${_fmtData(nc.dataScadenza)}</td>
                     <td class="px-3 py-2.5">${_badgeStato(nc)}</td>
                     <td class="px-3 py-2.5 text-right">${_menuAzioniNc(nc)}</td>
                 </tr>`;
@@ -398,7 +412,7 @@ async function _renderListaNc(projectId) {
                 <p class="text-sm text-slate-700 line-clamp-2 mb-2">${escapeHtml(nc.descrizione || '—')}</p>
                 <div class="flex gap-3 text-[10px] text-slate-500">
                     <span>📅 Apertura: ${_fmtData(nc.data || nc.createdAt)}</span>
-                    <span class="${nc.scadenza && new Date(nc.scadenza) < new Date() && nc.stato !== 'CHIUSA' ? 'text-red-600 font-bold' : ''}">⏰ Scad: ${_fmtData(nc.scadenza)}</span>
+                    <span class="${nc.dataScadenza && new Date(nc.dataScadenza) < new Date() && nc.stato !== 'CHIUSA' ? 'text-red-600 font-bold' : ''}">⏰ Scad: ${_fmtData(nc.dataScadenza)}</span>
                 </div>
             </div>`;
         }).join('')}
@@ -433,12 +447,6 @@ async function _confermaPresaInCarico(ncId) {
 }
 
 async function _refreshNcView() {
-    const projectId = sessionStorage.getItem('currentProjectId');
-    await _renderListaNc(projectId);
-    // Aggiorna contatori
-    const contatori = await contatoriNc(projectId);
-    const labels = { aperte: 2, inRisoluzione: 3, scadute: 4, chiuse: 5 };
-    // Semplice refresh dell'intera vista per semplicità
     await renderNcCruscotto();
 }
 
@@ -484,7 +492,7 @@ async function apriDettaglioNc(ncId) {
                 <div><span class="text-[10px] font-bold text-slate-400 uppercase block">Impresa</span><span class="font-semibold">${escapeHtml(impresa?.ragioneSociale || '—')}</span></div>
                 <div><span class="text-[10px] font-bold text-slate-400 uppercase block">Data apertura</span>${_fmtData(nc.data || nc.createdAt)}</div>
                 <div><span class="text-[10px] font-bold text-slate-400 uppercase block">Scadenza</span>
-                    <span class="${isScaduta(nc) ? 'text-red-600 font-bold' : ''}">${_fmtData(nc.scadenza)}${isScaduta(nc) ? ' ⚠ SCADUTA' : ''}</span>
+                    <span class="${isScaduta(nc) ? 'text-red-600 font-bold' : ''}">${_fmtData(nc.dataScadenza)}${isScaduta(nc) ? ' ⚠ SCADUTA' : ''}</span>
                 </div>
                 <div><span class="text-[10px] font-bold text-slate-400 uppercase block">Verbale origine</span>
                     <button onclick="document.getElementById('modal-dettaglio-nc').remove(); _vaiVerbaleOrigine('${nc.verbaleOrigineId}')"

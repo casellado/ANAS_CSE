@@ -2,6 +2,8 @@
 
 let currentFiltroTerzi = 'Tutti';
 let terziDaEliminare = null;
+let _terziCache = [];       // cache locale per evitare double-fetch
+let _terziRendering = false; // lock anti race-condition sui filtri
 
 // ─────────────────────────────────────────────
 // RENDER LISTA TERZI
@@ -11,7 +13,11 @@ async function renderTerzi(filtroTipo = null) {
   if (filtroTipo !== null) currentFiltroTerzi = filtroTipo;
 
   const projectId = sessionStorage.getItem('currentProjectId');
-  if (!projectId) return;
+  if (!projectId) {
+    showToast('Sessione cantiere scaduta. Torna alla dashboard e riseleziona il cantiere.', 'error');
+    setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+    return;
+  }
 
   // Aggiorna UI filtri
   document.querySelectorAll('.filter-btn-terzi').forEach(btn => {
@@ -24,11 +30,15 @@ async function renderTerzi(filtroTipo = null) {
     btnActive.classList.add('active', 'bg-slate-800', 'text-white');
   }
 
+  if (_terziRendering) return;
+  _terziRendering = true;
+
   const grid = document.getElementById('terzi-grid');
   grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Caricamento enti terzi...</div>';
 
   try {
     const allTerzi = await getByIndex('persone_terzi', 'projectId', projectId);
+    _terziCache = allTerzi;
     
     // Filtro per tipoEnte
     let filtered = allTerzi;
@@ -59,7 +69,8 @@ async function renderTerzi(filtroTipo = null) {
     }
 
     grid.innerHTML = '';
-    
+    const fragment = document.createDocumentFragment();
+
     for (const persona of filtered) {
       const card = document.createElement('div');
       card.className = "bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col hover:shadow-md transition overflow-hidden";
@@ -114,11 +125,14 @@ async function renderTerzi(filtroTipo = null) {
           </button>
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     }
+    grid.appendChild(fragment);
   } catch (err) {
     console.error("Errore render Terzi:", err);
     grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento dei dati.</div>';
+  } finally {
+    _terziRendering = false;
   }
 }
 
@@ -138,7 +152,7 @@ async function apriModalTerzi(id = null) {
   if (id) {
     // Modifica: pre-popola i dati
     try {
-      const persona = await getItem('persone_terzi', id);
+      const persona = _terziCache.find(t => t.id === id) || await getItem('persone_terzi', id);
       if (persona) {
         document.getElementById('terzi-id').value = persona.id;
         document.getElementById('terzi-nome').value = persona.nome || '';
@@ -277,7 +291,7 @@ function renderViewTerzi(container) {
           <h3 id="modal-terzi-title" class="text-xl font-bold text-slate-800">Nuova Persona Terza</h3>
           <button onclick="chiudiModalTerzi()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
         </div>
-        <form id="form-terzi" onsubmit="salvaTerzi(event)" class="p-6 space-y-4">
+        <form id="form-terzi" class="p-6 space-y-4">
           <input type="hidden" id="terzi-id">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -335,6 +349,8 @@ function renderViewTerzi(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('form-terzi').addEventListener('submit', salvaTerzi);
 
   renderTerzi();
 }

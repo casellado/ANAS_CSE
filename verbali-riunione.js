@@ -11,6 +11,30 @@ let currentPresentiImprese    = [];
 let currentAllegatiFoto       = [];
 let signatureCanvasesRC       = {};
 let _verbaleRiunioneEsistente = null;
+let _finalizzaRiunioneInProgress = false;
+
+// ─── CANVAS CLEANUP ───────────────────────────────────────────────────────────
+/**
+ * Distrugge un'istanza SignatureCanvas rimuovendo i listener dal DOM orfano.
+ * Previene il memory leak che si accumula ad ogni apertura/chiusura modale firma.
+ */
+function _destroySignatureCanvasRC(key) {
+    const sc = signatureCanvasesRC[key];
+    if (!sc) return;
+    try {
+        if (typeof sc.clear   === 'function') sc.clear();
+        if (typeof sc.off     === 'function') sc.off();
+        if (typeof sc.destroy === 'function') sc.destroy();
+        if (typeof sc.dispose === 'function') sc.dispose();
+    } catch (_e) { /* ignora errori di cleanup */ }
+    delete signatureCanvasesRC[key];
+}
+
+/** Distrugge il canvas associato e rimuove la modale firma. */
+function _chiudiModalFirmaRC(modalId, canvasKey) {
+    _destroySignatureCanvasRC(canvasKey);
+    document.getElementById(modalId)?.remove();
+}
 
 // ─── DB HELPER (autoIncrement: IDB assegna id al primo put) ───────────────────
 function _saveVerbaleRiunioneDB(record) {
@@ -143,6 +167,9 @@ async function handleTemplateUploadRiunione(event) {
 
 // ─── FORM ─────────────────────────────────────────────────────────────────────
 async function apriVerbaleRiunione(id = null) {
+    // Distruggi le istanze canvas precedenti prima di azzerare il dizionario,
+    // in modo da rimuovere i listener agganciati a nodi DOM eventualmente orfani.
+    Object.keys(signatureCanvasesRC).forEach(k => _destroySignatureCanvasRC(k));
     signatureCanvasesRC = {};
     window._rcFirmaCse  = null;
     const projectId = sessionStorage.getItem('currentProjectId');
@@ -490,7 +517,7 @@ function inizializzaFirmaSicurezza(idx) {
     <div class="bg-white rounded-2xl shadow-2xl w-96">
         <div class="bg-slate-800 p-4 text-white flex justify-between rounded-t-2xl">
             <span class="font-bold text-sm">Firma — ${escapeHtml(currentPresentiSicurezza[idx]?.nomeCognome || 'Presente')}</span>
-            <button onclick="document.getElementById('modal-firma-sic').remove()" class="text-xl">×</button>
+            <button onclick="_chiudiModalFirmaRC('modal-firma-sic','sic_${idx}')" class="text-xl">×</button>
         </div>
         <div class="p-6 space-y-4">
             <div id="canvas-sic-${idx}"></div>
@@ -506,6 +533,7 @@ function confermaFirmaSicurezza(idx) {
     const b64 = sc.toDataURL();
     if (!b64) { showToast('Firma vuota.', 'warning'); return; }
     currentPresentiSicurezza[idx].firma = b64;
+    _destroySignatureCanvasRC('sic_' + idx);
     document.getElementById('modal-firma-sic')?.remove();
     renderPresentiSicurezza();
     showToast('Firma acquisita ✓', 'success');
@@ -569,7 +597,7 @@ function inizializzaFirmaImpresa(idx) {
     <div class="bg-white rounded-2xl shadow-2xl w-96">
         <div class="bg-slate-800 p-4 text-white flex justify-between rounded-t-2xl">
             <span class="font-bold text-sm">Firma — ${escapeHtml(currentPresentiImprese[idx]?.ragioneSociale || 'Impresa')}</span>
-            <button onclick="document.getElementById('modal-firma-imp').remove()" class="text-xl">×</button>
+            <button onclick="_chiudiModalFirmaRC('modal-firma-imp','imp_${idx}')" class="text-xl">×</button>
         </div>
         <div class="p-6 space-y-4">
             <div id="canvas-imp-${idx}"></div>
@@ -585,6 +613,7 @@ function confermaFirmaImpresa(idx) {
     const b64 = sc.toDataURL();
     if (!b64) { showToast('Firma vuota.', 'warning'); return; }
     currentPresentiImprese[idx].firma = b64;
+    _destroySignatureCanvasRC('imp_' + idx);
     document.getElementById('modal-firma-imp')?.remove();
     renderPresentiImprese();
     showToast('Firma acquisita ✓', 'success');
@@ -611,6 +640,11 @@ function renderAllegatiFoto() {
 }
 
 async function handleFotoUploadRC(files) {
+    // TODO ARCH (OOM): le foto vengono convertite in Base64 e incorporate nel record JSON
+    // principale. Ogni getByIndex sulla dashboard carica TUTTO il dataset in RAM
+    // (fino a ~700MB per 20 foto × 5MB × fattore Base64 1.33).
+    // Fix definitivo: salvare i blob binari in un object store separato 'allegati_store'
+    // e conservare qui solo i metadati {id, nome, mimeType, dimensioneBytes, timestamp}.
     for (const file of Array.from(files)) {
         if (currentAllegatiFoto.length >= 20) { showToast('Max 20 foto per verbale.', 'warning'); break; }
         if (file.size > 5 * 1024 * 1024) { showToast(`${file.name}: supera 5 MB, ignorato.`, 'warning'); continue; }
@@ -632,6 +666,9 @@ function _fileToDataUrlRC(file) {
 }
 
 async function scaricaAllegatiFotoZip(verbaleId) {
+    // TODO ARCH (RAM): il ciclo scompatta tutte le foto Base64 in memoria simultaneamente
+    // prima di passarle a JSZip. Fix definitivo: separare i blob in 'allegati_store' e
+    // usare stream o concatenazione per chunk invece di allocare l'intero ZIP in RAM.
     const verbale = await getItem('verbali_riunione', verbaleId);
     if (!verbale?.allegatiFoto?.length) { showToast('Nessuna foto da scaricare.', 'warning'); return; }
     if (typeof JSZip === 'undefined') { showToast('Libreria JSZip non disponibile.', 'error'); return; }
@@ -641,10 +678,12 @@ async function scaricaAllegatiFotoZip(verbaleId) {
     const blob = await zip.generateAsync({ type: 'blob' });
     const numProg = (verbale.numeroProgressivo || String(verbale.id)).replace(/\//g, '_');
     const dataStr = (verbale.dataRiunione || '').replace(/-/g, '');
+    const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = blobUrl;
     link.download = `Foto_Verbale_RC_${numProg}_${dataStr}.zip`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
     showToast('ZIP foto scaricato ✓', 'success');
 }
 
@@ -668,6 +707,7 @@ function confermFirmaCSECanvas_RC() {
     const b64 = sc.toDataURL();
     if (!b64) { showToast('Firma vuota.', 'warning'); return; }
     window._rcFirmaCse = b64;
+    _destroySignatureCanvasRC('cse');
     _aggiornaPreviewFirmaCSE_RC(b64);
     showToast('Firma CSE acquisita ✓', 'success');
 }
@@ -756,67 +796,86 @@ async function salvaVerbaleRiunioneForm(nuovoStato = 'BOZZA') {
 
 // ─── FINALIZZAZIONE ───────────────────────────────────────────────────────────
 async function eseguiFinalizzazioneRiunione() {
-    // Acquisisci firme canvas ancora aperte
-    Object.entries(signatureCanvasesRC).forEach(([key, sc]) => {
-        const b64 = sc.toDataURL();
-        if (!b64) return;
-        if (key === 'cse') { window._rcFirmaCse = b64; }
-        else if (key.startsWith('sic_')) { const idx = parseInt(key.split('_')[1]); if (currentPresentiSicurezza[idx]) currentPresentiSicurezza[idx].firma = b64; }
-        else if (key.startsWith('imp_')) { const idx = parseInt(key.split('_')[1]); if (currentPresentiImprese[idx]) currentPresentiImprese[idx].firma = b64; }
-    });
-
-    const dati = _raccogliDatiFormRiunione();
-
-    // VALIDAZIONE
-    const errori = [];
-    if (!dati.dataRiunione) errori.push('Data riunione');
-    if (!dati.tipoRiunione) errori.push('Tipo riunione');
-    if (!dati.presentiSicurezza.filter(p => p.nomeCognome?.trim()).length) errori.push('Almeno 1 presente per la sicurezza');
-    if (!dati.presentiImprese.filter(p => p.ragioneSociale?.trim()).length) errori.push('Almeno 1 impresa presente');
-    if (!dati.criticitaOsservazioni?.trim() && !dati.istruzioniOperative?.trim()) errori.push('Criticità/Osservazioni o Istruzioni operative (almeno uno)');
-    if (!dati.nomeCse?.trim()) errori.push('Nome CSE');
-    if (!dati.ruoloCse) errori.push('Ruolo CSE');
-    if (dati.ruoloCse === 'Delegato' && !dati.attoDelega?.trim()) errori.push('Atto di delega (obbligatorio se Delegato)');
-    if (!dati.firmaCseImage) errori.push('Firma CSE');
-    const tpl = await getItem('impostazioni', 'template_verbale_riunione');
-    if (!tpl?.valore) errori.push('Template Word non caricato (pulsante ⚙️ Template)');
-
-    if (errori.length > 0) {
-        showToast('Errori: ' + errori[0], 'error', 5000);
-        alert('ERRORE FINALIZZAZIONE. Campi mancanti:\n- ' + errori.join('\n- '));
-        return;
-    }
-
-    const saved = await salvaVerbaleRiunioneForm('BOZZA');
-    if (!saved) return;
-
-    let verbale = { ...saved };
-    if (!verbale.numeroProgressivo) {
-        const dataPrefix = verbale.dataRiunione.replace(/-/g, '');
-        const tutti = await getByIndex('verbali_riunione', 'projectId', verbale.projectId);
-        const count = tutti.filter(v => v.dataRiunione === verbale.dataRiunione && v.stato === 'FINALIZZATO').length;
-        verbale.numeroProgressivo = `${dataPrefix}/RC${String(count + 1).padStart(2, '0')}`;
-    }
-    verbale.stato = 'FINALIZZATO';
-    verbale.dataFinalizzazione = new Date().toISOString();
-    const _cantiereSnap = await getItem('projects', verbale.projectId);
-    const _snapshot = typeof risolviSnapshotRuoli === 'function' ? await risolviSnapshotRuoli(_cantiereSnap) : {};
-    Object.assign(verbale, _snapshot);
-    await _saveVerbaleRiunioneDB(verbale);
-    _verbaleRiunioneEsistente = verbale;
+    // Guard double-submit: la generazione Word blocca il Main Thread per secondi
+    // su dispositivi mobili; senza questo lock ogni tap genera un verbale duplicato.
+    if (_finalizzaRiunioneInProgress) return;
+    _finalizzaRiunioneInProgress = true;
+    const btn = document.querySelector('button[onclick="eseguiFinalizzazioneRiunione()"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Finalizzazione…'; }
 
     try {
-        const wordBlob = await _generaDocxRiunione(verbale);
-        const fileName = `Verbale_Riunione_${verbale.dataRiunione.replace(/-/g, '')}_${verbale.numeroProgressivo.replace(/\//g, '_')}.docx`;
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(wordBlob);
-        link.download = fileName;
-        link.click();
-        showToast('Verbale finalizzato ✓ — Word scaricato', 'success');
-        renderVerbaliRiunione();
-    } catch (err) {
-        console.error('[FASE5.2] Errore Word:', err);
-        alert('Errore generazione Word: ' + err.message);
+        // Acquisisci firme canvas ancora aperte
+        Object.entries(signatureCanvasesRC).forEach(([key, sc]) => {
+            const b64 = sc.toDataURL();
+            if (!b64) return;
+            if (key === 'cse') { window._rcFirmaCse = b64; }
+            else if (key.startsWith('sic_')) { const idx = parseInt(key.split('_')[1]); if (currentPresentiSicurezza[idx]) currentPresentiSicurezza[idx].firma = b64; }
+            else if (key.startsWith('imp_')) { const idx = parseInt(key.split('_')[1]); if (currentPresentiImprese[idx]) currentPresentiImprese[idx].firma = b64; }
+        });
+
+        const dati = _raccogliDatiFormRiunione();
+
+        // VALIDAZIONE
+        const errori = [];
+        if (!dati.dataRiunione) errori.push('Data riunione');
+        if (!dati.tipoRiunione) errori.push('Tipo riunione');
+        if (!dati.presentiSicurezza.filter(p => p.nomeCognome?.trim()).length) errori.push('Almeno 1 presente per la sicurezza');
+        if (!dati.presentiImprese.filter(p => p.ragioneSociale?.trim()).length) errori.push('Almeno 1 impresa presente');
+        if (!dati.criticitaOsservazioni?.trim() && !dati.istruzioniOperative?.trim()) errori.push('Criticità/Osservazioni o Istruzioni operative (almeno uno)');
+        if (!dati.nomeCse?.trim()) errori.push('Nome CSE');
+        if (!dati.ruoloCse) errori.push('Ruolo CSE');
+        if (dati.ruoloCse === 'Delegato' && !dati.attoDelega?.trim()) errori.push('Atto di delega (obbligatorio se Delegato)');
+        if (!dati.firmaCseImage) errori.push('Firma CSE');
+        const tpl = await getItem('impostazioni', 'template_verbale_riunione');
+        if (!tpl?.valore) errori.push('Template Word non caricato (pulsante ⚙️ Template)');
+
+        if (errori.length > 0) {
+            showToast('Errori: ' + errori[0], 'error', 5000);
+            alert('ERRORE FINALIZZAZIONE. Campi mancanti:\n- ' + errori.join('\n- '));
+            return;
+        }
+
+        const saved = await salvaVerbaleRiunioneForm('BOZZA');
+        if (!saved) return;
+
+        let verbale = { ...saved };
+        if (!verbale.numeroProgressivo) {
+            const dataPrefix = verbale.dataRiunione.replace(/-/g, '');
+            const tutti = await getByIndex('verbali_riunione', 'projectId', verbale.projectId);
+            // Usa max(numero)+1 anziché count+1: resistente alle lacune da cancellazioni.
+            // Il flag _finalizzaRiunioneInProgress impedisce la race condition da doppio click.
+            const numeri = tutti
+                .filter(v => v.dataRiunione === verbale.dataRiunione && v.stato === 'FINALIZZATO' && v.numeroProgressivo)
+                .map(v => parseInt((v.numeroProgressivo || '').replace(/\D/g, '')) || 0);
+            const maxNum = Math.max(0, ...numeri);
+            verbale.numeroProgressivo = `${dataPrefix}/RC${String(maxNum + 1).padStart(2, '0')}`;
+        }
+        verbale.stato = 'FINALIZZATO';
+        verbale.dataFinalizzazione = new Date().toISOString();
+        const _cantiereSnap = await getItem('projects', verbale.projectId);
+        const _snapshot = typeof risolviSnapshotRuoli === 'function' ? await risolviSnapshotRuoli(_cantiereSnap) : {};
+        Object.assign(verbale, _snapshot);
+        await _saveVerbaleRiunioneDB(verbale);
+        _verbaleRiunioneEsistente = verbale;
+
+        try {
+            const wordBlob = await _generaDocxRiunione(verbale);
+            const fileName = `Verbale_Riunione_${verbale.dataRiunione.replace(/-/g, '')}_${verbale.numeroProgressivo.replace(/\//g, '_')}.docx`;
+            const blobUrl = URL.createObjectURL(wordBlob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+            showToast('Verbale finalizzato ✓ — Word scaricato', 'success');
+            renderVerbaliRiunione();
+        } catch (err) {
+            console.error('[FASE5.2] Errore Word:', err);
+            alert('Errore generazione Word: ' + err.message);
+        }
+    } finally {
+        _finalizzaRiunioneInProgress = false;
+        if (btn) { btn.disabled = false; btn.textContent = '✅ Finalizza'; }
     }
 }
 

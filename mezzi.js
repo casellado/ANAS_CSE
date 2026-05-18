@@ -1,6 +1,9 @@
 // mezzi.js - Modulo Anagrafica Mezzi e Attrezzature (FASE 4.5)
 
 let mezzoDaEliminare = null;
+let _mezziImpreseCache = [];     // cache imprese per evitare I/O ripetuti
+let _mezziRendering = false;     // lock anti race-condition sui filtri
+let _mezziRenderPending = false; // segnala nuova richiesta arrivata durante il lock
 
 // ─────────────────────────────────────────────
 // HELPERS & RENDERING
@@ -16,6 +19,7 @@ async function caricaFiltroImpreseMezzi() {
   
   try {
     const imprese = await getByIndex('imprese', 'projectId', projectId);
+    _mezziImpreseCache = imprese; // popola cache condivisa nel modulo
     imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
     imprese.forEach(imp => {
       select.innerHTML += `<option value="${imp.id}">${escapeHtml(imp.ragioneSociale)} [${imp.ruolo}]</option>`;
@@ -26,22 +30,29 @@ async function caricaFiltroImpreseMezzi() {
 }
 
 async function renderMezzi() {
-  const projectId = sessionStorage.getItem('currentProjectId');
-  if (!projectId) return;
+  if (_mezziRendering) { _mezziRenderPending = true; return; }
+  _mezziRendering = true;
+  _mezziRenderPending = false;
 
+  const projectId = sessionStorage.getItem('currentProjectId');
+  if (!projectId) { _mezziRendering = false; return; }
+
+  // Leggo filtri DOPO aver acquisito il lock — sempre aggiornati
   const filterImpresa = document.getElementById('filter-mez-impresa')?.value || 'Tutte';
   const filterCat = document.getElementById('filter-mez-cat')?.value || 'Tutte';
   const filterPresenza = document.getElementById('filter-mez-presenza')?.value || 'Tutti';
 
   const grid = document.getElementById('mezzi-grid');
-  if (!grid) return;
+  if (!grid) { _mezziRendering = false; return; }
   grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Caricamento mezzi...</div>';
 
   try {
     const allMezzi = await getByIndex('mezzi', 'projectId', projectId);
-    
-    // Carichiamo imprese per i nomi nelle card
-    const impreseStore = await getByIndex('imprese', 'projectId', projectId);
+
+    // Imprese dalla cache (evita fetch ripetuto)
+    const impreseStore = _mezziImpreseCache.length
+      ? _mezziImpreseCache
+      : await getByIndex('imprese', 'projectId', projectId);
     const mapImprese = {};
     impreseStore.forEach(imp => mapImprese[imp.id] = imp);
 
@@ -88,8 +99,22 @@ async function renderMezzi() {
       await caricaFiltroImpreseMezzi();
     }
 
+    // ── FIX N+1: costruisci la mappa lavoratori abilitati UNA SOLA VOLTA ──
+    const allLav = await getByIndex('lavoratori', 'projectId', projectId).catch(() => []);
+    const oggiStr = new Date().toISOString().split('T')[0];
+    const lavMapPerTipologia = {};
+    allLav.forEach(l => {
+      (l.abilitazioni || []).forEach(ab => {
+        if (ab.tipologiaMezzo && ab.scadenza >= oggiStr) {
+          if (!lavMapPerTipologia[ab.tipologiaMezzo]) lavMapPerTipologia[ab.tipologiaMezzo] = [];
+          lavMapPerTipologia[ab.tipologiaMezzo].push(l);
+        }
+      });
+    });
+
     grid.innerHTML = '';
-    
+    const fragment = document.createDocumentFragment();
+
     for (const m of filtered) {
       const impresa = mapImprese[m.impresaId] || { ragioneSociale: 'Impresa sconosciuta', ruolo: '?' };
       const nomeTipologia = typeof getNomeTipologiaMezzo === 'function' ? getNomeTipologiaMezzo(m.tipologia) : m.tipologia;
@@ -106,9 +131,10 @@ async function renderMezzi() {
       if (m.verifichePeriodiche && m.verifichePeriodiche.length > 0) {
         const ultima = m.verifichePeriodiche.sort((a,b) => new Date(b.data) - new Date(a.data))[0];
         const scadenza = new Date(ultima.data);
-        
-        // Calcolo scadenza (approssimativo basato sul tipo se non esplicito, ma qui assumiamo 1 anno per il badge warning)
-        scadenza.setFullYear(scadenza.getFullYear() + 1); 
+
+        // Calcolo scadenza basato sul tipo effettivo della verifica
+        const anniPerTipo = { annuale: 1, biennale: 2, triennale: 3, quinquennale: 5 };
+        scadenza.setFullYear(scadenza.getFullYear() + (anniPerTipo[ultima.tipo] || 1));
         const ora = new Date();
         const diffGiorni = Math.ceil((scadenza - ora) / (1000 * 60 * 60 * 24));
         
@@ -121,8 +147,8 @@ async function renderMezzi() {
         }
       }
 
-      // Sezione Lavoratori Abilitati (Informativa)
-      const lavAbilitati = await getLavoratoriAbilitatiPerMezzo(m.tipologia);
+      // Sezione Lavoratori Abilitati — lookup O(1) dalla mappa già in RAM
+      const lavAbilitati = lavMapPerTipologia[m.tipologia] || [];
       let lavHtml = '';
       if (lavAbilitati.length > 0) {
         lavHtml = `
@@ -219,11 +245,15 @@ async function renderMezzi() {
           </button>
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     }
+    grid.appendChild(fragment);
   } catch (err) {
     console.error("Errore render Mezzi:", err);
     grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento dei dati.</div>';
+  } finally {
+    _mezziRendering = false;
+    if (_mezziRenderPending) { _mezziRenderPending = false; renderMezzi(); }
   }
 }
 
@@ -265,13 +295,15 @@ async function apriModalMezzo(id = null) {
   document.getElementById('mezzo-verifiche-container').innerHTML = '';
   document.getElementById('mezzo-foto-count').textContent = 'Nessuna foto caricata.';
 
-  // Popolamento dropdown imprese
+  // Popolamento dropdown imprese dalla cache (evita fetch ridondante)
   const selectImpresa = document.getElementById('mezzo-impresa');
   selectImpresa.innerHTML = '<option value="">-- Seleziona impresa --</option>';
   try {
-    const imprese = await getByIndex('imprese', 'projectId', projectId);
-    imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
-    imprese.forEach(imp => {
+    const imprese = _mezziImpreseCache.length
+      ? _mezziImpreseCache
+      : await getByIndex('imprese', 'projectId', projectId);
+    const imprOrdinate = [...imprese].sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
+    imprOrdinate.forEach(imp => {
       selectImpresa.innerHTML += `<option value="${imp.id}">${escapeHtml(imp.ragioneSociale)} [${imp.ruolo}]</option>`;
     });
   } catch (e) {
@@ -368,7 +400,7 @@ function aggiungiRigaVerificaMezzo(data = null) {
           ${data && data.base64 ? '✅ File' : '📎 Verbale'}
         </button>
         <input type="hidden" class="mez-ver-base64" value="${data && data.base64 ? data.base64 : ''}">
-        <input type="hidden" class="mez-ver-filename" value="${data && data.filename ? data.filename : ''}">
+        <input type="hidden" class="mez-ver-filename" value="${escapeHtml(data && data.filename ? data.filename : '')}">
       </div>
     </div>
   `;
@@ -612,7 +644,7 @@ async function renderViewMezzi(container) {
           <h3 id="modal-mezzo-title" class="text-xl font-bold text-slate-800">Nuovo Mezzo</h3>
           <button onclick="chiudiModalMezzo()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
         </div>
-        <form id="form-mezzo" onsubmit="salvaMezzo(event)" class="p-6 space-y-5">
+        <form id="form-mezzo" class="p-6 space-y-5">
           <input type="hidden" id="mezzo-id">
 
           <!-- Impresa e Tipologia -->
@@ -707,6 +739,8 @@ async function renderViewMezzi(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('form-mezzo').addEventListener('submit', salvaMezzo);
 
   await caricaFiltroImpreseMezzi();
   await renderMezzi();

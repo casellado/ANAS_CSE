@@ -209,6 +209,13 @@ async function salvaNC() {
 // 6. Chiudi NC
 // ─────────────────────────────────────────────
 async function chiudiNC(id) {
+  // Delega al workflow completo di nc-manager.js (nota obbligatoria + audit log)
+  if (typeof apriModalChiudiNc === 'function') {
+    await apriModalChiudiNc(id);
+    return;
+  }
+
+  // Fallback legacy per contesti in cui nc-manager.js non è caricato
   const nc = await getNC(id);
   if (!nc) { showToast('NC non trovata.', 'error'); return; }
 
@@ -216,13 +223,13 @@ async function chiudiNC(id) {
     const updated = { ...nc, stato: 'chiusa', dataChiusura: new Date().toISOString() };
     await saveItem('nc', updated);
     showToast('NC chiusa correttamente ✓', 'success');
-  
+
     setTimeout(() => {
       if (typeof renderKPI === 'function')             renderKPI();
       if (typeof renderNCListWithFoto === 'function')  renderNCListWithFoto('nc-list');
       if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
     }, 150);
-  
+
     return updated;
   } catch (err) {
     console.error('Errore chiusura NC:', err);

@@ -14,8 +14,13 @@ const DOCUMENTI_OBBLIGATORI = [
 // 2. Calcola KPI documentali
 // ─────────────────────────────────────────────
 async function calcolaKPIDocumenti() {
+  const projectId = window.appState?.currentProject || sessionStorage.getItem('currentProjectId');
   const docs  = await getDocumenti().catch(() => []);
-  const links = await getAll('doc_links').catch(() => []);
+  // Fix MEDIUM: getAll('doc_links') caricava i link di tutti i cantieri.
+  // getByIndex filtra per projectId, evitando cross-project data leakage sui KPI.
+  const links = projectId
+    ? await getByIndex('doc_links', 'projectId', projectId).catch(() => [])
+    : await getAll('doc_links').catch(() => []);
   const nc    = await getNCList().catch(() => []);
 
   return {

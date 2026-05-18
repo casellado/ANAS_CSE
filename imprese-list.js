@@ -21,22 +21,24 @@ async function renderDettaglioImpresa(containerId) {
     return;
   }
 
-  const imprese = await getAll('imprese');
-  const impresa = imprese.find(i => i.id === impresaId);
+  const impresa = await getItem('imprese', impresaId);
 
   if (!impresa) {
     container.innerHTML = `<p class="text-red-600 font-semibold">⚠️ Impresa non trovata.</p>`;
     return;
   }
 
+  // Campo canonico: ragioneSociale (con fallback al vecchio schema)
+  const nomeImpresa = impresa.ragioneSociale || impresa.nome || impresa.id;
+
   // Aggiorna breadcrumb col nome reale
   const breadcrumb = document.getElementById('impresa-breadcrumb');
-  if (breadcrumb) breadcrumb.textContent = `${escapeHtml(impresa.nome || impresa.id)} · ID: ${impresa.id}`;
+  if (breadcrumb) breadcrumb.textContent = `${escapeHtml(nomeImpresa)} · ID: ${impresa.id}`;
 
   container.innerHTML = `
     <div class="bg-white p-6 rounded-xl shadow border border-slate-200 space-y-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-xl font-bold text-slate-800">${escapeHtml(impresa.nome) || '–'}</h2>
+        <h2 class="text-xl font-bold text-slate-800">${escapeHtml(nomeImpresa) || '–'}</h2>
         <div class="shrink-0 flex gap-2">
           <button onclick="apriModalModificaImpresa('${escapeHtml(impresa.id)}')"
                   class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg
@@ -56,7 +58,7 @@ async function renderDettaglioImpresa(containerId) {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         <div class="bg-slate-50 p-3 rounded-lg">
           <div class="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">P.IVA / C.F.</div>
-          <div class="font-mono font-medium text-slate-800">${escapeHtml(impresa.piva || impresa.id) || '–'}</div>
+          <div class="font-mono font-medium text-slate-800">${escapeHtml(impresa.partitaIva || impresa.piva || impresa.id) || '–'}</div>
         </div>
         <div class="bg-slate-50 p-3 rounded-lg">
           <div class="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Ruolo</div>
@@ -88,8 +90,7 @@ async function renderDettaglioImpresa(containerId) {
 // 3. Modal MODIFICA impresa — GAP-4
 // ─────────────────────────────────────────────
 async function apriModalModificaImpresa(impresaId) {
-  const imprese = await getAll('imprese');
-  const imp     = imprese.find(i => i.id === impresaId);
+  const imp = await getItem('imprese', impresaId);
   if (!imp) { showToast('Impresa non trovata.', 'error'); return; }
 
   const existing = document.getElementById('modal-modifica-impresa');
@@ -111,13 +112,13 @@ async function apriModalModificaImpresa(impresaId) {
           <label class="text-xs font-semibold text-slate-600 block mb-1">
             Ragione Sociale <span class="text-red-500">*</span>
           </label>
-          <input id="mod-imp-nome" type="text" value="${escapeHtml(imp.nome || '')}"
+          <input id="mod-imp-nome" type="text" value="${escapeHtml(imp.ragioneSociale || imp.nome || '')}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none" />
         </div>
         <div>
           <label class="text-xs font-semibold text-slate-600 block mb-1">P.IVA / C.F.</label>
-          <input id="mod-imp-piva" type="text" value="${escapeHtml(imp.piva || '')}"
+          <input id="mod-imp-piva" type="text" value="${escapeHtml(imp.partitaIva || imp.piva || '')}"
                  class="w-full border border-slate-300 rounded-lg p-2.5 text-sm
                         focus:ring-2 focus:ring-blue-400 focus:outline-none font-mono" />
         </div>
@@ -185,11 +186,11 @@ async function confermaModificaImpresa(impresaId) {
 
   if (!nome) { showToast('La ragione sociale è obbligatoria.', 'warning'); return; }
 
-  const imprese = await getAll('imprese');
-  const imp     = imprese.find(i => i.id === impresaId);
+  const imp = await getItem('imprese', impresaId);
   if (!imp) { showToast('Impresa non trovata.', 'error'); return; }
 
-  const updated = { ...imp, nome, piva, ruolo, referente, contatto, scadenzaDurc, updatedAt: new Date().toISOString() };
+  // Salva con nomi canonici (ragioneSociale/partitaIva) per allinearsi a imprese.js
+  const updated = { ...imp, ragioneSociale: nome, partitaIva: piva, ruolo, referente, contatto, scadenzaDurc, updatedAt: new Date().toISOString() };
   await saveItem('imprese', updated);
 
   document.getElementById('modal-modifica-impresa')?.remove();
@@ -201,48 +202,60 @@ async function confermaModificaImpresa(impresaId) {
 // 3-bis. Elimina impresa (con conferma + cleanup lavoratori/assegnazioni)
 // ─────────────────────────────────────────────
 async function eliminaImpresa(impresaId) {
-  const imprese = await getAll('imprese');
-  const imp     = imprese.find(i => i.id === impresaId);
+  const imp = await getItem('imprese', impresaId);
   if (!imp) { showToast('Impresa non trovata.', 'error'); return; }
 
+  const nomeImpresa = imp.ragioneSociale || imp.nome || impresaId;
+
   // Conta dipendenze
-  const lavoratori  = await getAll('lavoratori').catch(() => []);
-  const assegnaz    = await getAll('imprese_cantieri').catch(() => []);
-  const nLav = lavoratori.filter(l => l.impresaId === impresaId).length;
+  const [lavoratori, assegnaz, subs] = await Promise.all([
+    getByIndex('lavoratori', 'impresaId', impresaId).catch(() => []),
+    getAll('imprese_cantieri').catch(() => []),
+    getByIndex('imprese', 'subAppaltoDi', impresaId).catch(() => [])
+  ]);
+  const nLav = lavoratori.length;
   const nAss = assegnaz.filter(a => a.impresaId === impresaId).length;
 
-  const msg = `Eliminare definitivamente "${imp.nome}"?\n\n` +
+  const msg = `Eliminare definitivamente "${nomeImpresa}"?\n\n` +
               `Verranno eliminati anche:\n` +
               `• ${nLav} lavoratori associati\n` +
-              `• ${nAss} assegnazioni a cantieri\n\n` +
+              `• ${nAss} assegnazioni a cantieri\n` +
+              `• ${subs.length} imprese in subappalto\n\n` +
               `Questa azione non può essere annullata.`;
   if (!confirm(msg)) return;
 
-  // Cleanup: lavoratori dell'impresa
-  for (const l of lavoratori.filter(l => l.impresaId === impresaId)) {
-    await deleteItem('lavoratori', l.id);
+  // Cleanup: usa la stessa funzione di imprese.js se disponibile
+  if (typeof _cleanupEntitaImpresa === 'function') {
+    await _cleanupEntitaImpresa(impresaId);
+    for (const s of subs) {
+      await _cleanupEntitaImpresa(s.id);
+      await deleteItem('imprese', s.id);
+    }
+  } else {
+    // Fallback manuale
+    for (const l of lavoratori) await deleteItem('lavoratori', l.id);
+    const [mezzi, foto, links] = await Promise.all([
+      getByIndex('mezzi', 'impresaId', impresaId).catch(() => []),
+      getByIndex('foto', 'impresaId', impresaId).catch(() => []),
+      getByIndex('doc_links', 'riferimentoId', impresaId).catch(() => [])
+    ]);
+    await Promise.all([
+      ...mezzi.map(m => deleteItem('mezzi', m.id)),
+      ...foto.map(f => deleteItem('foto', f.id)),
+      ...links.map(l => deleteItem('doc_links', l.id))
+    ]);
+    for (const s of subs) await deleteItem('imprese', s.id);
   }
-  // Cleanup: assegnazioni a cantieri
-  for (const a of assegnaz.filter(a => a.impresaId === impresaId)) {
-    await deleteItem('imprese_cantieri', a.id);
-  }
-  
-  // Cleanup: foto collegate all'impresa
-  if (typeof getByIndex === 'function') {
-    const foto = await getByIndex('foto', 'impresaId', impresaId).catch(() => []);
-    for (const f of foto) await deleteItem('foto', f.id);
-  }
-  
-  // Cleanup: doc_links collegati all'impresa
-  if (typeof getByIndex === 'function') {
-    const links = await getByIndex('doc_links', 'riferimentoId', impresaId).catch(() => []);
-    for (const l of links) await deleteItem('doc_links', l.id);
-  }
+
+  // Cleanup: assegnazioni cantieri
+  await Promise.all(
+    assegnaz.filter(a => a.impresaId === impresaId).map(a => deleteItem('imprese_cantieri', a.id))
+  );
 
   // Elimina l'impresa
   await deleteItem('imprese', impresaId);
 
-  showToast(`Impresa "${imp.nome}" eliminata ✓`, 'success');
+  showToast(`Impresa "${nomeImpresa}" eliminata ✓`, 'success');
 
   // Torna alla dashboard cantiere
   setTimeout(() => {

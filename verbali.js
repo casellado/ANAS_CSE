@@ -10,6 +10,8 @@ function generateId(prefix) {
 // ─────────────────────────────────────────────
 // 2. Salvataggio verbale
 // ─────────────────────────────────────────────
+let _salvaVerbaleInProgress = false;
+
 async function salvaVerbale(event) {
   if (event) event.preventDefault();
 
@@ -32,100 +34,119 @@ async function salvaVerbale(event) {
     return;
   }
 
-  // Recupera imprese presenti (select multiple)
-  const impreseSelect = document.getElementById('verbale-imprese');
-  const impresePresenti = impreseSelect
-    ? Array.from(impreseSelect.selectedOptions).map(o => o.value)
-    : [];
+  // Guard double-submit: disabilita il bottone e blocca rientri concorrenti
+  if (_salvaVerbaleInProgress) return;
+  _salvaVerbaleInProgress = true;
+  const _saveBtn = document.querySelector('#form-verbale [type="submit"]');
+  if (_saveBtn) _saveBtn.disabled = true;
 
-  // MOD-7: Numerazione progressiva (AAAA/VS-XX)
-  const verbaliEsistenti = await getAll('verbali').catch(() => []);
-  const annoCorrente = new Date().getFullYear();
-  const countVS = verbaliEsistenti.filter(v => 
-    v.tipo === 'sopralluogo' && 
-    v.data && v.data.startsWith(oggi)
-  ).length + 1;
-  const dataCompatta = oggi.replace(/-/g, '');
-  const progressivoVS = `${dataCompatta}/VS${String(countVS).padStart(2, '0')}`;
-
-  // Recupera firma (se presente)
-  const firmaData = window._firmaCorrente || null;
-  
-  // MOD-7: Gestione firme multiple presenti (FLUSSO 1)
-  const firmeExtra = _raccogliPresenti();
-  const delegaCSE = _raccogliDelegaCSE();
-
-  const verbale = {
-    id:              generateId('verb'),
-    protocollo:      progressivoVS,
-    tipo:            'sopralluogo',
-    projectId:       window.appState.currentProject,
-    data:            document.getElementById('verbale-data')?.value        || new Date().toISOString().slice(0, 10),
-    km:              document.getElementById('verbale-km')?.value          || '',
-    meteo:           document.getElementById('verbale-meteo')?.value       || '',
-    impresePresenti,
-    referenti:       document.getElementById('verbale-referenti')?.value   || '',
-    statoLuoghi:     document.getElementById('verbale-stato-luoghi')?.value || '',
-    note:            document.getElementById('verbale-note')?.value        || '',
-    oggetto:         document.getElementById('verbale-oggetto')?.value     || '',
-    allegaMezzi:     document.getElementById('verbale-allega-mezzi')?.checked || false,
-    firma:           firmaData ? firmaData.png       : null,
-    presenti:        firmeExtra,   // FLUSSO 1: array [{nome, ruolo, firmaBase64, timestampFirma}]
-    delegaCSE,                     // FLUSSO 1: {nome, qualifica, attoDelega} o null
-    firmaTimestamp:  firmaData ? firmaData.timestamp : null,
-    firmante:        firmaData ? firmaData.firmante  : (window.appState?._firmaNome || 'Coordinatore per l\'Esecuzione'),
-    createdAt:       new Date().toISOString()
-  };
-
-  await saveItem('verbali', verbale);
-
-  // Archiviazione automatica PDF del verbale in OneDrive o download locale
   try {
-    if (typeof generaVerbalePDFBlob === 'function' && typeof salvaDocumento === 'function') {
-      const pdfBlob = await generaVerbalePDFBlob(verbale);
-      const protSafe = (verbale.protocollo || '').replace(/\//g, '_');
-      const filename = `VS_${protSafe}_${verbale.data}.pdf`;
-      await salvaDocumento({
-        filename,
-        blob: pdfBlob,
-        cantiereId: verbale.projectId,
-        tipoDoc: 'verbale-sopralluogo',
-        titoloCondivisione: `Verbale di Sopralluogo ${verbale.protocollo} del ${verbale.data}`
-      });
+    const projectId = window.appState.currentProject;
+
+    // Recupera imprese presenti (select multiple)
+    const impreseSelect = document.getElementById('verbale-imprese');
+    const impresePresenti = impreseSelect
+      ? Array.from(impreseSelect.selectedOptions).map(o => o.value)
+      : [];
+
+    // MOD-7: Numerazione progressiva (AAAA/VS-XX)
+    // La data viene istanziata QUI, non da una variabile globale, per evitare
+    // lo stale-state su PWA rimaste in background per giorni (protocolli con date errate).
+    // TODO ARCH (I/O): getByIndex carica ancora tutte le firme Base64 per i verbali del
+    // cantiere. Fix definitivo: aggiungere un indice composto {projectId, data} e usare
+    // un IDBKeyRange per filtrare senza deserializzare l'intero dataset.
+    const dataOdierna = new Date().toISOString().slice(0, 10);
+    const verbaliEsistenti = await getByIndex('verbali', 'projectId', projectId).catch(() => []);
+    const countVS = verbaliEsistenti.filter(v =>
+      v.tipo === 'sopralluogo' &&
+      v.data && v.data.startsWith(dataOdierna)
+    ).length + 1;
+    const dataCompatta = dataOdierna.replace(/-/g, '');
+    const progressivoVS = `${dataCompatta}/VS${String(countVS).padStart(2, '0')}`;
+
+    // Recupera firma (se presente)
+    const firmaData = window._firmaCorrente || null;
+
+    // MOD-7: Gestione firme multiple presenti (FLUSSO 1)
+    const firmeExtra = _raccogliPresenti();
+    const delegaCSE = _raccogliDelegaCSE();
+
+    const verbale = {
+      id:              generateId('verb'),
+      protocollo:      progressivoVS,
+      tipo:            'sopralluogo',
+      projectId,
+      data:            document.getElementById('verbale-data')?.value        || new Date().toISOString().slice(0, 10),
+      km:              document.getElementById('verbale-km')?.value          || '',
+      meteo:           document.getElementById('verbale-meteo')?.value       || '',
+      impresePresenti,
+      referenti:       document.getElementById('verbale-referenti')?.value   || '',
+      statoLuoghi:     document.getElementById('verbale-stato-luoghi')?.value || '',
+      note:            document.getElementById('verbale-note')?.value        || '',
+      oggetto:         document.getElementById('verbale-oggetto')?.value     || '',
+      allegaMezzi:     document.getElementById('verbale-allega-mezzi')?.checked || false,
+      firma:           firmaData ? firmaData.png       : null,
+      presenti:        firmeExtra,   // FLUSSO 1: array [{nome, ruolo, firmaBase64, timestampFirma}]
+      delegaCSE,                     // FLUSSO 1: {nome, qualifica, attoDelega} o null
+      firmaTimestamp:  firmaData ? firmaData.timestamp : null,
+      firmante:        firmaData ? firmaData.firmante  : (window.appState?._firmaNome || 'Coordinatore per l\'Esecuzione'),
+      createdAt:       new Date().toISOString()
+    };
+
+    await saveItem('verbali', verbale);
+
+    // Archiviazione automatica PDF del verbale in OneDrive o download locale
+    try {
+      if (typeof generaVerbalePDFBlob === 'function' && typeof salvaDocumento === 'function') {
+        const pdfBlob = await generaVerbalePDFBlob(verbale);
+        const protSafe = (verbale.protocollo || '').replace(/\//g, '_');
+        const filename = `VS_${protSafe}_${verbale.data}.pdf`;
+        await salvaDocumento({
+          filename,
+          blob: pdfBlob,
+          cantiereId: verbale.projectId,
+          tipoDoc: 'verbale-sopralluogo',
+          titoloCondivisione: `Verbale di Sopralluogo ${verbale.protocollo} del ${verbale.data}`
+        });
+      }
+    } catch (err) {
+      console.warn('[Verbale] Errore archiviazione PDF automatica:', err);
     }
-  } catch (err) {
-    console.warn('[Verbale] Errore archiviazione PDF automatica:', err);
-  }
 
-  // Genera NC automatica se selezionato livello
-  const livelloNC    = document.getElementById('livello-nc')?.value      || '';
-  const descrizioneNC = document.getElementById('descrizione-nc')?.value || '';
+    // Genera NC automatica se selezionato livello
+    const livelloNC     = document.getElementById('livello-nc')?.value      || '';
+    const descrizioneNC = document.getElementById('descrizione-nc')?.value || '';
 
-  if (livelloNC && livelloNC !== '') {
-    await generaNCdaVerbale(verbale.projectId, livelloNC, descrizioneNC, verbale);
-  }
-
-  showToast('Verbale salvato correttamente ✓', 'success');
-  if (typeof showCheckmark === 'function') showCheckmark();
-  document.getElementById('form-verbale')?.reset();
-
-  // Resetta la firma dopo il salvataggio — il prossimo verbale
-  // deve avere una firma fresca, non ereditare quella precedente
-  window._firmaCorrente = null;
-  // Reset presenti e delega (FLUSSO 1)
-  if (typeof _resetPresentiSopralluogo === 'function') _resetPresentiSopralluogo();
-  // Se la firma canvas è presente, la ripristina visivamente
-  if (typeof renderFirmaCanvas === 'function') {
-    const container = document.getElementById('firma-verbale-container');
-    if (container) {
-      renderFirmaCanvas('firma-verbale-container', (firmaData) => {
-        window._firmaCorrente = firmaData;
-      });
+    if (livelloNC && livelloNC !== '') {
+      await generaNCdaVerbale(verbale.projectId, livelloNC, descrizioneNC, verbale);
     }
-  }
 
-  // Aggiorna badge e lista se siamo nella dashboard
-  if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
+    showToast('Verbale salvato correttamente ✓', 'success');
+    if (typeof showCheckmark === 'function') showCheckmark();
+    document.getElementById('form-verbale')?.reset();
+
+    // Resetta la firma dopo il salvataggio — il prossimo verbale
+    // deve avere una firma fresca, non ereditare quella precedente
+    window._firmaCorrente = null;
+    // Reset presenti e delega (FLUSSO 1)
+    if (typeof _resetPresentiSopralluogo === 'function') _resetPresentiSopralluogo();
+    // Se la firma canvas è presente, la ripristina visivamente
+    if (typeof renderFirmaCanvas === 'function') {
+      const container = document.getElementById('firma-verbale-container');
+      if (container) {
+        renderFirmaCanvas('firma-verbale-container', (fd) => {
+          window._firmaCorrente = fd;
+        });
+      }
+    }
+
+    // Aggiorna badge e lista se siamo nella dashboard
+    if (typeof aggiornaBadgeDashboard === 'function') aggiornaBadgeDashboard();
+
+  } finally {
+    _salvaVerbaleInProgress = false;
+    if (_saveBtn) _saveBtn.disabled = false;
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -141,8 +162,9 @@ async function generaNCdaVerbale(projectId, livello, descrizione, verbale) {
     stato:        'aperta',
     dataApertura: verbale.data ? new Date(verbale.data).toISOString() : new Date().toISOString(),
     dataScadenza: calcolaScadenzaNC(livello, verbale.data || new Date().toISOString()),
-    verbaleId:    verbale.id,
-    createdAt:    new Date().toISOString()
+    verbaleOrigineId: verbale.id,   // chiave letta da nc-manager.js
+    verbaleId:        verbale.id,   // compatibilità legacy
+    createdAt:        new Date().toISOString()
   };
 
   await saveItem('nc', nc);
@@ -274,7 +296,10 @@ const MAX_PRESENTI = 15;
  * Aggiunge una riga "Presente" nel form sopralluogo
  */
 function aggiungiPresenteSopralluogo() {
-  if (window._presentiSopralluogoCount >= MAX_PRESENTI) {
+  // Conta le righe DOM effettivamente visibili, non il contatore (che non decresce
+  // alle rimozioni e causerebbe un blocco permanente dopo add/remove ripetuti).
+  const righeAttuali = document.querySelectorAll('[id^="presente-row-"]').length;
+  if (righeAttuali >= MAX_PRESENTI) {
     if (typeof showToast === 'function') showToast(`Massimo ${MAX_PRESENTI} presenti raggiunto.`, 'warning');
     return;
   }

@@ -1,6 +1,13 @@
 // lavoratori.js - Modulo Anagrafica Lavoratori (FASE 4.4)
 
 let lavoratoreDaEliminare = null;
+let _impreseCache = [];      // cache imprese per evitare I/O ripetuti
+let _lavRendering = false;   // lock anti race-condition sui filtri
+let _lavRenderPending = false; // segnala che arrivò una nuova richiesta durante il lock
+// TODO ARCH: i campi base64 di formazione/visita/abilitazioni vanno spostati
+//            in un Object Store IndexedDB dedicato (Blob) collegato per FK.
+//            Finché sono inline nel record lavoratore, getByIndex() scarica
+//            TUTTI i binari in RAM ad ogni render (rischio OOM su mobile).
 
 // ─────────────────────────────────────────────
 // HELPERS STATO DOCUMENTI
@@ -51,8 +58,9 @@ async function caricaFiltroImprese() {
   
   try {
     const imprese = await getByIndex('imprese', 'projectId', projectId);
+    _impreseCache = imprese; // popola cache condivisa
     imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
-    
+
     imprese.forEach(imp => {
       select.innerHTML += `<option value="${imp.id}">${escapeHtml(imp.ragioneSociale)} [${imp.ruolo}]</option>`;
     });
@@ -62,25 +70,33 @@ async function caricaFiltroImprese() {
 }
 
 async function renderLavoratori() {
+  // Lock: se già in esecuzione, segna la richiesta come pendente ed esci
+  if (_lavRendering) { _lavRenderPending = true; return; }
+  _lavRendering = true;
+  _lavRenderPending = false;
+
   const projectId = sessionStorage.getItem('currentProjectId');
-  if (!projectId) return;
+  if (!projectId) { _lavRendering = false; return; }
 
   const filterImpresaEl = document.getElementById('filter-lav-impresa');
   const filterDocsEl = document.getElementById('filter-lav-docs');
-  if (!filterImpresaEl || !filterDocsEl) return;
+  if (!filterImpresaEl || !filterDocsEl) { _lavRendering = false; return; }
 
+  // Leggo i filtri DOPO aver acquisito il lock — sempre aggiornati
   const filterImpresa = filterImpresaEl.value;
   const filterDocs = filterDocsEl.value;
 
   const grid = document.getElementById('lavoratori-grid');
-  if (!grid) return;
+  if (!grid) { _lavRendering = false; return; }
   grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Caricamento lavoratori...</div>';
 
   try {
     const allLavoratori = await getByIndex('lavoratori', 'projectId', projectId);
-    
-    // Serve caricare le imprese per mostrare il nome
-    const impreseStore = await getByIndex('imprese', 'projectId', projectId);
+
+    // Usa la cache delle imprese; ricarica solo se vuota
+    const impreseStore = _impreseCache.length
+      ? _impreseCache
+      : await getByIndex('imprese', 'projectId', projectId);
     const mapImprese = {};
     impreseStore.forEach(imp => mapImprese[imp.id] = imp);
 
@@ -135,7 +151,8 @@ async function renderLavoratori() {
     }
 
     grid.innerHTML = '';
-    
+    const fragment = document.createDocumentFragment();
+
     for (const item of finalFiltered) {
       const l = item.lav;
       const impresa = mapImprese[l.impresaId] || { ragioneSociale: 'Impresa sconosciuta', ruolo: '?' };
@@ -205,11 +222,16 @@ async function renderLavoratori() {
           </button>
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     }
+    grid.appendChild(fragment);
   } catch (err) {
     console.error("Errore render Lavoratori:", err);
     grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento dei dati.</div>';
+  } finally {
+    _lavRendering = false;
+    // Se è arrivata una nuova richiesta mentre eravamo bloccati, esegui un ultimo render
+    if (_lavRenderPending) { _lavRenderPending = false; renderLavoratori(); }
   }
 }
 
@@ -231,13 +253,15 @@ async function apriModalLavoratore(id = null) {
   // Svuota righe abilitazioni
   document.getElementById('lav-abilitazioni-container').innerHTML = '';
 
-  // Popola dropdown imprese
+  // Popola dropdown imprese dalla cache (evita fetch ridondante)
   const selectImpresa = document.getElementById('lavoratore-impresa');
   selectImpresa.innerHTML = '<option value="">-- Seleziona impresa --</option>';
   try {
-    const imprese = await getByIndex('imprese', 'projectId', projectId);
-    imprese.sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
-    imprese.forEach(imp => {
+    const imprese = _impreseCache.length
+      ? _impreseCache
+      : await getByIndex('imprese', 'projectId', projectId);
+    const imprOrdiniate = [...imprese].sort((a,b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || ''));
+    imprOrdiniate.forEach(imp => {
       selectImpresa.innerHTML += `<option value="${imp.id}">${escapeHtml(imp.ragioneSociale)} [${imp.ruolo}]</option>`;
     });
   } catch (e) {
@@ -355,7 +379,7 @@ function aggiungiRigaAbilitazioneLav(data = null) {
           ${data && data.base64 ? '✅ File' : '📎 PDF'}
         </button>
         <input type="hidden" class="lav-ab-base64" value="${data && data.base64 ? data.base64 : ''}">
-        <input type="hidden" class="lav-ab-filename" value="${data && data.filename ? data.filename : ''}">
+        <input type="hidden" class="lav-ab-filename" value="${escapeHtml(data && data.filename ? data.filename : '')}">
       </div>
       <div>
         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">N. Patentino</label>
@@ -611,7 +635,7 @@ async function renderViewLavoratori(container) {
           <h3 id="modal-lavoratore-title" class="text-xl font-bold text-slate-800">Nuovo Lavoratore</h3>
           <button onclick="chiudiModalLavoratore()" class="text-slate-400 hover:text-slate-800 text-2xl leading-none">&times;</button>
         </div>
-        <form id="form-lavoratore" onsubmit="salvaLavoratore(event)" class="p-6 space-y-5">
+        <form id="form-lavoratore" class="p-6 space-y-5">
           <input type="hidden" id="lavoratore-id">
 
           <div id="lavoratore-cambio-impresa-warn" class="page-hidden bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-700">
@@ -746,6 +770,8 @@ async function renderViewLavoratori(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('form-lavoratore').addEventListener('submit', salvaLavoratore);
 
   await caricaFiltroImprese();
   await renderLavoratori();

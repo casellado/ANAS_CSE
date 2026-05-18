@@ -50,7 +50,8 @@ async function renderImprese(filtroRuolo = currentFiltroRuolo) {
     }
 
     grid.innerHTML = '';
-    
+    const fragment = document.createDocumentFragment();
+
     for (const impresa of filtered) {
       // Mappa per nome subappaltatrice
       let nomeSub = '';
@@ -103,8 +104,9 @@ async function renderImprese(filtroRuolo = currentFiltroRuolo) {
           </button>
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     }
+    grid.appendChild(fragment);
   } catch (err) {
     console.error("Errore render imprese:", err);
     grid.innerHTML = '<div class="col-span-full text-center text-red-500">Errore nel caricamento delle imprese.</div>';
@@ -169,9 +171,9 @@ async function apriModalImpresa(id = null) {
   }
 
   if (id) {
-    // Modifica: pre-popola i dati
+    // Modifica: pre-popola i dati (usa la cache già caricata per il dropdown)
     try {
-      const impresa = await getItem('imprese', id);
+      const impresa = allImprese.find(i => i.id === id);
       if (impresa) {
         document.getElementById('impresa-id').value = impresa.id;
         document.getElementById('impresa-ragione-sociale').value = impresa.ragioneSociale || '';
@@ -278,7 +280,7 @@ function aggiungiRigaDocImpresa(doc = null) {
         ${doc && doc.base64 ? '✅ File' : '📎 File'}
       </button>
       <input type="hidden" class="doc-base64" value="${doc && doc.base64 ? doc.base64 : ''}">
-      <input type="hidden" class="doc-filename" value="${doc && doc.filename ? doc.filename : ''}">
+      <input type="hidden" class="doc-filename" value="${escapeHtml(doc && doc.filename ? doc.filename : '')}">
       <button type="button" class="bg-red-50 text-red-600 px-3 py-1.5 rounded text-sm hover:bg-red-100 border border-red-200" onclick="rimuoviRigaDocImpresa(this)">🗑️</button>
     </div>
   `;
@@ -448,31 +450,45 @@ function chiudiModalEliminaImpresa() {
   setTimeout(() => modal.classList.add('page-hidden'), 300);
 }
 
+// Elimina lavoratori, mezzi, foto e doc_links di una singola impresa
+async function _cleanupEntitaImpresa(impId) {
+  const [lavs, mezzi, foto, links] = await Promise.all([
+    getByIndex('lavoratori', 'impresaId', impId).catch(() => []),
+    getByIndex('mezzi', 'impresaId', impId).catch(() => []),
+    getByIndex('foto', 'impresaId', impId).catch(() => []),
+    getByIndex('doc_links', 'riferimentoId', impId).catch(() => [])
+  ]);
+  await Promise.all([
+    ...lavs.map(l => deleteItem('lavoratori', l.id)),
+    ...mezzi.map(m => deleteItem('mezzi', m.id)),
+    ...foto.map(f => deleteItem('foto', f.id)),
+    ...links.map(l => deleteItem('doc_links', l.id))
+  ]);
+}
+
 async function eseguiEliminaImpresa() {
   if (!impresaDaEliminare) return;
-  
+
   try {
-    // 1. Elimina Lavoratori
-    const lavs = await getByIndex('lavoratori', 'impresaId', impresaDaEliminare).catch(()=>[]);
-    for (const l of lavs) {
-      await deleteItem('lavoratori', l.id);
-    }
-    
-    // 2. Elimina Mezzi
-    const mezzi = await getByIndex('mezzi', 'impresaId', impresaDaEliminare).catch(()=>[]);
-    for (const m of mezzi) {
-      await deleteItem('mezzi', m.id);
-    }
-    
-    // 3. Elimina Subappaltatrici in cascade (flat delete per ora)
-    const subs = await getByIndex('imprese', 'subAppaltoDi', impresaDaEliminare).catch(()=>[]);
+    // 1. Pulisci entità collegate all'impresa principale
+    await _cleanupEntitaImpresa(impresaDaEliminare);
+
+    // 2. Pulisci assegnazioni cantieri
+    const assegnaz = await getAll('imprese_cantieri').catch(() => []);
+    await Promise.all(
+      assegnaz.filter(a => a.impresaId === impresaDaEliminare).map(a => deleteItem('imprese_cantieri', a.id))
+    );
+
+    // 3. Elimina subappaltatrici in cascade (incluse le loro entità collegate)
+    const subs = await getByIndex('imprese', 'subAppaltoDi', impresaDaEliminare).catch(() => []);
     for (const s of subs) {
-      await deleteItem('imprese', s.id); 
+      await _cleanupEntitaImpresa(s.id);
+      await deleteItem('imprese', s.id);
     }
 
     // 4. Elimina Impresa principale
     await deleteItem('imprese', impresaDaEliminare);
-    
+
     chiudiModalEliminaImpresa();
     renderImprese();
     

@@ -2,6 +2,11 @@
 // Verifica Idoneità POS: CRUD + workflow BOZZA→FIRMATO→PROTOCOLLATO + docx
 
 // ─────────────────────────────────────────────
+// STATO MODULO
+// ─────────────────────────────────────────────
+let _firmaPerInvioInProgress = false;
+
+// ─────────────────────────────────────────────
 // HELPERS DB (autoIncrement — stesso pattern verbali-riunione.js)
 // ─────────────────────────────────────────────
 
@@ -26,8 +31,13 @@ function _saveVerificaPosDB(record) {
 async function calcolaNumeroProgressivoVP(projectId, dataDocumento) {
     const tutti = await getByIndex('verifica_pos', 'projectId', projectId);
     const dataPrefix = (dataDocumento || '').replace(/-/g, '');
-    const count = tutti.filter(r => r.dataDocumento === dataDocumento && r.stato !== 'BOZZA').length;
-    return `${dataPrefix}/VP${String(count + 1).padStart(2, '0')}`;
+    // TODO ARCH: sostituire con IDBKeyRange su indice composto {projectId, dataDocumento}
+    // per eliminare il carico di tutti i record in RAM.
+    const numeri = tutti
+        .filter(r => r.dataDocumento === dataDocumento && r.stato !== 'BOZZA' && r.numeroProgressivo)
+        .map(r => parseInt((r.numeroProgressivo || '').replace(/\D/g, '')) || 0);
+    const maxNum = Math.max(0, ...numeri);
+    return `${dataPrefix}/VP${String(maxNum + 1).padStart(2, '0')}`;
 }
 
 // ─────────────────────────────────────────────
@@ -226,7 +236,7 @@ async function apriFormVerificaPos(id) {
                     ? `<p class="text-sm font-semibold text-slate-800">${escapeHtml(record?._impresaNome || '—')}</p>`
                     : `<select id="vp-impresaId" onchange="_aggiornaPecWarning()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
                         <option value="">— Seleziona impresa affidataria —</option>
-                        ${affidatarie.map(i => `<option value="${i.id}" data-pec="${escapeHtml(i.pec || '')}" ${record?.impresaId == i.id ? 'selected' : ''}>${escapeHtml(i.ragioneSociale)}${i.pec ? ' · ' + i.pec : ''}</option>`).join('')}
+                        ${affidatarie.map(i => `<option value="${i.id}" data-pec="${escapeHtml(i.pec || '')}" ${record?.impresaId == i.id ? 'selected' : ''}>${escapeHtml(i.ragioneSociale)}${i.pec ? ' · ' + escapeHtml(i.pec) : ''}</option>`).join('')}
                     </select>
                     <p id="vp-pec-warn" class="hidden text-xs text-amber-600">⚠ L'impresa selezionata non ha PEC — <button onclick="Router.navSubView('IMPRESE')" class="underline font-bold">Aggiungila in Anagrafiche → Imprese</button></p>`}
                 ${affidatarie.length === 0 && !isSolaLettura
@@ -437,7 +447,19 @@ function _raccogliFormVP(idEsistente) {
 // ─────────────────────────────────────────────
 
 async function salvaBozzaVerificaPos(idEsistente) {
-    const dati = _raccogliFormVP(idEsistente ? Number(idEsistente) : undefined);
+    const numericId = idEsistente ? Number(idEsistente) : undefined;
+
+    // Read-before-update: impedisce sovrascrittura di documenti già finalizzati
+    const esistente = numericId ? await getItem('verifica_pos', numericId) : null;
+    if (esistente && (esistente.stato === 'PROTOCOLLATO' || esistente.stato === 'FIRMATO')) {
+        showToast('Impossibile alterare un documento finalizzato/protocollato.', 'error');
+        return;
+    }
+
+    const formDati = _raccogliFormVP(numericId);
+    // Merge: preserva i campi binari e le proprietà esistenti non presenti nel form
+    const dati = esistente ? { ...esistente, ...formDati } : formDati;
+
     const saved = await _saveVerificaPosDB(dati);
     showToast('Bozza salvata ✓', 'success');
     // Riapri il form con l'id assegnato (per permettere salvataggi successivi)
@@ -449,51 +471,75 @@ async function salvaBozzaVerificaPos(idEsistente) {
 // ─────────────────────────────────────────────
 
 async function firmaPerInvio(idEsistente) {
-    const dati = _raccogliFormVP(idEsistente ? Number(idEsistente) : undefined);
+    // Double-submit guard
+    if (_firmaPerInvioInProgress) return;
+    _firmaPerInvioInProgress = true;
+    const _btn = document.querySelector('[onclick^="firmaPerInvio"]');
+    if (_btn) { _btn.disabled = true; _btn.textContent = '⏳ Elaborazione…'; }
 
-    // Validazione completa
-    const errori = await validaVerificaPos(dati);
-    if (errori.length > 0) {
-        alert('ERRORI — correggere prima di procedere:\n- ' + errori.join('\n- '));
-        return;
-    }
-
-    // Numerazione progressiva se non presente
-    if (!dati.numeroProgressivo) {
-        dati.numeroProgressivo = await calcolaNumeroProgressivoVP(dati.projectId, dati.dataDocumento);
-    }
-
-    // Snapshot nomeCse dalle impostazioni
-    const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => ({})) : {};
-    dati.nomeCse = imp.firmaNome || '';
-
-    // Snapshot nomeRl da cantiere
-    const cantiere = await getItem('projects', dati.projectId);
-    if (!dati.nomeRl && cantiere?.responsabileLavoriId) {
-        const rl = await getItem('persone_anas', cantiere.responsabileLavoriId);
-        if (rl) dati.nomeRl = `${rl.cognome || ''} ${rl.nome || ''}`.trim();
-    }
-
-    dati.stato = 'FIRMATO';
-    dati.dataFirmaDocumento = new Date().toISOString();
-
-    const saved = await _saveVerificaPosDB(dati);
-
-    // Genera e scarica Word
     try {
-        const blob = await _generaDocxVP(saved);
-        const fileName = `VerificaPOS_${(saved.dataDocumento || '').replace(/-/g, '')}_${(saved.numeroProgressivo || '').replace(/\//g, '_')}.docx`;
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = fileName;
-        link.click();
-        showToast('Word scaricato ✓ — invia per firma digitale', 'success');
-    } catch (err) {
-        console.error('[VP] Errore Word:', err);
-        alert('Errore generazione Word: ' + err.message);
-    }
+        const numericId = idEsistente ? Number(idEsistente) : undefined;
 
-    await apriFormVerificaPos(saved.id);
+        // Read-before-update: impedisce sovrascrittura di documenti già protocollati
+        const esistente = numericId ? await getItem('verifica_pos', numericId) : null;
+        if (esistente && esistente.stato === 'PROTOCOLLATO') {
+            showToast('Impossibile alterare un documento già protocollato.', 'error');
+            return;
+        }
+
+        const formDati = _raccogliFormVP(numericId);
+        // Merge: preserva i campi binari e le proprietà esistenti non presenti nel form
+        const dati = esistente ? { ...esistente, ...formDati } : formDati;
+
+        // Validazione completa
+        const errori = await validaVerificaPos(dati);
+        if (errori.length > 0) {
+            alert('ERRORI — correggere prima di procedere:\n- ' + errori.join('\n- '));
+            return;
+        }
+
+        // Numerazione progressiva se non presente
+        if (!dati.numeroProgressivo) {
+            dati.numeroProgressivo = await calcolaNumeroProgressivoVP(dati.projectId, dati.dataDocumento);
+        }
+
+        // Snapshot nomeCse dalle impostazioni
+        const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => ({})) : {};
+        dati.nomeCse = imp.firmaNome || '';
+
+        // Snapshot nomeRl da cantiere
+        const cantiere = await getItem('projects', dati.projectId);
+        if (!dati.nomeRl && cantiere?.responsabileLavoriId) {
+            const rl = await getItem('persone_anas', cantiere.responsabileLavoriId);
+            if (rl) dati.nomeRl = `${rl.cognome || ''} ${rl.nome || ''}`.trim();
+        }
+
+        dati.stato = 'FIRMATO';
+        dati.dataFirmaDocumento = new Date().toISOString();
+
+        const saved = await _saveVerificaPosDB(dati);
+
+        // Genera e scarica Word
+        try {
+            const blob = await _generaDocxVP(saved);
+            const fileName = `VerificaPOS_${(saved.dataDocumento || '').replace(/-/g, '')}_${(saved.numeroProgressivo || '').replace(/\//g, '_')}.docx`;
+            const link = document.createElement('a');
+            const blobUrl = URL.createObjectURL(blob);
+            link.href = blobUrl;
+            link.download = fileName;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+            showToast('Word scaricato ✓ — invia per firma digitale', 'success');
+        } catch (err) {
+            console.error('[VP] Errore Word:', err);
+            alert('Errore generazione Word: ' + err.message);
+        }
+
+        await apriFormVerificaPos(saved.id);
+    } finally {
+        _firmaPerInvioInProgress = false;
+        if (_btn) { _btn.disabled = false; _btn.textContent = '✍️ Firma e Scarica per Invio'; }
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -507,9 +553,11 @@ async function scaricaWordVerificaPos(id) {
         const blob = await _generaDocxVP(record);
         const fileName = `VerificaPOS_${(record.dataDocumento || '').replace(/-/g, '')}_${(record.numeroProgressivo || record.id).toString().replace(/\//g, '_')}.docx`;
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
+        const blobUrl = URL.createObjectURL(blob);
+        link.href = blobUrl;
         link.download = fileName;
         link.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
     } catch (err) { showToast('Errore Word: ' + err.message, 'error'); }
 }
 
@@ -715,6 +763,12 @@ async function confermaProtocollo(id) {
     const record = await getItem('verifica_pos', Number(id));
     if (!record) { showToast('Record non trovato.', 'error'); return; }
 
+    // TODO ARCH (OOM): i due ArrayBuffer (fino a 20 MB totali) vengono serializzati
+    // nel record principale. getByIndex('verifica_pos', ...) de-serializza TUTTI i buffer
+    // storici in RAM, causando OOM su dispositivi mobili dopo il 2°/3° record protocollato.
+    // Soluzione: splitting in store separato `files_store` con {id, parentId, tipo, buffer};
+    // qui salvare solo {pdfProtocollatoId, pdfProtocollatoNome} e caricare il buffer
+    // solo in scaricaPdfProtocollato / scaricaLetteraTrasmissione.
     record.stato                     = 'PROTOCOLLATO';
     record.numeroProtocollo          = numero;
     record.dataProtocollazione       = data;
@@ -739,9 +793,11 @@ async function scaricaPdfProtocollato(id) {
     if (!r?.pdfProtocollato) { showToast('PDF protocollato non disponibile.', 'warning'); return; }
     const blob = new Blob([r.pdfProtocollato], { type: 'application/pdf' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);
+    link.href = blobUrl;
     link.download = r.pdfProtocollatoNome || `Prot_${r.numeroProtocollo || id}.pdf`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
 }
 
 async function scaricaLetteraTrasmissione(id) {
@@ -752,9 +808,11 @@ async function scaricaLetteraTrasmissione(id) {
         : 'application/pdf';
     const blob = new Blob([r.lettreTrasmissioneRup], { type: mime });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);
+    link.href = blobUrl;
     link.download = r.lettreTrasmissioneNome || `Lettera_Trasmissione_${r.numeroProtocollo || id}.pdf`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
 }
 
 // ─────────────────────────────────────────────

@@ -187,9 +187,23 @@ const CantiereController = {
             return;
         }
 
+        // Fix MEDIUM: validazione caratteri ID — blocca slash, backslash e simboli speciali
+        // che corrompono i nomi file .docx/.zip generati a partire dal projectId
+        if (!/^[A-Z0-9\-_]+$/.test(id)) {
+            alert("L'ID Cantiere può contenere solo lettere maiuscole, numeri, trattini (-) o underscore (_).");
+            return;
+        }
+
+        // Fix HIGH: impedisce sovrascrittura silenziosa di un cantiere esistente (upsert cieco)
+        const esistente = await getItem('projects', id);
+        if (esistente) {
+            alert(`Errore: un cantiere con ID "${id}" è già esistente. Scegli un ID diverso.`);
+            return;
+        }
+
         const project = { id, nome, stato: 'attivo', createdAt: new Date().toISOString() };
         await saveItem('projects', project);
-        
+
         UI.chiudiModalCantiere();
         await Router.nav('CANTIERE', id);
     },
@@ -210,24 +224,34 @@ const CantiereController = {
             return;
         }
 
+        // Fix CRITICAL XSS: tutti i valori utente (p.id, p.nome) passano per escapeHtml
+        // Fix HIGH Syntax Break: p.id rimosso dagli attributi onclick e spostato su data-project-id
+        // (il browser decodifica le entity HTML prima del parsing JS, quindi escapeHtml da solo
+        // non sarebbe sufficiente per gli handler inline — il data-attribute evita il problema)
         grid.innerHTML = projects.map(p => {
+            const safeId   = escapeHtml(p.id);
+            const safeNome = escapeHtml(p.nome);
             const incompleto = typeof datiAmministrativiIncompleti === 'function' && datiAmministrativiIncompleti(p);
             const badge = incompleto
                 ? `<div class="mt-2">
-                       <button onclick="event.stopPropagation(); Router.nav('CANTIERE','${p.id}').then(()=>apriAnagraficaEditMode())"
+                       <button data-project-id="${safeId}"
+                               onclick="event.stopPropagation(); Router.nav('CANTIERE', this.dataset.projectId).then(()=>apriAnagraficaEditMode())"
                                class="bg-red-50 text-red-600 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-red-200 hover:bg-red-100 transition">
                            ⚠ Dati amministrativi incompleti
                        </button>
                    </div>`
                 : '';
             return `
-            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm card-hover cursor-pointer flex flex-col justify-between group" onclick="Router.nav('CANTIERE', '${p.id}')">
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm card-hover cursor-pointer flex flex-col justify-between group"
+                 data-project-id="${safeId}" onclick="Router.nav('CANTIERE', this.dataset.projectId)">
                 <div>
                     <div class="flex justify-between items-start mb-4">
-                        <span class="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">${p.id}</span>
-                        <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="event.stopPropagation(); CantiereController.elimina('${p.id}')">🗑️</button>
+                        <span class="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">${safeId}</span>
+                        <button class="text-slate-300 hover:text-red-500 transition-colors"
+                                data-project-id="${safeId}"
+                                onclick="event.stopPropagation(); CantiereController.elimina(this.dataset.projectId)">🗑️</button>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${p.nome}</h3>
+                    <h3 class="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${safeNome}</h3>
                     ${badge}
                 </div>
                 <div class="mt-8 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-tighter">

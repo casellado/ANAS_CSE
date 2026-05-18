@@ -109,10 +109,14 @@ function linkEventoCollegato(ev) {
 // ─────────────────────────────────────────────
 
 async function calcolaCodiceEvento(projectId, tipologia) {
+    // Usa max(numero)+1 per resistere alle lacune da cancellazioni.
+    // TODO: race condition residua se due salvataggi avvengono simultaneamente;
+    // soluzione definitiva richiede un contatore atomico dedicato (single-record).
     const tutti = await getByIndex('eventi_incidentali', 'projectId', projectId);
     const suffisso = tipologia === 'NEAR_MISS' ? 'NM' : 'INF';
     const stessaTipo = tutti.filter(e => e.tipologia === tipologia);
-    const nn = String(stessaTipo.length + 1).padStart(2, '0');
+    const numeri = stessaTipo.map(e => parseInt((e.codiceEvento || '').replace(/\D/g, '')) || 0);
+    const nn = String(Math.max(0, ...numeri) + 1).padStart(2, '0');
     return `EV${nn}/${suffisso}`;
 }
 
@@ -262,15 +266,18 @@ async function eliminaEvento(eventoId) {
 // ─────────────────────────────────────────────
 
 async function aggiungiAllegato(eventoId, file, tipologia) {
+    // TODO ARCH (OOM): il blob viene serializzato nel record evento principale.
+    // Ogni getByIndex deserializza TUTTI i blob in RAM (fino a 300MB per evento).
+    // Fix definitivo: salvare il contenuto binario in un object store separato
+    // 'allegati_eventi' e conservare qui solo i metadati {id,nome,mimeType,dimensione}.
     if (file.size > 10 * 1024 * 1024) throw new Error('File troppo grande (max 10MB).');
     const ev = await getItem('eventi_incidentali', eventoId);
     if (!ev) throw new Error('Evento non trovato.');
     if ((ev.allegati || []).length >= 30) throw new Error('Limite 30 allegati per evento.');
-    const blob = file;
     const allegato = {
         id: _uuid(), nome: file.name, mimeType: file.type,
         dimensione: file.size, timestamp: new Date().toISOString(),
-        tipologia: tipologia || 'altro', blob
+        tipologia: tipologia || 'altro', blob: file
     };
     ev.allegati = ev.allegati || [];
     ev.allegati.push(allegato);
@@ -352,9 +359,10 @@ async function promuoviAdInfortunio(nearMissId, datiInfortunio, motivazione) {
     if (nearMiss.stato !== 'APERTO' && nearMiss.stato !== 'IN_GESTIONE')
         throw new Error('Solo Near Miss APERTI o IN_GESTIONE possono essere promossi.');
 
-    // Costruisci allegati copiati (nuovi UUID, stessa struttura)
-    const allegatiCopiati = (nearMiss.allegati || []).map(a => ({
-        ...a, id: _uuid(), timestamp: new Date().toISOString()
+    // Copia solo i metadati degli allegati — non i blob — per evitare duplicazione in memoria.
+    // TODO ARCH: una volta separati i blob in 'allegati_eventi', collegare qui per riferimento.
+    const allegatiCopiati = (nearMiss.allegati || []).map(({ blob: _b, ...meta }) => ({
+        ...meta, id: _uuid(), timestamp: new Date().toISOString()
     }));
 
     // Codice nuovo Infortunio
@@ -421,28 +429,49 @@ async function promuoviAdInfortunio(nearMissId, datiInfortunio, motivazione) {
         }]
     };
 
-    const infortunioSalvato = await _saveEventoDB(infortunio);
+    // Salvataggio atomico: crea Infortunio e segna Near Miss come promosso
+    // in un'unica transazione IndexedDB. Se una delle due scritture fallisce,
+    // entrambe vengono annullate (rollback automatico).
+    return new Promise((resolve, reject) => {
+        const t  = db.transaction('eventi_incidentali', 'readwrite');
+        const s  = t.objectStore('eventi_incidentali');
+        infortunio.modifiedAt = now;
 
-    // Aggiorna Near Miss originale
-    nearMiss.stato = 'PROMOSSO_AD_INFORTUNIO';
-    nearMiss.infortunioPromossoId = infortunioSalvato.id;
-    nearMiss.dataPromozione = now;
-    nearMiss.auditLog = nearMiss.auditLog || [];
-    nearMiss.auditLog.push({
-        timestamp: now,
-        azione: 'PROMOZIONE_AD_INFORTUNIO',
-        statoPrec: nearMiss.stato === 'PROMOSSO_AD_INFORTUNIO' ? 'APERTO' : nearMiss.stato,
-        statoNuovo: 'PROMOSSO_AD_INFORTUNIO',
-        nota: `Promosso a Infortunio ${infortunioSalvato.codiceEvento}. Motivazione: ${motivazione.trim()}`
+        const reqInf = s.put(infortunio);
+        reqInf.onsuccess = () => {
+            if (!infortunio.id) infortunio.id = reqInf.result;
+
+            const statoPrec = nearMiss.stato; // cattura prima della mutazione
+            nearMiss.stato = 'PROMOSSO_AD_INFORTUNIO';
+            nearMiss.infortunioPromossoId = infortunio.id;
+            nearMiss.dataPromozione = now;
+            nearMiss.modifiedAt = now;
+            nearMiss.auditLog = nearMiss.auditLog || [];
+            nearMiss.auditLog.push({
+                timestamp: now,
+                azione: 'PROMOZIONE_AD_INFORTUNIO',
+                statoPrec,
+                statoNuovo: 'PROMOSSO_AD_INFORTUNIO',
+                nota: `Promosso a Infortunio ${infortunio.codiceEvento}. Motivazione: ${motivazione.trim()}`
+            });
+            s.put(nearMiss).onerror = () => {};
+        };
+        reqInf.onerror = () => {};
+
+        t.oncomplete = () => resolve({ nearMissAggiornato: nearMiss, infortunioCreato: infortunio });
+        t.onerror    = () => reject(t.error);
+        t.onabort    = () => reject(t.error || new Error('Transazione annullata'));
     });
-    const nearMissAggiornato = await _saveEventoDB(nearMiss);
-
-    return { nearMissAggiornato, infortunioCreato: infortunioSalvato };
 }
 
 // ─────────────────────────────────────────────
 // EXPORT CSV
 // ─────────────────────────────────────────────
+
+function _sanitizeCsvFieldEv(val) {
+    const s = String(val ?? '');
+    return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
 
 async function esportaCsvEventi(projectId, filtri = {}) {
     const lista = await listaEventiCantiere(projectId, filtri);
@@ -456,13 +485,13 @@ async function esportaCsvEventi(projectId, filtri = {}) {
             ev.codiceEvento || '',
             ev.tipologia === 'NEAR_MISS' ? 'Near Miss' : 'Infortunio',
             _fmtDataOra(ev.dataOraEvento),
-            (ev.luogo || '').replace(/;/g,'|'),
+            _sanitizeCsvFieldEv(ev.luogo || '').replace(/;/g,'|'),
             LABEL_GRAVITA[ev.gravita] || ev.gravita || '',
             LABEL_SOTTOTIPO[ev.sottotipo] || ev.sottotipo || '',
-            ev.infortunatoNome || '',
+            _sanitizeCsvFieldEv(ev.infortunatoNome || ''),
             ev.stato || '',
             _fmtData(ev.dataChiusura),
-            (ev.notaChiusura || '').replace(/;/g,'|').replace(/\n/g,' '),
+            _sanitizeCsvFieldEv(ev.notaChiusura || '').replace(/;/g,'|').replace(/\n/g,' '),
             ev.verbaleOrigineId || '',
             link ? `${link.tipo === 'promosso_a' ? 'Promosso→' : '←OrigineDa'} ID:${link.id}` : ''
         ].join(';'));
@@ -641,7 +670,7 @@ async function _renderListaEv(filtri) {
             </td>
             <td class="px-4 py-3">${_badgeTipologia(ev.tipologia)}</td>
             <td class="px-4 py-3 text-sm text-slate-600">${_fmtDataOra(ev.dataOraEvento)}</td>
-            <td class="px-4 py-3 text-sm text-slate-700 max-w-[200px] truncate" title="${(ev.luogo||'').replace(/"/g,"'")}">${ev.luogo || '—'}</td>
+            <td class="px-4 py-3 text-sm text-slate-700 max-w-[200px] truncate" title="${escapeHtml(ev.luogo||'')}">${escapeHtml(ev.luogo) || '—'}</td>
             <td class="px-4 py-3">${_badgeGravita(ev.gravita, ev.tipologia)}</td>
             <td class="px-4 py-3">${_badgeStato(ev)}</td>
             <td class="px-4 py-3">${azioni}</td>
@@ -656,7 +685,7 @@ async function _renderListaEv(filtri) {
                 <div>
                     <div class="font-mono font-bold text-sm text-slate-800">${ev.codiceEvento || '—'} ${link ? '🔗' : ''}</div>
                     <div class="flex gap-2 mt-1 flex-wrap">${_badgeTipologia(ev.tipologia)} ${_badgeStato(ev)}</div>
-                    <div class="text-xs text-slate-500 mt-1">${_fmtDataOra(ev.dataOraEvento)} — ${ev.luogo || '—'}</div>
+                    <div class="text-xs text-slate-500 mt-1">${_fmtDataOra(ev.dataOraEvento)} — ${escapeHtml(ev.luogo) || '—'}</div>
                     <div class="mt-1">${_badgeGravita(ev.gravita, ev.tipologia)}</div>
                 </div>
                 <div>${_menuAzioniEv(ev)}</div>
@@ -730,6 +759,15 @@ document.addEventListener('click', _chiudiTuttiMenuEv);
 // FORM NUOVO/MODIFICA EVENTO
 // ─────────────────────────────────────────────
 
+function _resetEvModaleState() {
+    _evTestimoni     = [];
+    _evSoccorritori  = [];
+    _evComunicazioni = [];
+    _evAllegati      = [];
+    _evCurrentId     = null;
+    document.getElementById('modal-form-evento')?.remove();
+}
+
 async function _apriFormEvento(eventoId = null, prefill = {}) {
     _evCurrentId = eventoId;
     _evTestimoni = [];
@@ -751,10 +789,11 @@ async function _apriFormEvento(eventoId = null, prefill = {}) {
     const projectId = sessionStorage.getItem('currentProjectId');
     const imprese = await getByIndex('imprese', 'projectId', projectId);
 
-    const val = (campo, def='') => ev ? (ev[campo] ?? def) : (prefill[campo] ?? def);
+    const valRaw = (campo, def='') => ev ? (ev[campo] ?? def) : (prefill[campo] ?? def);
+    const val = (campo, def='') => { const v = valRaw(campo, def); return typeof v === 'string' ? escapeHtml(v) : v; };
 
     const opzImprese = `<option value="">— Seleziona —</option>` +
-        imprese.map(i => `<option value="${i.id}" ${val('infortunatoImpresaId')==i.id?'selected':''}>${i.ragioneSociale}</option>`).join('');
+        imprese.map(i => `<option value="${i.id}" ${valRaw('infortunatoImpresaId')==i.id?'selected':''}>${escapeHtml(i.ragioneSociale)}</option>`).join('');
 
     const modal = document.createElement('div');
     modal.id = 'modal-form-evento';
@@ -763,7 +802,7 @@ async function _apriFormEvento(eventoId = null, prefill = {}) {
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-8">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center">
         <h3 class="text-xl font-bold text-slate-900">${eventoId ? 'Modifica Evento' : 'Nuovo Evento Incidentale'}</h3>
-        <button onclick="document.getElementById('modal-form-evento').remove()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+        <button onclick="_resetEvModaleState()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
       </div>
       <div class="p-6 space-y-6">
 
@@ -773,12 +812,12 @@ async function _apriFormEvento(eventoId = null, prefill = {}) {
           <div class="flex gap-8">
             <label class="flex items-center gap-2 cursor-pointer font-semibold">
               <input type="radio" name="ev-tipologia" value="NEAR_MISS" onchange="_evCambiaTipologia()"
-                     ${val('tipologia','NEAR_MISS')==='NEAR_MISS'?'checked':''}>
+                     ${valRaw('tipologia','NEAR_MISS')==='NEAR_MISS'?'checked':''}>
               <span class="text-yellow-700">⚠️ Near Miss</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer font-semibold">
               <input type="radio" name="ev-tipologia" value="INFORTUNIO" onchange="_evCambiaTipologia()"
-                     ${val('tipologia')==='INFORTUNIO'?'checked':''}>
+                     ${valRaw('tipologia')==='INFORTUNIO'?'checked':''}>
               <span class="text-red-700">🚨 Infortunio</span>
             </label>
           </div>
@@ -834,7 +873,7 @@ async function _apriFormEvento(eventoId = null, prefill = {}) {
         <!-- Sez 4: Persone coinvolte -->
         <fieldset class="bg-slate-50 rounded-2xl p-5">
           <legend class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3">4. Persone coinvolte</legend>
-          <div id="ev-sezione-infortunato" class="${val('tipologia')==='INFORTUNIO'?'':'hidden'} space-y-3 mb-4 pb-4 border-b border-slate-200">
+          <div id="ev-sezione-infortunato" class="${valRaw('tipologia')==='INFORTUNIO'?'':'hidden'} space-y-3 mb-4 pb-4 border-b border-slate-200">
             <p class="text-xs font-bold text-red-700 uppercase">Dati infortunato</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
@@ -898,7 +937,7 @@ async function _apriFormEvento(eventoId = null, prefill = {}) {
         </fieldset>
 
         <!-- Sez 6: Conseguenze (solo Infortunio) -->
-        <fieldset id="ev-sezione-conseguenze" class="${val('tipologia')==='INFORTUNIO'?'':'hidden'} bg-red-50 rounded-2xl p-5 border border-red-100">
+        <fieldset id="ev-sezione-conseguenze" class="${valRaw('tipologia')==='INFORTUNIO'?'':'hidden'} bg-red-50 rounded-2xl p-5 border border-red-100">
           <legend class="text-[10px] font-bold text-red-400 uppercase tracking-widest px-2 mb-3">6. Conseguenze (Infortunio)</legend>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -969,7 +1008,7 @@ async function _apriFormEvento(eventoId = null, prefill = {}) {
       <div class="px-6 pb-6 flex gap-3 flex-wrap">
         <button onclick="_salvaFormEvento(false)" class="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition shadow">💾 Salva</button>
         <button onclick="_salvaFormEvento(true)"  class="bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl hover:bg-amber-600 transition shadow">▶ Salva e Prendi in carico</button>
-        <button onclick="document.getElementById('modal-form-evento').remove()" class="border border-slate-300 px-6 py-2.5 rounded-xl hover:bg-slate-50 transition">Annulla</button>
+        <button onclick="_resetEvModaleState()" class="border border-slate-300 px-6 py-2.5 rounded-xl hover:bg-slate-50 transition">Annulla</button>
       </div>
     </div>`;
 
@@ -1133,7 +1172,7 @@ async function apriDettaglioEvento(eventoId) {
             <div class="text-xl leading-none">${icoMap[entry.azione]||'•'}</div>
             <div>
                 <div class="font-bold text-slate-700">${new Date(entry.timestamp).toLocaleString('it-IT')} — ${entry.azione.replace(/_/g,' ')}</div>
-                ${entry.nota ? `<div class="text-slate-500 italic mt-0.5">${entry.nota}</div>` : ''}
+                ${entry.nota ? `<div class="text-slate-500 italic mt-0.5">${escapeHtml(entry.nota)}</div>` : ''}
                 ${entry.statoPrec ? `<div class="text-[11px] text-slate-400">${entry.statoPrec} → ${entry.statoNuovo}</div>` : ''}
             </div>
         </div>`;
@@ -1153,25 +1192,25 @@ async function apriDettaglioEvento(eventoId) {
         <div class="grid grid-cols-2 gap-3 text-sm">
           <div><span class="text-slate-400">Codice</span><div class="font-mono font-bold">${ev.codiceEvento}</div></div>
           <div><span class="text-slate-400">Data/Ora</span><div class="font-semibold">${_fmtDataOra(ev.dataOraEvento)}</div></div>
-          <div class="col-span-2"><span class="text-slate-400">Luogo</span><div class="font-semibold">${ev.luogo||'—'}</div></div>
-          ${ev.progressivaKm ? `<div><span class="text-slate-400">Progressiva</span><div>${ev.progressivaKm}</div></div>` : ''}
-          ${ev.condizioniMeteo ? `<div><span class="text-slate-400">Meteo</span><div>${ev.condizioniMeteo}</div></div>` : ''}
+          <div class="col-span-2"><span class="text-slate-400">Luogo</span><div class="font-semibold">${escapeHtml(ev.luogo)||'—'}</div></div>
+          ${ev.progressivaKm ? `<div><span class="text-slate-400">Progressiva</span><div>${escapeHtml(ev.progressivaKm)}</div></div>` : ''}
+          ${ev.condizioniMeteo ? `<div><span class="text-slate-400">Meteo</span><div>${escapeHtml(ev.condizioniMeteo)}</div></div>` : ''}
         </div>
         ${ev.tipologia === 'INFORTUNIO' && ev.infortunatoNome ? `
         <div class="bg-red-50 rounded-xl p-4 text-sm">
           <p class="font-bold text-red-700 mb-2">Infortunato</p>
-          <p><strong>${ev.infortunatoNome}</strong>${ev.infortunatoMansione ? ` — ${ev.infortunatoMansione}` : ''}</p>
-          ${ev.tipoLesione ? `<p>Lesione: ${ev.tipoLesione}${ev.parteCorpoColpita?' ('+ev.parteCorpoColpita+')':''}</p>` : ''}
+          <p><strong>${escapeHtml(ev.infortunatoNome)}</strong>${ev.infortunatoMansione ? ` — ${escapeHtml(ev.infortunatoMansione)}` : ''}</p>
+          ${ev.tipoLesione ? `<p>Lesione: ${escapeHtml(ev.tipoLesione)}${ev.parteCorpoColpita?' ('+escapeHtml(ev.parteCorpoColpita)+')':''}</p>` : ''}
         </div>` : ''}
         <div class="text-sm">
           <p class="text-slate-400 mb-1">Descrizione</p>
-          <p class="text-slate-800">${ev.descrizioneEvento||'—'}</p>
+          <p class="text-slate-800">${escapeHtml(ev.descrizioneEvento)||'—'}</p>
         </div>
         <div class="text-sm">
           <p class="text-slate-400 mb-1">Azioni immediate CSE</p>
-          <p class="text-slate-800">${ev.azioniImmediate||'—'}</p>
+          <p class="text-slate-800">${escapeHtml(ev.azioniImmediate)||'—'}</p>
         </div>
-        ${verbaleOrigine ? `<div class="text-sm bg-blue-50 rounded-xl p-3"><span class="text-slate-400">Verbale origine: </span><span class="font-semibold">${verbaleOrigine.numero||verbaleOrigine.id}</span></div>` : ''}
+        ${verbaleOrigine ? `<div class="text-sm bg-blue-50 rounded-xl p-3"><span class="text-slate-400">Verbale origine: </span><span class="font-semibold">${escapeHtml(String(verbaleOrigine.numero||verbaleOrigine.id))}</span></div>` : ''}
         ${link ? `<div class="text-sm bg-purple-50 rounded-xl p-3">
           <span class="text-slate-400">${link.tipo==='promosso_a'?'Promosso ad Infortunio →':'Originato da Near Miss ←'} </span>
           <button onclick="apriDettaglioEvento(${link.id});document.getElementById('modal-dettaglio-evento').remove()" class="font-semibold text-purple-700 hover:underline">ID ${link.id}</button>
@@ -1181,7 +1220,7 @@ async function apriDettaglioEvento(eventoId) {
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Timeline</p>
           <div class="space-y-3">${timelineHtml}</div>
         </div>` : ''}
-        ${ev.notaChiusura ? `<div class="bg-slate-50 rounded-xl p-4 text-sm"><p class="text-slate-400 mb-1">Nota chiusura</p><p>${ev.notaChiusura}</p></div>` : ''}
+        ${ev.notaChiusura ? `<div class="bg-slate-50 rounded-xl p-4 text-sm"><p class="text-slate-400 mb-1">Nota chiusura</p><p>${escapeHtml(ev.notaChiusura)}</p></div>` : ''}
       </div>
     </div>`;
 
@@ -1508,6 +1547,7 @@ window.apriModalChiudiEvento          = apriModalChiudiEvento;
 window.apriModalRiapriEvento          = apriModalRiapriEvento;
 window.apriModalPromuoviInfortunio    = apriModalPromuoviInfortunio;
 window._apriFormEvento                = _apriFormEvento;
+window._resetEvModaleState            = _resetEvModaleState;
 window._confermaPromozione            = _confermaPromozione;
 window._confermaChiudiEvento          = _confermaChiudiEvento;
 window._confermaRiapriEvento          = _confermaRiapriEvento;

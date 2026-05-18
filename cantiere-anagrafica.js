@@ -17,11 +17,11 @@ function calcolaDataFineLavori(cantiere) {
 
 function datiAmministrativiIncompleti(cantiere) {
     return !cantiere.cup
-        && !cantiere.cig
-        && !cantiere.contrattoNumero
-        && !cantiere.dataInizioEffettiva
-        && !cantiere.rupId
-        && !cantiere.cseTitolareId;
+        || !cantiere.cig
+        || !cantiere.contrattoNumero
+        || !cantiere.dataInizioEffettiva
+        || !cantiere.rupId
+        || !cantiere.cseTitolareId;
 }
 
 function _fmt(val) {
@@ -78,6 +78,10 @@ function _validaDateOperative() {
 // ─────────────────────────────────────────────
 
 async function renderAnagraficaCantiere(editMode = false) {
+    if (!editMode && sessionStorage.getItem('cantiereEditIntent') === '1') {
+        sessionStorage.removeItem('cantiereEditIntent');
+        editMode = true;
+    }
     const projectId = sessionStorage.getItem('currentProjectId');
     const container = document.getElementById('cantiere-content');
     if (!container || !projectId) return;
@@ -219,13 +223,13 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
         const filtered = persone.filter(p => p.ruolo === ruolo);
         if (filtered.length === 0) {
             return `<select id="${id}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-amber-50 text-amber-700">
-                <option value="">⚠ Nessuna persona con ruolo ${ruolo} — <a onclick="Router.navSubView('ANAS')" class="underline cursor-pointer">Aggiungi</a></option>
+                <option value="">⚠ Nessuna persona con ruolo ${escapeHtml(ruolo)}</option>
             </select>
-            <p class="text-xs text-amber-600 mt-1">⚠ Nessuna persona con ruolo <strong>${ruolo}</strong> in Anagrafica Sicurezza. <button onclick="Router.navSubView('ANAS')" class="underline font-bold">Aggiungi</button></p>`;
+            <p class="text-xs text-amber-600 mt-1">⚠ Nessuna persona con ruolo <strong>${escapeHtml(ruolo)}</strong> in Anagrafica Sicurezza. <button onclick="if(confirm('Attenzione: le modifiche non salvate andranno perse. Continuare?')) Router.navSubView('ANAS')" class="underline font-bold">Aggiungi</button></p>`;
         }
         return `<select id="${id}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
             <option value="">— Nessuno —</option>
-            ${filtered.map(p => `<option value="${p.id}" ${valore == p.id ? 'selected' : ''}>${p.cognome || ''} ${p.nome || ''}${p.matricolaAnas ? ' (' + p.matricolaAnas + ')' : ''}</option>`).join('')}
+            ${filtered.map(p => `<option value="${p.id}" ${valore == p.id ? 'selected' : ''}>${escapeHtml(p.cognome || '')} ${escapeHtml(p.nome || '')}${p.matricolaAnas ? ' (' + escapeHtml(p.matricolaAnas) + ')' : ''}</option>`).join('')}
         </select>`;
     };
 
@@ -235,7 +239,7 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
             return `<select id="${id}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-amber-50 text-amber-700">
                 <option value="">⚠ Nessuna impresa Affidataria</option>
             </select>
-            <p class="text-xs text-amber-600 mt-1">⚠ Nessuna impresa con ruolo <strong>Affidataria</strong>. <button onclick="Router.navSubView('IMPRESE')" class="underline font-bold">Aggiungi</button></p>`;
+            <p class="text-xs text-amber-600 mt-1">⚠ Nessuna impresa con ruolo <strong>Affidataria</strong>. <button onclick="if(confirm('Attenzione: le modifiche non salvate andranno perse. Continuare?')) Router.navSubView('IMPRESE')" class="underline font-bold">Aggiungi</button></p>`;
         }
         return `<select id="${id}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
             <option value="">— Nessuna —</option>
@@ -408,6 +412,13 @@ async function salvaAnagraficaCantiere() {
     const _v = (id) => { const el = document.getElementById(id); return el ? (el.value.trim() || null) : null; };
     const _fk = (id) => { const el = document.getElementById(id); return el && el.value ? el.value : null; };
 
+    const dataInizio = _v('ca-dataInizioEffettiva');
+    const dataFine   = _v('ca-dataFineEffettiva');
+    if (dataInizio && dataFine && dataFine < dataInizio) {
+        showToast('La data fine effettiva non può precedere la data inizio.', 'error');
+        return;
+    }
+
     const aggiornato = {
         ...cantiere,
         nome,
@@ -436,8 +447,8 @@ async function salvaAnagraficaCantiere() {
         cspNome: _v('ca-cspNome'),
         cspQualifica: _v('ca-cspQualifica'),
         cspRecapito: _v('ca-cspRecapito'),
-        dataInizioEffettiva: _v('ca-dataInizioEffettiva'),
-        dataFineEffettiva: _v('ca-dataFineEffettiva'),
+        dataInizioEffettiva: dataInizio,
+        dataFineEffettiva: dataFine,
         impresaAffidatariaId: _fk('ca-impresaAffidatariaId'),
         direttoreTecnicoNome: _v('ca-direttoreTecnicoNome'),
         direttoreCantiereNome: _v('ca-direttoreCantiereNome')
@@ -453,9 +464,8 @@ async function salvaAnagraficaCantiere() {
 // ─────────────────────────────────────────────
 
 async function apriAnagraficaEditMode() {
+    sessionStorage.setItem('cantiereEditIntent', '1');
     await Router.navSubView('ANAGRAFICA_CANTIERE');
-    // Attendi il render, poi forza edit mode
-    setTimeout(() => renderAnagraficaCantiere(true), 50);
 }
 
 // ─────────────────────────────────────────────
@@ -471,15 +481,14 @@ async function risolviSnapshotRuoli(cantiere) {
         responsabileLavoriId: 'responsabileLavoriSnapshot',
         ispettoreCantiereId: 'ispettoreCantiereSnapshot'
     };
-    for (const [fkField, snapField] of Object.entries(MAPPA)) {
-        const id = cantiere[fkField];
-        if (id) {
-            const p = await getItem('persone_anas', id);
-            snapshot[snapField] = p ? `${p.cognome || ''} ${p.nome || ''}`.trim() : null;
-        } else {
-            snapshot[snapField] = null;
-        }
-    }
+    const entries = Object.entries(MAPPA);
+    const persone = await Promise.all(
+        entries.map(([fkField]) => cantiere[fkField] ? getItem('persone_anas', cantiere[fkField]) : Promise.resolve(null))
+    );
+    entries.forEach(([, snapField], i) => {
+        const p = persone[i];
+        snapshot[snapField] = p ? `${p.cognome || ''} ${p.nome || ''}`.trim() : null;
+    });
     return snapshot;
 }
 
