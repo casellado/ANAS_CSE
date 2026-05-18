@@ -172,9 +172,11 @@ async function apriVerbaleRiunione(id = null) {
     Object.keys(signatureCanvasesRC).forEach(k => _destroySignatureCanvasRC(k));
     signatureCanvasesRC = {};
     window._rcFirmaCse  = null;
-    const projectId = sessionStorage.getItem('currentProjectId');
-    const project   = await getItem('projects', projectId);
-    const imprese   = await getByIndex('imprese', 'projectId', projectId);
+    const projectId  = sessionStorage.getItem('currentProjectId');
+    const project    = await getItem('projects', projectId);
+    const imprese    = await getByIndex('imprese', 'projectId', projectId);
+    // Bug fix: carica persone_anas per offrire autocomplete nei presenti sicurezza
+    const personeAnas = await getByIndex('persone_anas', 'projectId', projectId);
 
     let verbale;
     if (id) {
@@ -217,7 +219,11 @@ async function apriVerbaleRiunione(id = null) {
     const isFin = verbale.stato === 'FINALIZZATO';
     const ro    = isFin ? 'readonly' : '';
     const rod   = isFin ? 'disabled' : '';
-    const impreseOptions = imprese.map(i => `<option value="${escapeHtml(i.ragioneSociale)}">`).join('');
+    const impreseOptions   = imprese.map(i => `<option value="${escapeHtml(i.ragioneSociale)}">`).join('');
+    const personeAnasOptions = personeAnas.map(p => {
+        const nome = `${p.cognome || ''} ${p.nome || ''}`.trim();
+        return nome ? `<option value="${escapeHtml(nome)}" data-ruolo="${escapeHtml(p.ruolo || '')}">` : '';
+    }).join('');
 
     const argomentiDef = [
         { id: 'illustrazione_psc',      label: 'Illustrazione PSC' },
@@ -247,6 +253,7 @@ async function apriVerbaleRiunione(id = null) {
     const container = document.getElementById('cantiere-content');
     container.innerHTML = `
     <datalist id="dl-imprese-rc">${impreseOptions}</datalist>
+    <datalist id="dl-persone-anas-rc">${personeAnasOptions}</datalist>
     <div class="max-w-4xl mx-auto space-y-6 pb-20 animate-in fade-in">
 
         <header class="flex items-center gap-4">
@@ -436,11 +443,12 @@ async function apriVerbaleRiunione(id = null) {
     renderAllegatiFoto();
 
     // Pre-popola nome CSE da impostazioni se nuovo verbale
+    // Bug fix: la chiave corretta è firmaNome (non nomeCse che non esiste in impostazioni)
     if (!id && typeof caricaImpostazioni === 'function') {
         caricaImpostazioni().then(imp => {
-            if (imp?.nomeCse) {
+            if (imp?.firmaNome) {
                 const el = document.getElementById('rc-cse-nome');
-                if (el && !el.value) el.value = imp.nomeCse;
+                if (el && !el.value) el.value = imp.firmaNome;
             }
         }).catch(() => {});
     }
@@ -470,13 +478,14 @@ function renderPresentiSicurezza() {
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Nome e Cognome *</label>
                 <input type="text" value="${escapeHtml(p.nomeCognome || '')}"
-                       onchange="currentPresentiSicurezza[${i}].nomeCognome=this.value" ${isFin ? 'readonly' : ''}
+                       list="dl-persone-anas-rc"
+                       oninput="currentPresentiSicurezza[${i}].nomeCognome=this.value" ${isFin ? 'readonly' : ''}
                        class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-slate-400">
             </div>
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Ruolo</label>
                 <input type="text" value="${escapeHtml(p.ruolo || '')}"
-                       onchange="currentPresentiSicurezza[${i}].ruolo=this.value" ${isFin ? 'readonly' : ''}
+                       oninput="currentPresentiSicurezza[${i}].ruolo=this.value" ${isFin ? 'readonly' : ''}
                        class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-slate-400">
             </div>
         </div>
@@ -554,19 +563,19 @@ function renderPresentiImprese() {
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Ragione sociale *</label>
                 <input type="text" value="${escapeHtml(p.ragioneSociale || '')}" list="dl-imprese-rc"
-                       onchange="currentPresentiImprese[${i}].ragioneSociale=this.value" ${isFin ? 'readonly' : ''}
+                       oninput="currentPresentiImprese[${i}].ragioneSociale=this.value" ${isFin ? 'readonly' : ''}
                        class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-slate-400">
             </div>
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Nome firmatario</label>
                 <input type="text" value="${escapeHtml(p.nomeFirmatario || '')}"
-                       onchange="currentPresentiImprese[${i}].nomeFirmatario=this.value" ${isFin ? 'readonly' : ''}
+                       oninput="currentPresentiImprese[${i}].nomeFirmatario=this.value" ${isFin ? 'readonly' : ''}
                        class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-slate-400">
             </div>
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Ruolo firmatario</label>
                 <input type="text" value="${escapeHtml(p.ruoloFirmatario || '')}"
-                       onchange="currentPresentiImprese[${i}].ruoloFirmatario=this.value" ${isFin ? 'readonly' : ''}
+                       oninput="currentPresentiImprese[${i}].ruoloFirmatario=this.value" ${isFin ? 'readonly' : ''}
                        class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-1 focus:ring-slate-400">
             </div>
         </div>
@@ -903,7 +912,8 @@ async function _generaDocxRiunione(verbale) {
         getImage: (tagValue) => DocxGenerator.base64ToBinary(tagValue),
         getSize: (img, tagValue, tagName) => tagName === 'logo_aziendale' ? [120, 40] : [150, 50]
     });
-    const doc = new Docxtemplater(zip, { modules: [imageModule], paragraphLoop: true, linebreaks: true });
+    // Bug fix: la CDN espone window.docxtemplater (lowercase), non Docxtemplater (uppercase)
+    const doc = new window.docxtemplater(zip, { modules: [imageModule], paragraphLoop: true, linebreaks: true });
 
     doc.setData({
         logo_aziendale:    settings.logo_aziendale || null,
