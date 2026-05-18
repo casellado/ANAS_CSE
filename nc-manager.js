@@ -233,7 +233,7 @@ async function renderNcCruscotto() {
         <!-- FILTRI -->
         <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap gap-3 items-end">
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Stato</label>
+                <label for="nc-f-stato" class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Stato</label>
                 <select id="nc-f-stato" onchange="_applicaFiltriNc()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="ALL">Tutti</option>
                     <option value="APERTA">Aperte</option>
@@ -243,7 +243,7 @@ async function renderNcCruscotto() {
                 </select>
             </div>
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Livello</label>
+                <label for="nc-f-livello" class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Livello</label>
                 <select id="nc-f-livello" onchange="_applicaFiltriNc()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="ALL">Tutti</option>
                     <option value="gravissima">Gravissima</option>
@@ -253,14 +253,14 @@ async function renderNcCruscotto() {
                 </select>
             </div>
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Impresa</label>
+                <label for="nc-f-impresa" class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Impresa</label>
                 <select id="nc-f-impresa" onchange="_applicaFiltriNc()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">Tutte</option>
                     ${imprese.map(i => `<option value="${i.id}">${escapeHtml(i.ragioneSociale || String(i.id))}</option>`).join('')}
                 </select>
             </div>
             <div class="flex-1 min-w-[180px]">
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Cerca descrizione</label>
+                <label for="nc-f-testo" class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Cerca descrizione</label>
                 <input type="text" id="nc-f-testo" oninput="_debounceNc()" placeholder="Cerca..."
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400">
             </div>

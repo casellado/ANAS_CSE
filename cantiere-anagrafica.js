@@ -247,12 +247,17 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
         </select>`;
     };
 
-    const campo = (label, inputHtml, hint = '') => `
+    const campo = (label, inputHtml, hint = '') => {
+        // Estrai l'id dall'input/select generato per associare il label via for=""
+        const idMatch = inputHtml.match(/\bid="([^"]+)"/);
+        const forAttr = idMatch ? ` for="${idMatch[1]}"` : '';
+        return `
     <div>
-        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">${label}</label>
+        <label${forAttr} class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">${label}</label>
         ${inputHtml}
         ${hint ? `<p class="text-[10px] text-slate-400 mt-0.5">${hint}</p>` : ''}
     </div>`;
+    };
 
     const txt = (id, val, placeholder = '', type = 'text') =>
         `<input type="${type}" id="${id}" value="${escapeHtml(val ?? '')}" placeholder="${placeholder}" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">`;
@@ -307,13 +312,13 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
             ${campo('Commessa N°', txt('ca-commessaNumero', cantiere.commessaNumero, 'Es. C-2025-CZ-019'))}
             ${campo('Voce di Budget', txt('ca-voceBudget', cantiere.voceBudget, 'Es. VB.04.12.001'))}
             <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">CUP</label>
+                <label for="ca-cup" class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">CUP</label>
                 <input type="text" id="ca-cup" value="${escapeHtml(cantiere.cup ?? '')}" placeholder="Es. F11B23000000005" maxlength="20"
                     oninput="_validaCupCig()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400">
                 <p id="ca-cup-warn" class="hidden text-xs text-amber-600 mt-1">⚠ Formato CUP non standard (attesi 15 caratteri alfanumerici)</p>
             </div>
             <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">CIG</label>
+                <label for="ca-cig" class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">CIG</label>
                 <input type="text" id="ca-cig" value="${escapeHtml(cantiere.cig ?? '')}" placeholder="Es. 9876543210" maxlength="15"
                     oninput="_validaCupCig()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400">
                 <p id="ca-cig-warn" class="hidden text-xs text-amber-600 mt-1">⚠ Formato CIG non standard (attesi 10 caratteri alfanumerici)</p>
@@ -326,12 +331,12 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
             ${campo('Importo Contratto (€)', num('ca-importoContratto', cantiere.importoContratto, 'Es. 185320.50', '0'))}
             ${campo('Data Consegna Lavori', data('ca-dataConsegnaLavori', cantiere.dataConsegnaLavori))}
             <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Durata Contrattuale (giorni)</label>
+                <label for="ca-durataContrattuale" class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Durata Contrattuale (giorni)</label>
                 <input type="number" id="ca-durataContrattuale" value="${cantiere.durataContrattuale ?? ''}" placeholder="Es. 365" min="1"
                     oninput="_aggiornaDataFineCalcolata()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
             </div>
             <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Giorni Sospensione</label>
+                <label for="ca-giorniSospensione" class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Giorni Sospensione</label>
                 <input type="number" id="ca-giorniSospensione" value="${cantiere.giorniSospensione ?? 0}" placeholder="0" min="0"
                     oninput="_aggiornaDataFineCalcolata()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
             </div>
@@ -345,12 +350,12 @@ async function _renderEditMode(container, cantiere, persone, imprese) {
 
         ${sezioneEdit('Date Operative', '📅', `
             <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Data Inizio Effettiva</label>
+                <label for="ca-dataInizioEffettiva" class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Data Inizio Effettiva</label>
                 <input type="date" id="ca-dataInizioEffettiva" value="${cantiere.dataInizioEffettiva ?? ''}"
                     oninput="_validaDateOperative()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
             </div>
             <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Data Fine Effettiva</label>
+                <label for="ca-dataFineEffettiva" class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Data Fine Effettiva</label>
                 <input type="date" id="ca-dataFineEffettiva" value="${cantiere.dataFineEffettiva ?? ''}"
                     oninput="_validaDateOperative()" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400">
                 <p id="ca-date-warn" class="hidden text-xs text-amber-600 mt-1">⚠ La data fine è anteriore alla data inizio</p>

@@ -338,9 +338,9 @@ async function renderViewImpostazioni(containerId) {
 
             <!-- ── Firma persistente (P2) ── -->
             <div class="border-t border-slate-200 pt-3 mt-2">
-              <label class="text-xs font-semibold text-slate-600 block mb-2">
+              <p class="text-xs font-semibold text-slate-600 block mb-2">
                 Firma digitale persistente
-              </label>
+              </p>
               <div class="text-xs text-slate-500 mb-2">
                 Carica la tua firma una volta sola. Verrà applicata automaticamente a ogni verbale
                 (puoi sempre sostituirla nel singolo verbale se necessario).
