@@ -103,6 +103,10 @@ const Router = {
                 container.innerHTML = `<div id="view-nc"></div>`;
                 if (window.renderNcCruscotto) await window.renderNcCruscotto();
                 break;
+            case 'EVENTI':
+                container.innerHTML = `<div id="view-eventi"></div>`;
+                if (window.renderEventiCruscotto) await window.renderEventiCruscotto();
+                break;
             case 'IMPOSTAZIONI':
                 container.innerHTML = `<div id="view-impostazioni"></div>`;
                 if (window.renderViewImpostazioni) await window.renderViewImpostazioni('view-impostazioni');
@@ -153,6 +157,7 @@ const DashboardController = {
                 </div>
 
                 <div id="dashboard-widget-nc"></div>
+                <div id="dashboard-widget-eventi"></div>
 
                 <div class="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-2xl flex justify-between items-center">
                     <div>
@@ -165,6 +170,7 @@ const DashboardController = {
         `;
 
         if (window.renderWidgetNcDashboard) await window.renderWidgetNcDashboard(p.id);
+        if (window.renderWidgetEventiDashboard) await window.renderWidgetEventiDashboard(p.id);
     }
 };
 

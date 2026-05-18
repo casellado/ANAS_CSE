@@ -318,6 +318,14 @@ async function apriVerbale(id = null) {
                         </button>` : ''}
                     </div>
                     <div id="nc-drafts-container" class="space-y-4"></div>
+                    ${!isFinalizzato ? `
+                    <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-3">
+                        <button onclick="apriFormEventoDaVerbale('${currentVerbaleId}')"
+                                class="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-200 transition">
+                            + Registra Evento Incidentale
+                        </button>
+                    </div>` : ''}
+                    <div id="ev-collegati-verbale-container" class="mt-4"></div>
                 </div>
 
                 <!-- GAP 4: Opzioni Allegati -->
@@ -456,6 +464,7 @@ async function apriVerbale(id = null) {
     renderPresenti();
     renderNCDrafts();
     renderAllegatiFotoVS();
+    if (typeof _renderEvCollegatiVerbale === 'function') _renderEvCollegatiVerbale(currentVerbaleId);
 }
 
 /**
@@ -1417,3 +1426,59 @@ window.renderAllegatiFotoVS          = renderAllegatiFotoVS;
 window.scaricaAllegatiFotoVerbale    = scaricaAllegatiFotoVerbale;
 window.applicaVistoTitolare          = applicaVistoTitolare;
 window._generaDocxVerbaleVS          = _generaDocxVerbaleVS;
+
+// ─────────────────────────────────────────────
+// INTEGRAZIONE EVENTI INCIDENTALI (FASE 6bis)
+// ─────────────────────────────────────────────
+
+async function apriFormEventoDaVerbale(verbaleId) {
+    if (typeof _apriFormEvento !== 'function') {
+        alert('Modulo Eventi Incidentali non caricato.');
+        return;
+    }
+    const projectId = sessionStorage.getItem('currentProjectId');
+    const cantiere = projectId ? await getItem('projects', projectId).catch(() => null) : null;
+    const prefill = {
+        verbaleOrigineId: verbaleId,
+        progressivaKm: cantiere?.progressivaInizio || null
+    };
+    // Dopo salvataggio ricarica la sezione eventi collegati
+    const origSalva = window.salvaEvento;
+    window.salvaEvento = async function(record) {
+        const result = await origSalva(record);
+        window.salvaEvento = origSalva;
+        await _renderEvCollegatiVerbale(verbaleId);
+        return result;
+    };
+    _apriFormEvento(null, prefill);
+}
+
+async function _renderEvCollegatiVerbale(verbaleId) {
+    const container = document.getElementById('ev-collegati-verbale-container');
+    if (!container) return;
+    if (typeof getByIndex !== 'function') return;
+    const projectId = sessionStorage.getItem('currentProjectId');
+    let eventi = [];
+    try {
+        const tutti = await getByIndex('eventi_incidentali', 'projectId', projectId);
+        eventi = tutti.filter(e => e.verbaleOrigineId === verbaleId || e.verbaleOrigineId === String(verbaleId));
+    } catch (_) { return; }
+
+    if (eventi.length === 0) { container.innerHTML = ''; return; }
+
+    const righe = eventi.map(ev => `
+        <div class="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm">
+            <div class="font-mono font-bold text-amber-800">${ev.codiceEvento || '—'}</div>
+            <div class="text-slate-500 text-xs">${ev.tipologia === 'NEAR_MISS' ? '⚠️ Near Miss' : '🚨 Infortunio'} · ${ev.luogo || ''}</div>
+            <div class="text-[10px] font-bold ${ev.stato==='APERTO'?'text-red-600':ev.stato==='CHIUSO'?'text-slate-400':'text-amber-700'}">${ev.stato}</div>
+        </div>`).join('');
+
+    container.innerHTML = `
+        <div class="mt-2">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Eventi incidentali collegati (${eventi.length})</p>
+          <div class="space-y-1">${righe}</div>
+        </div>`;
+}
+
+window.apriFormEventoDaVerbale  = apriFormEventoDaVerbale;
+window._renderEvCollegatiVerbale = _renderEvCollegatiVerbale;

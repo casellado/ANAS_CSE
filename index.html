@@ -54,6 +54,27 @@
     <script defer src="./cantiere-anagrafica.js"></script>
     <script defer src="./verifica-pos.js"></script>
     <script defer src="./nc-manager.js"></script>
+    <script defer src="./eventi-incidentali.js"></script>
+    <script>
+      // Toggle sezione Sicurezza sidebar — stato persistito in localStorage
+      function _toggleSicurezzaSidebar() {
+        const items = document.getElementById('sidebar-sicurezza-items');
+        const arrow = document.getElementById('sidebar-sicurezza-arrow');
+        if (!items) return;
+        const collapsed = items.classList.toggle('hidden');
+        if (arrow) arrow.textContent = collapsed ? '▶' : '▼';
+        localStorage.setItem('sidebar_sicurezza_collapsed', collapsed ? '1' : '0');
+      }
+      // Ripristina stato al caricamento
+      document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('sidebar_sicurezza_collapsed') === '1') {
+          const items = document.getElementById('sidebar-sicurezza-items');
+          const arrow = document.getElementById('sidebar-sicurezza-arrow');
+          if (items) items.classList.add('hidden');
+          if (arrow) arrow.textContent = '▶';
+        }
+      });
+    </script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -156,9 +177,23 @@
                                 class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
                             <span>📋</span> Verifica Idoneità POS
                         </button>
+                    </div>
+                </div>
+
+                <!-- Sicurezza (collassabile) -->
+                <div>
+                    <button onclick="_toggleSicurezzaSidebar()" class="w-full flex items-center justify-between px-3 mb-1 group">
+                        <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest group-hover:text-slate-400 transition">Sicurezza</h4>
+                        <span id="sidebar-sicurezza-arrow" class="text-slate-600 text-xs transition-transform">▼</span>
+                    </button>
+                    <div id="sidebar-sicurezza-items" class="space-y-1">
                         <button onclick="Router.navSubView('NC')" id="nav-NC"
                                 class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
                             <span>⚠️</span> Non Conformità
+                        </button>
+                        <button onclick="Router.navSubView('EVENTI')" id="nav-EVENTI"
+                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
+                            <span>🚨</span> Eventi Incidentali
                         </button>
                     </div>
                 </div>
@@ -216,10 +251,6 @@
                         <button onclick="Router.navSubView('DIARIO')" id="nav-DIARIO"
                                 class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
                             <span>📖</span> Diario CSE
-                        </button>
-                        <button onclick="Router.navSubView('EVENTI')" id="nav-EVENTI"
-                                class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
-                            <span>🚨</span> Eventi Incidentali
                         </button>
                         <button onclick="Router.navSubView('DOCUMENTI')" id="nav-DOCUMENTI"
                                 class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all flex items-center gap-3 text-sm">
