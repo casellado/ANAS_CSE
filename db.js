@@ -2,7 +2,7 @@
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 16;
+const DB_VERSION = 17;
 
 const STORES_CONFIG = {
   // Globali
@@ -62,10 +62,16 @@ const STORES_CONFIG = {
   },
   eventi_incidentali: {
     keyPath: 'id',
+    autoIncrement: true,
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'tipo', keyPath: 'tipo' },
-      { name: 'data', keyPath: 'data' }
+      { name: 'projectId',          keyPath: 'projectId' },
+      { name: 'tipologia',          keyPath: 'tipologia' },
+      { name: 'stato',              keyPath: 'stato' },
+      { name: 'dataOraEvento',      keyPath: 'dataOraEvento' },
+      { name: 'gravita',            keyPath: 'gravita' },
+      { name: 'codiceEvento',       keyPath: 'codiceEvento' },
+      { name: 'verbaleOrigineId',   keyPath: 'verbaleOrigineId' },
+      { name: 'nearMissOriginaleId',keyPath: 'nearMissOriginaleId' }
     ]
   },
   aggiornamenti_psc: {
@@ -167,7 +173,9 @@ function initDB() {
       // Creazione automatica degli store basata su STORES_CONFIG
       for (const [storeName, config] of Object.entries(STORES_CONFIG)) {
         if (!database.objectStoreNames.contains(storeName)) {
-          const store = database.createObjectStore(storeName, { keyPath: config.keyPath });
+          const storeOpts = { keyPath: config.keyPath };
+          if (config.autoIncrement) storeOpts.autoIncrement = true;
+          const store = database.createObjectStore(storeName, storeOpts);
           if (config.indexes) {
             config.indexes.forEach(idx => {
               store.createIndex(idx.name, idx.keyPath, { unique: false });
@@ -223,6 +231,17 @@ function initDB() {
           if (aggiornato) cursor.update(record);
           cursor.continue();
         };
+      }
+
+      // Migrazione v17: ricrea eventi_incidentali con schema completo (autoIncrement + indici corretti)
+      if (event.oldVersion < 17) {
+        if (database.objectStoreNames.contains('eventi_incidentali')) {
+          database.deleteObjectStore('eventi_incidentali');
+        }
+        const evStore = database.createObjectStore('eventi_incidentali', { keyPath: 'id', autoIncrement: true });
+        ['projectId','tipologia','stato','dataOraEvento','gravita','codiceEvento','verbaleOrigineId','nearMissOriginaleId'].forEach(idx => {
+          evStore.createIndex(idx, idx, { unique: false });
+        });
       }
     };
 
