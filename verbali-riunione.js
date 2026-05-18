@@ -834,6 +834,7 @@ async function _generaDocxRiunione(verbale) {
         : '—';
 
     const zip = new PizZip(tplRecord.valore);
+    if (typeof ricuciRunsXml === 'function') ricuciRunsXml(zip); // ricucitura run XML frammentati
     const _ImgModCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
                      || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
     if (!_ImgModCtor) throw new Error('ImageModule non caricato. Verifica la connessione internet.');

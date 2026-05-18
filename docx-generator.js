@@ -5,6 +5,111 @@
  * e l'iniezione di immagini (firme, loghi).
  */
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RICUCITURA RUN XML
+// Microsoft Word può spezzare un segnaposto (es. {{header_destro}}) in più
+// run XML consecutivi a causa di formattazione, autocorrettori, spell-checker
+// o salvataggi multipli. docxtemplater non riesce a riconoscere i tag e lancia
+// "Duplicate open tag" / "Duplicate close tag".
+// Questa funzione pre-elabora il .docx per ricucire i run frammentati.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Scorre i file XML rilevanti nel .docx e ricuce i run frammentati.
+ * @param {PizZip} zip - oggetto PizZip con il .docx caricato
+ * @returns {PizZip} - lo stesso zip, modificato in-place
+ */
+function ricuciRunsXml(zip) {
+    const filesDaProcessare = [
+        'word/document.xml',
+        'word/header1.xml',
+        'word/header2.xml',
+        'word/header3.xml',
+        'word/footer1.xml',
+        'word/footer2.xml',
+        'word/footer3.xml',
+        'word/footnotes.xml',
+        'word/endnotes.xml'
+    ];
+
+    for (const fileName of filesDaProcessare) {
+        const file = zip.file(fileName);
+        if (!file) continue;
+        const xmlContent = file.asText();
+        const xmlRicucito = _ricuciTagSpezzati(xmlContent);
+        if (xmlRicucito !== xmlContent) {
+            zip.file(fileName, xmlRicucito);
+        }
+    }
+
+    return zip;
+}
+
+/**
+ * Ricuce i tag docxtemplater spezzati in più <w:t> all'interno di ogni
+ * paragrafo <w:p>. Copre tutti i tipi di delimitatori:
+ *   {{ }}   tag semplice
+ *   {# /}   loop apre/chiude
+ *   {% }    immagine
+ *   {^ /}   condizionale negato
+ */
+function _ricuciTagSpezzati(xmlContent) {
+    // Regex paragrafo: NON ricorsiva, match greedy corretto con [\s\S]*?
+    const regexParagrafo = /<w:p(\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
+
+    return xmlContent.replace(regexParagrafo, (matchCompleto, attrsParagrafo, contenutoParagrafo) => {
+        // Estrai tutti i testi <w:t> del paragrafo
+        const regexT = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+        const tutteLeT = [];
+        let m;
+        while ((m = regexT.exec(contenutoParagrafo)) !== null) {
+            tutteLeT.push(m[1]);
+        }
+
+        const testoCompleto = tutteLeT.join('');
+
+        // Presenza di qualsiasi delimitatore docxtemplater nel testo concatenato
+        const haDelimitatori = /\{[\{#%^\/]/.test(testoCompleto) || /[\}]\}/.test(testoCompleto);
+        if (!haDelimitatori) return matchCompleto;
+
+        // Verifica se almeno un <w:t> contiene un delimitatore parziale
+        // (apertura senza chiusura o viceversa)
+        let spezzato = false;
+        for (const t of tutteLeT) {
+            const apDoppia  = (t.match(/\{\{/g)  || []).length;
+            const chDoppia  = (t.match(/\}\}/g)  || []).length;
+            const apSingola = (t.match(/\{[#%^\/]/g) || []).length;
+            const chSingola = (t.match(/[^{]\}/g) || []).length; // es. "tag}"
+
+            if (apDoppia !== chDoppia || apSingola !== chSingola) {
+                spezzato = true;
+                break;
+            }
+        }
+
+        if (!spezzato) return matchCompleto;
+
+        // RICUCITURA: preserva <w:pPr> e il primo <w:rPr> trovati
+        const matchPPr = contenutoParagrafo.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
+        const pPrPreservato = matchPPr ? matchPPr[0] : '';
+
+        const matchRPr = contenutoParagrafo.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
+        const rPrPreservato = matchRPr ? matchRPr[0] : '';
+
+        // Il contenuto dei <w:t> è già XML-escaped da Word, non va ri-escaped
+        const nuovoContenuto =
+            pPrPreservato +
+            '<w:r>' +
+            rPrPreservato +
+            '<w:t xml:space="preserve">' +
+            testoCompleto +
+            '</w:t>' +
+            '</w:r>';
+
+        return `<w:p${attrsParagrafo || ''}>${nuovoContenuto}</w:p>`;
+    });
+}
+
 const DocxGenerator = {
     
     /**
@@ -28,7 +133,8 @@ const DocxGenerator = {
         try {
             const content = await this.getTemplate();
             const zip = new PizZip(content);
-            
+            ricuciRunsXml(zip); // pre-elaborazione: ricuce run XML frammentati da Word
+
             // Configurazione modulo immagini
             const ImageModuleCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
                                  || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);

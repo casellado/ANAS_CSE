@@ -528,6 +528,7 @@ async function _generaDocxVP(record) {
     const cb = (sel) => sel ? '☑' : '☐';
 
     const zip = new PizZip(tplRecord.valore);
+    if (typeof ricuciRunsXml === 'function') ricuciRunsXml(zip); // ricucitura run XML frammentati
     const _ImgCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
                   || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
     if (!_ImgCtor) throw new Error('ImageModule non disponibile.');
