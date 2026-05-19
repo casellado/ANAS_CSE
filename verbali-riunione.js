@@ -855,14 +855,10 @@ async function _generaDocxRiunione(verbale) {
 
     const zip = new PizZip(tplBuffer);
     // ricuciRunsXml rimossa (FASE 6-ter): template sterilizzato, non ha run frammentati
-    const _ImgModCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
-                     || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
-    if (!_ImgModCtor) throw new Error('ImageModule non caricato. Verifica la connessione internet.');
-    const imageModule = new _ImgModCtor({
-        centered: false,
-        fileType: 'docx',
+    if (typeof window.ImageModule !== 'function') throw new Error('ImageModule non disponibile (docx-image-module.js non caricato).');
+    const imageModule = new window.ImageModule({
         getImage: (tagValue) => DocxGenerator.base64ToBinary(tagValue),
-        getSize: (img, tagValue, tagName) => tagName === 'logo_aziendale' ? [120, 40] : [150, 50]
+        getSize: (_img, _tagValue, tagName) => tagName === 'logo_aziendale' ? [120, 40] : [150, 50]
     });
     // Bug fix: la CDN espone window.docxtemplater (lowercase), non Docxtemplater (uppercase)
     const doc = new window.docxtemplater(zip, { modules: [imageModule], paragraphLoop: true, linebreaks: true });

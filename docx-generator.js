@@ -157,26 +157,18 @@ const DocxGenerator = {
             const zip = new PizZip(content);
             // ricuciRunsXml rimossa (FASE 6-ter): i template sono sterilizzati, non hanno run frammentati
 
-            // Configurazione modulo immagini
-            const ImageModuleCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
-                                 || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
-            if (!ImageModuleCtor) {
-                throw new Error("ImageModule non caricato. Controlla la connessione internet per il CDN.");
+            // Modulo immagini custom (docx-image-module.js — compatibile con docxtemplater@3.50.0)
+            if (typeof window.ImageModule !== 'function') {
+                throw new Error('ImageModule non disponibile (docx-image-module.js non caricato).');
             }
-            const imageOptions = {
-                centered: false,
-                fileType: 'docx',   // necessario per la gestione corretta dei .rels DOCX
-                getImage(tagValue) {
-                    return DocxGenerator.base64ToBinary(tagValue);
-                },
+            const imageModule = new window.ImageModule({
+                getImage(tagValue) { return DocxGenerator.base64ToBinary(tagValue); },
                 getSize(_img, _tagValue, tagName) {
-                    // Dimensioni predefinite per firme e loghi
-                    if (tagName.includes('logo')) return [120, 60];
-                    if (tagName.includes('firma')) return [180, 80];
+                    if (tagName.includes('logo'))  return [120, 60];
+                    if (tagName.includes('firma'))  return [180, 80];
                     return [150, 75];
                 }
-            };
-            const imageModule = new ImageModuleCtor(imageOptions);
+            });
 
             const doc = new window.docxtemplater(zip, {
                 modules: [imageModule],

@@ -580,13 +580,10 @@ async function _generaDocxVP(record) {
 
     const zip = new PizZip(tplBuffer);
     // ricuciRunsXml rimossa (FASE 6-ter): template sterilizzato, non ha run frammentati
-    const _ImgCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
-                  || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
-    if (!_ImgCtor) throw new Error('ImageModule non disponibile.');
-    const imageModule = new _ImgCtor({
-        centered: false, fileType: 'docx',
+    if (typeof window.ImageModule !== 'function') throw new Error('ImageModule non disponibile (docx-image-module.js non caricato).');
+    const imageModule = new window.ImageModule({
         getImage: (v) => DocxGenerator.base64ToBinary(v),
-        getSize: (img, v, name) => name.includes('logo') ? [120, 40] : [150, 50]
+        getSize: (_img, _v, name) => name.includes('logo') ? [120, 40] : [150, 50]
     });
     const doc = new window.docxtemplater(zip, { modules: [imageModule], paragraphLoop: true, linebreaks: true });
 
