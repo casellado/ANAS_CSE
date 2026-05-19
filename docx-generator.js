@@ -1,9 +1,35 @@
 /**
  * docx-generator.js
  * Motore di generazione documenti Word (.docx) basato su docxtemplater.
- * Gestisce il caricamento del template da IndexedDB, la preparazione dei dati
- * e l'iniezione di immagini (firme, loghi).
+ * I template sono congelati nella cartella templates/ del bundle (FASE 6-ter).
  */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CARICAMENTO TEMPLATE (fetch da templates/)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Carica un template Word dalla cartella templates/ via fetch.
+ * Sostituisce la vecchia lettura da IndexedDB (FASE 6-ter).
+ *
+ * @param {'sopralluogo'|'riunione'|'verifica_pos'} tipo
+ * @returns {Promise<ArrayBuffer>}
+ */
+async function getTemplate(tipo) {
+    const MAPPING = {
+        sopralluogo:  'templates/verbale_sopralluogo.docx',
+        riunione:     'templates/verbale_riunione_coordinamento.docx',
+        verifica_pos: 'templates/verifica_idoneita_pos.docx'
+    };
+    const path = MAPPING[tipo];
+    if (!path) throw new Error(`Template tipo non riconosciuto: ${tipo}`);
+    let response;
+    try { response = await fetch(path); } catch (err) {
+        throw new Error(`Impossibile caricare template "${tipo}": ${err.message}`);
+    }
+    if (!response.ok) throw new Error(`Template "${tipo}" non raggiungibile (HTTP ${response.status})`);
+    return response.arrayBuffer();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RICUCITURA RUN XML
@@ -113,15 +139,11 @@ function _ricuciTagSpezzati(xmlContent) {
 const DocxGenerator = {
     
     /**
-     * Carica il template .docx salvato in IndexedDB (store 'impostazioni').
-     * @returns {Promise<ArrayBuffer>} Il contenuto del file template.
+     * Carica il template Verbale Sopralluogo da templates/ (FASE 6-ter).
+     * @returns {Promise<ArrayBuffer>}
      */
     async getTemplate() {
-        const templateData = await getItem('impostazioni', 'template_verbale_sopralluogo');
-        if (!templateData || !templateData.valore) {
-            throw new Error("Template Word non trovato. Carica il file .docx dal pulsante Template nella sezione Verbali.");
-        }
-        return templateData.valore; // ArrayBuffer salvato in handleTemplateUpload
+        return getTemplate('sopralluogo');
     },
 
     /**
@@ -200,9 +222,12 @@ const DocxGenerator = {
      * Utility per convertire base64 in binario per docxtemplater.
      */
     base64ToBinary(base64String) {
-        if (!base64String) return null;
+        // Fallback: PNG 1×1 trasparente — il modulo immagini CDN non gestisce null
+        // da getImage e crasha su addImageRels (namespaceURI read-only su nodi DOM nativi).
+        const src = base64String
+            || 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
         // Rimuove header data:image/...;base64, se presente
-        const pureBase64 = base64String.split(',')[1] || base64String;
+        const pureBase64 = src.split(',')[1] || src;
         const binaryString = window.atob(pureBase64);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
@@ -210,5 +235,5 @@ const DocxGenerator = {
             bytes[i] = binaryString.charCodeAt(i);
         }
         return bytes.buffer;
-    }
+    },
 };

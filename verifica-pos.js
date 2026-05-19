@@ -58,7 +58,7 @@ async function validaVerificaPos(record) {
     const errori = [];
     if (!record.impresaId) { errori.push('Seleziona l\'impresa affidataria'); }
     else {
-        const imp = await getItem('imprese', record.impresaId);
+        const imp = await getItem('imprese', Number(record.impresaId));
         if (!imp?.pec) errori.push('L\'impresa selezionata non ha PEC — aggiungila in Anagrafiche → Imprese');
     }
     if (!record.dataDocumento) errori.push('Data documento obbligatoria');
@@ -100,7 +100,7 @@ async function renderVerifichePos() {
     const impIds = [...new Set(lista.map(r => r.impresaId).filter(Boolean))];
     const impMap = {};
     for (const id of impIds) {
-        const imp = await getItem('imprese', id);
+        const imp = await getItem('imprese', Number(id));
         if (imp) impMap[id] = imp.ragioneSociale || String(id);
     }
 
@@ -111,9 +111,6 @@ async function renderVerifichePos() {
             <div class="flex gap-2 flex-wrap">
                 <button onclick="apriFormVerificaPos(null)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
                     <span>+</span> Nuova Verifica POS
-                </button>
-                <button onclick="mostraWizardTemplateVerificaPos()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg font-bold transition flex items-center gap-2" title="Carica/Sostituisci Template Word">
-                    <span>⚙️</span> Template
                 </button>
             </div>
         </div>
@@ -432,7 +429,7 @@ function _raccogliFormVP(idEsistente) {
         projectId,
         stato: 'BOZZA',
         dataDocumento: document.getElementById('vp-dataDocumento')?.value || null,
-        impresaId: document.getElementById('vp-impresaId')?.value || null,
+        impresaId: (() => { const v = document.getElementById('vp-impresaId')?.value; return v ? Number(v) : null; })(),
         altreVisure: document.getElementById('vp-altreVisure')?.value?.trim() || '',
         esito,
         motivazioniIdoneo: document.getElementById('vp-motivazioniIdoneo')?.value?.trim() || '',
@@ -515,6 +512,12 @@ async function firmaPerInvio(idEsistente) {
             if (rl) dati.nomeRl = `${rl.cognome || ''} ${rl.nome || ''}`.trim();
         }
 
+        // Snapshot _impresaNome per la vista read-only (FIRMATO/PROTOCOLLATO)
+        if (dati.impresaId) {
+            const impresaSnap = await getItem('imprese', Number(dati.impresaId));
+            dati._impresaNome = impresaSnap?.ragioneSociale || '';
+        }
+
         dati.stato = 'FIRMATO';
         dati.dataFirmaDocumento = new Date().toISOString();
 
@@ -567,16 +570,15 @@ async function scaricaWordVerificaPos(id) {
 // ─────────────────────────────────────────────
 
 async function _generaDocxVP(record) {
-    const tplRecord = await getItem('impostazioni', 'template_verifica_pos');
-    if (!tplRecord?.valore) throw new Error('Template Word non caricato. Usa il pulsante ⚙️ Template.');
+    const tplBuffer = await getTemplate('verifica_pos');
 
     const cantiere = await getItem('projects', record.projectId);
-    const impresa  = record.impresaId ? await getItem('imprese', record.impresaId) : {};
+    const impresa  = record.impresaId ? await getItem('imprese', Number(record.impresaId)) : {};
     const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => ({})) : {};
 
     const cb = (sel) => sel ? '☑' : '☐';
 
-    const zip = new PizZip(tplRecord.valore);
+    const zip = new PizZip(tplBuffer);
     if (typeof ricuciRunsXml === 'function') ricuciRunsXml(zip); // ricucitura run XML frammentati
     const _ImgCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
                   || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
@@ -831,52 +833,6 @@ async function eliminaVerificaPos(id) {
 }
 
 // ─────────────────────────────────────────────
-// TEMPLATE WORD WIZARD
-// ─────────────────────────────────────────────
-
-async function mostraWizardTemplateVerificaPos() {
-    document.getElementById('modal-tpl-vp')?.remove();
-    const currentTpl = await getItem('impostazioni', 'template_verifica_pos');
-    const modal = document.createElement('div');
-    modal.id = 'modal-tpl-vp';
-    modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[5000] p-4';
-    modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div class="bg-slate-800 p-6 text-white flex justify-between items-center">
-            <h3 class="text-xl font-bold">Template Verifica POS</h3>
-            <button onclick="document.getElementById('modal-tpl-vp').remove()" class="text-2xl">&times;</button>
-        </div>
-        <div class="p-8 space-y-6">
-            <div class="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center gap-4 bg-slate-50 hover:border-blue-400 transition">
-                <input type="file" id="tpl-vp-upload" class="hidden" accept=".docx" onchange="handleTemplateUploadVP(event)">
-                <button onclick="document.getElementById('tpl-vp-upload').click()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">
-                    ${currentTpl ? '🔄 Aggiorna Template' : '📂 Seleziona File .docx'}
-                </button>
-                <div class="text-xs font-bold ${currentTpl ? 'text-green-600' : 'text-slate-400'}" id="tpl-vp-status">
-                    ${currentTpl ? '✅ Template caricato: ' + (currentTpl.name || 'Verifica_Idoneita_POS') : 'Nessun file caricato'}
-                </div>
-            </div>
-            <p class="text-[10px] text-slate-400 italic bg-slate-100 p-3 rounded">
-                Segnaposti: {{nome_cse}}, {{ss_numero}}, {{titolo_lavoro}}, {{codice_ppm_sil}}, {{cup}}, {{cig}}, {{pec_impresa}}, {{ragione_sociale_impresa}}, {esito_idoneo}, {{motivazioni_idoneo}}, {{nome_rl}}, {%logo_aziendale}...
-            </p>
-        </div>
-    </div>`;
-    document.body.appendChild(modal);
-}
-
-async function handleTemplateUploadVP(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        await saveItem('impostazioni', { chiave: 'template_verifica_pos', valore: e.target.result, name: file.name });
-        document.getElementById('tpl-vp-status').textContent = '✅ Template caricato: ' + file.name;
-        document.getElementById('tpl-vp-status').className = 'text-xs font-bold text-green-600';
-        showToast('Template Verifica POS salvato ✓', 'success');
-    };
-    reader.readAsArrayBuffer(file);
-}
-
 // ─────────────────────────────────────────────
 // EXPORTS
 // ─────────────────────────────────────────────
@@ -893,8 +849,6 @@ window.confermaProtocollo               = confermaProtocollo;
 window.scaricaPdfProtocollato           = scaricaPdfProtocollato;
 window.scaricaLetteraTrasmissione       = scaricaLetteraTrasmissione;
 window.eliminaVerificaPos               = eliminaVerificaPos;
-window.mostraWizardTemplateVerificaPos  = mostraWizardTemplateVerificaPos;
-window.handleTemplateUploadVP           = handleTemplateUploadVP;
 window._aggiornaPecWarning              = _aggiornaPecWarning;
 window._aggiornaMotivazioni             = _aggiornaMotivazioni;
 window.calcolaNumeroProgressivoVP       = calcolaNumeroProgressivoVP;

@@ -98,8 +98,7 @@ async function renderVerbaliRiunione() {
                 <p class="text-slate-500 text-sm mt-1">Ordinati per data riunione (più recente in cima)</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="mostraWizardTemplateRiunione()" class="bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-slate-50 transition shadow-sm">⚙️ Template Word</button>
-                <button onclick="checkTemplateAndNewVerbaleRiunione()" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-700 transition shadow">+ Nuovo Verbale</button>
+                <button onclick="apriVerbaleRiunione(null)" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-700 transition shadow">+ Nuovo Verbale</button>
             </div>
         </header>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -119,50 +118,6 @@ async function renderVerbaliRiunione() {
             </table>
         </div>
     </div>`;
-}
-
-// ─── TEMPLATE ─────────────────────────────────────────────────────────────────
-async function checkTemplateAndNewVerbaleRiunione() {
-    const tpl = await getItem('impostazioni', 'template_verbale_riunione');
-    if (!tpl?.valore) {
-        if (confirm('Template Word non ancora caricato.\nVuoi caricarlo adesso?')) mostraWizardTemplateRiunione();
-        return;
-    }
-    apriVerbaleRiunione(null);
-}
-
-async function mostraWizardTemplateRiunione() {
-    const esistente = await getItem('impostazioni', 'template_verbale_riunione');
-    const modal = document.createElement('div');
-    modal.id = 'modal-template-riunione';
-    modal.className = 'fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4';
-    modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div class="bg-slate-800 p-5 text-white rounded-t-2xl flex justify-between items-center">
-            <span class="font-bold">📄 Template Verbale Riunione di Coordinamento</span>
-            <button onclick="document.getElementById('modal-template-riunione').remove()" class="text-xl">×</button>
-        </div>
-        <div class="p-6 space-y-4">
-            <p class="text-sm text-slate-600">Carica <strong>Verbale_Riunione_di_Coordinamento_v3.docx</strong>.</p>
-            ${esistente ? '<p class="text-xs text-green-600 font-semibold">✓ Template già caricato — puoi sostituirlo.</p>' : '<p class="text-xs text-orange-600 font-semibold">⚠ Nessun template caricato.</p>'}
-            <label class="block">
-                <span class="text-sm font-semibold text-slate-700">Seleziona file .docx</span>
-                <input type="file" accept=".docx" onchange="handleTemplateUploadRiunione(event)"
-                       class="mt-2 block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-900 file:text-white file:font-semibold cursor-pointer">
-            </label>
-        </div>
-    </div>`;
-    document.body.appendChild(modal);
-}
-
-async function handleTemplateUploadRiunione(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (!file.name.endsWith('.docx')) { showToast('Seleziona un file .docx', 'error'); return; }
-    const buffer = await file.arrayBuffer();
-    await saveItem('impostazioni', { chiave: 'template_verbale_riunione', valore: buffer, nome: file.name });
-    document.getElementById('modal-template-riunione')?.remove();
-    showToast('Template caricato: ' + file.name, 'success');
 }
 
 // ─── FORM ─────────────────────────────────────────────────────────────────────
@@ -835,8 +790,6 @@ async function eseguiFinalizzazioneRiunione() {
         if (!dati.ruoloCse) errori.push('Ruolo CSE');
         if (dati.ruoloCse === 'Delegato' && !dati.attoDelega?.trim()) errori.push('Atto di delega (obbligatorio se Delegato)');
         if (!dati.firmaCseImage) errori.push('Firma CSE');
-        const tpl = await getItem('impostazioni', 'template_verbale_riunione');
-        if (!tpl?.valore) errori.push('Template Word non caricato (pulsante ⚙️ Template)');
 
         if (errori.length > 0) {
             showToast('Errori: ' + errori[0], 'error', 5000);
@@ -890,8 +843,7 @@ async function eseguiFinalizzazioneRiunione() {
 
 // ─── GENERAZIONE DOCX ────────────────────────────────────────────────────────
 async function _generaDocxRiunione(verbale) {
-    const tplRecord = await getItem('impostazioni', 'template_verbale_riunione');
-    if (!tplRecord?.valore) throw new Error('Template non trovato. Carica il file .docx dal pulsante ⚙️ Template.');
+    const tplBuffer = await getTemplate('riunione');
 
     const settings = await DocxGenerator.getGlobalSettings();
     const project  = await getItem('projects', verbale.projectId);
@@ -901,7 +853,7 @@ async function _generaDocxRiunione(verbale) {
         ? new Date(verbale.dataRiunione + 'T00:00:00').toLocaleDateString('it-IT')
         : '—';
 
-    const zip = new PizZip(tplRecord.valore);
+    const zip = new PizZip(tplBuffer);
     if (typeof ricuciRunsXml === 'function') ricuciRunsXml(zip); // ricucitura run XML frammentati
     const _ImgModCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
                      || (typeof window.docxtemplaterImageModuleFree === 'function' ? window.docxtemplaterImageModuleFree : window.docxtemplaterImageModuleFree?.default);
@@ -1058,9 +1010,6 @@ async function eliminaVerbaleRiunione(id) {
 // ─── ESPOSIZIONE GLOBALE ──────────────────────────────────────────────────────
 window.renderVerbaliRiunione              = renderVerbaliRiunione;
 window.apriVerbaleRiunione                = apriVerbaleRiunione;
-window.checkTemplateAndNewVerbaleRiunione = checkTemplateAndNewVerbaleRiunione;
-window.mostraWizardTemplateRiunione       = mostraWizardTemplateRiunione;
-window.handleTemplateUploadRiunione       = handleTemplateUploadRiunione;
 window.salvaVerbaleRiunioneForm           = salvaVerbaleRiunioneForm;
 window.eseguiFinalizzazioneRiunione       = eseguiFinalizzazioneRiunione;
 window.mostraAnteprimaRiunione            = mostraAnteprimaRiunione;

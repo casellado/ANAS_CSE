@@ -21,11 +21,8 @@ async function renderVerbali() {
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span>📝</span> Verbali di Sopralluogo</h3>
             <div class="flex gap-2">
-                <button onclick="checkTemplateAndNewVerbale()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+                <button onclick="apriVerbale()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
                     <span>+</span> Nuovo Sopralluogo
-                </button>
-                <button onclick="mostraWizardTemplate()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg font-bold transition flex items-center gap-2" title="Configura Template Word">
-                    <span>⚙️</span> Template
                 </button>
             </div>
         </div>
@@ -96,81 +93,7 @@ async function renderVerbali() {
     }).join('');
 }
 
-/**
- * Gestione Template Word (Wizard)
- */
-async function mostraWizardTemplate() {
-    const existing = document.getElementById('modal-wizard-template');
-    if (existing) existing.remove();
-
-    const currentTemplate = await getItem('impostazioni', 'template_verbale_sopralluogo');
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-wizard-template';
-    modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[5000] p-4';
-    modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div class="bg-slate-800 p-6 text-white flex justify-between items-center">
-                <h3 class="text-xl font-bold">Template Verbale Sopralluogo</h3>
-                <button onclick="document.getElementById('modal-wizard-template').remove()" class="text-2xl">&times;</button>
-            </div>
-            <div class="p-8 space-y-6">
-                <div class="text-center">
-                    <div class="text-5xl mb-4">📄</div>
-                    <p class="text-slate-600 text-sm leading-relaxed">
-                        Carica il tuo file <strong>.docx</strong> personalizzato con i segnaposto {{...}}.
-                    </p>
-                </div>
-                <div class="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center gap-4 bg-slate-50 transition hover:border-blue-400">
-                    <input type="file" id="template-upload" class="hidden" accept=".docx" onchange="handleTemplateUpload(event)">
-                    <button onclick="document.getElementById('template-upload').click()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">
-                        ${currentTemplate ? 'Aggiorna Template' : 'Seleziona File .docx'}
-                    </button>
-                    <div id="template-status" class="text-xs font-bold ${currentTemplate ? 'text-green-600' : 'text-slate-400'}">
-                        ${currentTemplate ? '✅ Template caricato: ' + (currentTemplate.name || 'Personalizzato') : 'Nessun file caricato'}
-                    </div>
-                </div>
-                <div class="text-[10px] text-slate-400 italic bg-slate-100 p-3 rounded">
-                    Segnaposto principali: {{numero_progressivo}}, {{data_sopralluogo}}, {{nome_cantiere}}, {#imprese_presenti}, {#presenti_firme}, {%firma_cse}...
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
-async function handleTemplateUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const arrayBuffer = e.target.result;
-            new PizZip(arrayBuffer);
-            
-            await saveItem('impostazioni', {
-                chiave: 'template_verbale_sopralluogo',
-                valore: arrayBuffer,
-                name: file.name,
-                uploadedAt: new Date().toISOString()
-            });
-            alert("Template caricato e validato correttamente ✓");
-            document.getElementById('modal-wizard-template').remove();
-        } catch (err) {
-            alert("Errore nel file Word: assicurati che sia un .docx valido.");
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
 async function checkTemplateAndNewVerbale() {
-    const template = await getItem('impostazioni', 'template_verbale_sopralluogo');
-    if (!template) {
-        mostraWizardTemplate();
-        alert("Carica il template Word prima di iniziare.");
-        return;
-    }
     apriVerbale();
 }
 
@@ -781,8 +704,6 @@ async function eseguiFinalizzazione() {
     dati.ncDrafts.forEach((nc, i) => {
         if (!nc.descrizione || !nc.impresaId) errori.push(`Dettagli NC #${i+1} (descrizione e impresa)`);
     });
-    const template = await getItem('impostazioni', 'template_verbale_sopralluogo');
-    if (!template) errori.push("Template Word non caricato (pulsante ⚙️ Template)");
 
     if (errori.length > 0) {
         showToast("Errori: " + errori[0], "error", 5000);

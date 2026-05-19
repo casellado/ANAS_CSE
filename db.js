@@ -2,7 +2,7 @@
 // Architettura Scoped to ProjectId
 
 const DB_NAME = 'ANAS_CSE_DB';
-const DB_VERSION = 17;
+const DB_VERSION = 18;
 
 const STORES_CONFIG = {
   // Globali
@@ -242,6 +242,26 @@ function initDB() {
         ['projectId','tipologia','stato','dataOraEvento','gravita','codiceEvento','verbaleOrigineId','nearMissOriginaleId'].forEach(idx => {
           evStore.createIndex(idx, idx, { unique: false });
         });
+      }
+      // Migrazione v18: ricrea verbali_riunione con autoIncrement: true
+      // Lo store fu creato in una versione precedente senza autoIncrement, quindi
+      // s.put(record senza id) sollevava DataError invece di auto-generare la chiave.
+      if (event.oldVersion < 18 && database.objectStoreNames.contains('verbali_riunione')) {
+        const vrStore = tx.objectStore('verbali_riunione');
+        if (!vrStore.autoIncrement) {
+          const buffer = [];
+          vrStore.openCursor().onsuccess = function(ce) {
+            const cur = ce.target.result;
+            if (cur) { buffer.push(cur.value); cur.continue(); return; }
+            // Fine cursore: ricrea store con autoIncrement
+            database.deleteObjectStore('verbali_riunione');
+            const ns = database.createObjectStore('verbali_riunione', { keyPath: 'id', autoIncrement: true });
+            ['projectId', 'dataRiunione', 'stato', 'numeroProgressivo'].forEach(n =>
+              ns.createIndex(n, n, { unique: false })
+            );
+            buffer.forEach(r => ns.put(r));
+          };
+        }
       }
     };
 
