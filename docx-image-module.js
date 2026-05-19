@@ -96,15 +96,6 @@
             ? options.scopeManager.getValue(part.value, { part: part })
             : null;
 
-        // ── DEBUG (rimuovere dopo verifica) ──────────────────────────────────
-        console.log('[ImageModule] render →', {
-            tag:          part.value,
-            filePath:     options && options.filePath || '(non passato → default document.xml)',
-            tagValueLen:  tagValue ? tagValue.length : 0,
-            tagValueSnip: tagValue ? tagValue.slice(0, 30) + '…' : 'NULL'
-        });
-        // ─────────────────────────────────────────────────────────────────────
-
         // Fallback a PNG trasparente se il valore è assente
         var imgSrc = tagValue || TRANSPARENT_PNG_B64;
 
