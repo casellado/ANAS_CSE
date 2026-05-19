@@ -170,6 +170,29 @@ function leggiLogoBase64(file) {
   });
 }
 
+/**
+ * Ridimensiona e comprime il logo a max 300×100 px in JPEG 0.8.
+ * Evita data bloat in IndexedDB e nei DOCX esportati (da 2.7 MB → < 50 KB).
+ */
+function comprimiLogoBase64(file, maxWidth = 300, maxHeight = 100) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxWidth / img.width, maxHeight / img.height);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 // ─────────────────────────────────────────────
 // 4. Render VIEW impostazioni
 // ─────────────────────────────────────────────
@@ -428,7 +451,7 @@ async function aggiornaLogo(lato, input) {
     return;
   }
 
-  const base64 = await leggiLogoBase64(file);
+  const base64 = await comprimiLogoBase64(file); // downsampling 300×100 JPEG 0.8 — evita bloat IDB/DOCX
   const preview = document.getElementById(`preview-logo-${lato}`);
   if (preview) {
     preview.innerHTML = `<img src="${base64}" class="max-h-16 max-w-full object-contain" alt="Logo ${lato}">`;

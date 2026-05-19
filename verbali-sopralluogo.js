@@ -579,6 +579,9 @@ function abilitaPasteFirmaCSE() {
                     const base64 = event.target.result;
                     box.innerHTML = `<img src="${base64}" class="max-h-full">`;
                     window._lastPastedSignature = base64;
+                    if (!window._verbaleEsistente) window._verbaleEsistente = {};
+                    if (!window._verbaleEsistente.redattoreInfo) window._verbaleEsistente.redattoreInfo = {};
+                    window._verbaleEsistente.redattoreInfo.firmaBase64 = base64;
                     showToast("Immagine incollata ✓", "success");
                     if (_pasteFirmaAC) { _pasteFirmaAC.abort(); _pasteFirmaAC = null; }
                 };
@@ -596,6 +599,9 @@ async function usaFirmaPermanenteCSE() {
     if (imp.firmaImmagine) {
         document.getElementById('cse-signature-box').innerHTML = `<img src="${imp.firmaImmagine}" class="max-h-full">`;
         window._lastPastedSignature = imp.firmaImmagine;
+        if (!window._verbaleEsistente) window._verbaleEsistente = {};
+        if (!window._verbaleEsistente.redattoreInfo) window._verbaleEsistente.redattoreInfo = {};
+        window._verbaleEsistente.redattoreInfo.firmaBase64 = imp.firmaImmagine;
         showToast("Firma permanente applicata", "info");
     } else {
         alert("Nessuna firma permanente trovata in Impostazioni.");
@@ -1069,6 +1075,9 @@ function confermFirmaCSECanvas() {
     const b64 = sc.toDataURL();
     if (!b64) { showToast("Firma vuota, disegna prima la firma.", "warning"); return; }
     window._lastPastedSignature = b64;
+    if (!window._verbaleEsistente) window._verbaleEsistente = {};
+    if (!window._verbaleEsistente.redattoreInfo) window._verbaleEsistente.redattoreInfo = {};
+    window._verbaleEsistente.redattoreInfo.firmaBase64 = b64;
     const box = document.getElementById('cse-signature-box');
     if (box) box.innerHTML = `<img src="${b64}" class="max-h-full max-w-full object-contain">`;
     showToast("Firma acquisita ✓", "success");
