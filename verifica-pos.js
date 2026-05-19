@@ -610,6 +610,7 @@ async function _generaDocxVP(record) {
         motivazioni_non_idoneo:  record.esito === 'non_idoneo'    ? (record.motivazioniNonIdoneo || '')    : '',
         nome_rl:                 record.nomeRl               || '',
         nome_responsabile_area:  record.nomeResponsabileArea || '',
+        firma_cse:               record.firmaCse || imp.firmaImmagine || null,
     });
     doc.render();
     return doc.getZip().generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
