@@ -43,6 +43,7 @@ function _saveVerbaleRiunioneDB(record) {
         const t = db.transaction('verbali_riunione', 'readwrite');
         const s = t.objectStore('verbali_riunione');
         record.modifiedAt = new Date().toISOString();
+        if (!record.id) delete record.id; // autoIncrement richiede assenza della chiave, non undefined/null/0
         const req = s.put(record);
         req.onsuccess = () => { record.id = req.result; resolve(record); };
         req.onerror  = () => reject(req.error);

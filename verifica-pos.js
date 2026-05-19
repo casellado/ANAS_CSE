@@ -15,12 +15,12 @@ function _saveVerificaPosDB(record) {
         const t = db.transaction('verifica_pos', 'readwrite');
         const s = t.objectStore('verifica_pos');
         record.modifiedAt = new Date().toISOString();
+        // IDB autoIncrement richiede che id sia assente (non undefined/null/0/NaN)
+        // per generare automaticamente la chiave su un nuovo record.
+        if (!record.id) delete record.id;
         const req = s.put(record);
-        req.onsuccess = () => {
-            if (!record.id) record.id = req.result;
-            resolve(record);
-        };
-        req.onerror = () => reject(req.error);
+        req.onsuccess = () => { record.id = req.result; resolve(record); };
+        req.onerror  = () => reject(req.error);
     });
 }
 
