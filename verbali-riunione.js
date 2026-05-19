@@ -1034,3 +1034,5 @@ window.confermFirmaCSECanvas_RC           = confermFirmaCSECanvas_RC;
 window.usaFirmaPermanenteCSE_RC           = usaFirmaPermanenteCSE_RC;
 window.abilitaPasteFirmaCSE_RC            = abilitaPasteFirmaCSE_RC;
 window.handlePasteFirmaCSE_RC             = handlePasteFirmaCSE_RC;
+// Alias per il pulsante "Anteprima di Stampa" in impostazioni.js
+window.exportRiunioneWord = function() { mostraAnteprimaRiunioneCorrente(); };

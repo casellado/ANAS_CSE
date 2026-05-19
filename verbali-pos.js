@@ -563,3 +563,6 @@ async function aggiornaPOSWorkflowStato() {
     if (typeof showToast === 'function') showToast('Errore durante il salvataggio dei file.', 'error');
   }
 }
+
+// Esposizione globale — richiesta dal pulsante "Anteprima di Stampa" in impostazioni.js
+window.exportPOSWord = exportPOSWord;

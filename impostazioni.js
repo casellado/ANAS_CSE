@@ -467,7 +467,7 @@ async function rimuoviLogo(lato) {
 
   const imp = await caricaImpostazioni();
   if (lato === 'sx') imp.logoSinistro = null;
-  else imp.logoDestro = null;
+  else { imp.logoDestro = null; imp.logo_aziendale = null; }
   await salvaImpostazioni(imp);
   showToast('Logo rimosso.', 'info');
 }
@@ -994,6 +994,7 @@ function _initFirmaPersistenteCanvas() {
 
   var drawing = false;
   var strokes = [];
+  var MAX_UNDO = 10;
 
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 2.2;
@@ -1009,7 +1010,7 @@ function _initFirmaPersistenteCanvas() {
     return { x: src.clientX - r.left, y: src.clientY - r.top };
   }
 
-  function start(e) { e.preventDefault(); drawing = true; strokes.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function start(e) { e.preventDefault(); drawing = true; if (strokes.length >= MAX_UNDO) strokes.shift(); strokes.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
   function move(e) { if (!drawing) return; e.preventDefault(); var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
   function stop(e) { if (!drawing) return; if (e) e.preventDefault(); drawing = false; ctx.beginPath(); }
 
@@ -1223,23 +1224,14 @@ async function migraImpostazioniLegacy() {
   }
 }
 
-// ─────────────────────────────────────────────
-// Stub moduli non ancora implementati
-// (verbali-pos.js e verbali-riunione.js — FASE 5.2+)
-// ─────────────────────────────────────────────
-function exportPOSWord() {
-  showToast('Modulo Verifica POS (Mod. RE. 01-5) — in costruzione nella FASE 5.2', 'info', 4000);
-}
-
-function exportRiunioneWord() {
-  showToast('Modulo Riunione Coordinamento (Mod. RE. 01-10) — in costruzione nella FASE 5.2', 'info', 4000);
-}
-
 // Esponi al global scope
 window.migraImpostazioniLegacy = migraImpostazioniLegacy;
 window.caricaImpostazioni = caricaImpostazioni;
 window.salvaImpostazioni = salvaImpostazioni;
 window.renderViewImpostazioni = renderViewImpostazioni;
 window.getFirmaPersistente = getFirmaPersistente;
-window.exportPOSWord = exportPOSWord;
-window.exportRiunioneWord = exportRiunioneWord;
+// Invalida la cache delle impostazioni condivise (chiamato da settings-sync.js)
+window.invalidaCacheImpostazioni = function() {
+  _cachedCondivise = null;
+  _condivisePromise = null;
+};

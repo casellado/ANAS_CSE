@@ -28,8 +28,8 @@ async function avviaSyncImpostazioni() {
       _lastSettingsMtime = currentMtime;
       
       // Notifica l'utente (toast non bloccante)
-      if (typeof mostraToast === 'function') {
-        mostraToast('☁️ Impostazioni condivise aggiornate da un altro tecnico.', 'info');
+      if (typeof showToast === 'function') {
+        showToast('☁️ Impostazioni condivise aggiornate da un altro tecnico.', 'info');
       }
       
       // Invalida cache in memoria (se presente in ui.js o altri moduli)
@@ -59,7 +59,7 @@ async function _getSettingsMtime() {
  */
 async function salvaImpostazioniGlobali(nuoveImpostazioni) {
   // 1. Salva localmente in IndexedDB
-  await saveItem('impostazioni', { id: IMPOSTAZIONI_KEY, data: nuoveImpostazioni });
+  await saveItem('impostazioni', { chiave: IMPOSTAZIONI_KEY, data: nuoveImpostazioni });
 
   // 2. Propaga su OneDrive se attivo
   if (typeof isArchivioOneDriveAttivo === 'function' && await isArchivioOneDriveAttivo()) {
