@@ -155,7 +155,7 @@ const DocxGenerator = {
         try {
             const content = await this.getTemplate();
             const zip = new PizZip(content);
-            ricuciRunsXml(zip); // pre-elaborazione: ricuce run XML frammentati da Word
+            // ricuciRunsXml rimossa (FASE 6-ter): i template sono sterilizzati, non hanno run frammentati
 
             // Configurazione modulo immagini
             const ImageModuleCtor = (typeof window.ImageModule === 'function' ? window.ImageModule : window.ImageModule?.default)
