@@ -287,8 +287,7 @@ async function exportVerbaleWord(verbaleId, tipoExport = 'word') {
 
   let v = null;
   if (verbaleId) {
-    const verbali = await getAll('verbali').catch(() => []);
-    v = verbali.find(x => x.id === verbaleId);
+    v = await getItem('verbali', verbaleId).catch(() => null);
   } else {
     v = {
       data: document.getElementById('verbale-data')?.value,

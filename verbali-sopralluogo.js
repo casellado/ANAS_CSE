@@ -9,6 +9,12 @@ let currentPresenti = []; // Lista locale di {personaId, nome, qualifica, impres
 let currentNCDrafts = []; // Lista locale di {livello, scadenza, descrizione, impresaId}
 let signatureCanvases = {}; // Mappa idPresente -> istanza SignatureCanvas
 
+// Cache per renderNCDrafts: evita 2 query IDB ad ogni keystroke (Issue #8)
+let _cachedImpreseVS = [];
+let _cachedIsFinalizzatoVS = false;
+// AbortController per il listener paste firma CSE (Issue #6)
+let _pasteFirmaAC = null;
+
 /**
  * Renderizza la lista dei verbali del cantiere corrente.
  */
@@ -142,6 +148,10 @@ async function apriVerbale(id = null) {
 
     const isFinalizzato = verbale.stato === 'finalizzato';
 
+    // Popola cache per renderNCDrafts (evita query IDB ad ogni keystroke)
+    _cachedIsFinalizzatoVS = isFinalizzato;
+    _cachedImpreseVS = await getByIndex('imprese', 'projectId', projectId);
+
     const existing = document.getElementById('modal-editor-verbale');
     if (existing) existing.remove();
 
@@ -157,11 +167,11 @@ async function apriVerbale(id = null) {
                     <div>
                         <h3 class="text-xl font-bold">${id ? 'Modifica Verbale' : 'Nuovo Sopralluogo'}</h3>
                         <div class="text-[10px] text-slate-400 font-mono tracking-tighter uppercase">
-                            ${project.nome} · ID: ${currentVerbaleId} · ${verbale.stato}
+                            ${escapeHtml(project.nome)} · ID: ${escapeHtml(String(currentVerbaleId))} · ${verbale.stato}
                         </div>
                     </div>
                 </div>
-                <button onclick="document.getElementById('modal-editor-verbale').remove()" class="text-2xl hover:text-red-400 transition">&times;</button>
+                <button onclick="_chiudiModalEditorVerbale()" class="text-2xl hover:text-red-400 transition">&times;</button>
             </header>
 
             <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50">
@@ -243,7 +253,7 @@ async function apriVerbale(id = null) {
                     <div id="nc-drafts-container" class="space-y-4"></div>
                     ${!isFinalizzato ? `
                     <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-3">
-                        <button onclick="apriFormEventoDaVerbale('${currentVerbaleId}')"
+                        <button data-verbale-id="${escapeHtml(String(currentVerbaleId))}" onclick="apriFormEventoDaVerbale(this.dataset.verbaleId)"
                                 class="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-200 transition">
                             + Registra Evento Incidentale
                         </button>
@@ -365,7 +375,7 @@ async function apriVerbale(id = null) {
             </div>
 
             <footer class="bg-slate-50 p-6 border-t flex justify-between items-center shrink-0">
-                <button onclick="document.getElementById('modal-editor-verbale').remove()" class="text-sm font-bold text-slate-500 hover:text-slate-700">Annulla</button>
+                <button onclick="_chiudiModalEditorVerbale()" class="text-sm font-bold text-slate-500 hover:text-slate-700">Annulla</button>
                 <div class="flex gap-3">
                     ${!isFinalizzato ? `<button onclick="salvaVerbale('bozza')" class="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition">Salva Bozza</button>` : ''}
                     <button onclick="mostraAnteprimaVerbale(${id ? `'${id}'` : 'null'})" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow hover:bg-indigo-700 transition">
@@ -498,10 +508,10 @@ function calcolaScadenzaNC(dataPartenza, livello) {
 async function renderNCDrafts() {
     const container = document.getElementById('nc-drafts-container');
     if (!container) return;
-    
-    const projectId = sessionStorage.getItem('currentProjectId');
-    const imprese = await getByIndex('imprese', 'projectId', projectId);
-    const isFinalizzato = (await getItem('verbali', currentVerbaleId))?.stato === 'finalizzato';
+
+    // Usa cache popolata all'apertura del modal (evita 2 query IDB ad ogni keystroke)
+    const imprese = _cachedImpreseVS;
+    const isFinalizzato = _cachedIsFinalizzatoVS;
 
     container.innerHTML = currentNCDrafts.map((nc, idx) => `
         <div class="p-4 border border-red-100 rounded-xl bg-red-50/30 space-y-3 relative group">
@@ -554,8 +564,11 @@ function abilitaPasteFirmaCSE() {
     const box = document.getElementById('cse-signature-box');
     box.innerHTML = '<div class="text-[10px] text-indigo-500 animate-pulse">Premi Ctrl+V per incollare la firma...</div>';
     box.focus();
-    
-    // Listener temporaneo
+
+    // Annulla eventuale listener precedente orfano (Issue #6)
+    if (_pasteFirmaAC) { _pasteFirmaAC.abort(); }
+    _pasteFirmaAC = new AbortController();
+
     const onPaste = async (e) => {
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
@@ -565,17 +578,17 @@ function abilitaPasteFirmaCSE() {
                 reader.onload = (event) => {
                     const base64 = event.target.result;
                     box.innerHTML = `<img src="${base64}" class="max-h-full">`;
-                    // Salviamo temporaneamente in una variabile globale o nello stato
                     window._lastPastedSignature = base64;
                     showToast("Immagine incollata ✓", "success");
+                    if (_pasteFirmaAC) { _pasteFirmaAC.abort(); _pasteFirmaAC = null; }
                 };
                 reader.readAsDataURL(blob);
                 break;
             }
         }
     };
-    
-    document.addEventListener('paste', onPaste, { once: true });
+
+    document.addEventListener('paste', onPaste, { signal: _pasteFirmaAC.signal });
 }
 
 async function usaFirmaPermanenteCSE() {
@@ -660,6 +673,7 @@ async function salvaVerbale(nuovoStato = 'bozza') {
 
     if (nuovoStato === 'bozza') {
         showToast("Bozza salvata ✓", "success");
+        if (_pasteFirmaAC) { _pasteFirmaAC.abort(); _pasteFirmaAC = null; }
         document.getElementById('modal-editor-verbale').remove();
         renderVerbali();
     }
@@ -748,8 +762,12 @@ async function eseguiFinalizzazione() {
     if (!verbale.numeroProgressivo) {
         const dataPrefix = verbale.dataSopralluogo.replace(/-/g, '');
         const verbaliGiorno = await getByIndex('verbali', 'projectId', verbale.projectId);
-        const count = verbaliGiorno.filter(v => v.dataSopralluogo === verbale.dataSopralluogo && v.stato === 'finalizzato').length;
-        verbale.numeroProgressivo = `${dataPrefix}/VS${String(count + 1).padStart(2, '0')}`;
+        // max+1 anziché count+1: resistente alle lacune da cancellazioni (Issue #3)
+        const numeri = verbaliGiorno
+            .filter(v => v.dataSopralluogo === verbale.dataSopralluogo && v.stato === 'finalizzato' && v.numeroProgressivo)
+            .map(v => parseInt((v.numeroProgressivo || '').replace(/\D/g, '')) || 0);
+        const maxNum = Math.max(0, ...numeri);
+        verbale.numeroProgressivo = `${dataPrefix}/VS${String(maxNum + 1).padStart(2, '0')}`;
         await saveItem('verbali', verbale);
     }
 
@@ -831,11 +849,13 @@ async function eseguiFinalizzazione() {
         }
 
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(wordBlob);
+        const _blobUrl834 = URL.createObjectURL(wordBlob);
+        link.href = _blobUrl834;
         link.download = fileName;
         link.click();
-        
+        setTimeout(() => URL.revokeObjectURL(_blobUrl834), 2000);
         showToast("Verbale finalizzato con successo! ✓", "success");
+        if (_pasteFirmaAC) { _pasteFirmaAC.abort(); _pasteFirmaAC = null; }
         document.getElementById('modal-editor-verbale').remove();
         renderVerbali();
     } catch (err) {
@@ -1168,9 +1188,11 @@ async function scaricaAllegatiFotoVerbale(verbaleId) {
     const numProg = (verbale.numeroProgressivo || String(verbale.id)).replace(/\//g, '_');
     const dataStr = (verbale.dataSopralluogo || '').replace(/-/g, '');
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const _blobUrl1171 = URL.createObjectURL(blob);
+    link.href = _blobUrl1171;
     link.download = `Foto_Verbale_VS_${numProg}_${dataStr}.zip`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(_blobUrl1171), 2000);
     showToast('ZIP foto scaricato ✓', 'success');
 }
 
@@ -1217,6 +1239,7 @@ async function mostraAnteprimaVerbale(verbaleId) {
         try {
             const arrayBuffer = await blob.arrayBuffer();
             const bodyEl = document.getElementById('docx-preview-inner-vs');
+            document.getElementById('docx-style-vs')?.remove(); // evita accumulo ad ogni apertura modal
             const styleEl = document.createElement('div');
             styleEl.id = 'docx-style-vs';
             document.head.appendChild(styleEl);
@@ -1240,9 +1263,11 @@ function _scaricaWordDaBlob_VS() {
     const blob = window._currentAnteprimaBlobVS;
     if (!blob) return;
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const _blobUrl1243 = URL.createObjectURL(blob);
+    link.href = _blobUrl1243;
     link.download = 'Verbale_Sopralluogo_Anteprima.docx';
     link.click();
+    setTimeout(() => URL.revokeObjectURL(_blobUrl1243), 2000);
 }
 
 // Genera docx dal verbale (usato da anteprima + applicaVistoTitolare)
@@ -1331,11 +1356,19 @@ async function _scaricaWordVerbaleById(verbaleId) {
         const numProg = (verbale.numeroProgressivo || String(verbale.id)).replace(/\//g, '_');
         const dataStr = (verbale.dataSopralluogo || '').replace(/-/g, '');
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
+        const _blobUrl1334 = URL.createObjectURL(blob);
+        link.href = _blobUrl1334;
         link.download = `Verbale_Sopralluogo_${dataStr}_${numProg}.docx`;
         link.click();
+        setTimeout(() => URL.revokeObjectURL(_blobUrl1334), 2000);
     } catch (err) { showToast('Errore generazione Word: ' + err.message, 'error'); }
 }
+
+// Chiude il modal editor e annulla il listener paste orfano (Issue #6)
+window._chiudiModalEditorVerbale = function() {
+    if (_pasteFirmaAC) { _pasteFirmaAC.abort(); _pasteFirmaAC = null; }
+    document.getElementById('modal-editor-verbale')?.remove();
+};
 
 window.mostraAnteprimaVerbale        = mostraAnteprimaVerbale;
 window._scaricaWordDaBlob_VS         = _scaricaWordDaBlob_VS;
@@ -1366,10 +1399,14 @@ async function apriFormEventoDaVerbale(verbaleId) {
     // Dopo salvataggio ricarica la sezione eventi collegati
     const origSalva = window.salvaEvento;
     window.salvaEvento = async function(record) {
-        const result = await origSalva(record);
-        window.salvaEvento = origSalva;
-        await _renderEvCollegatiVerbale(verbaleId);
-        return result;
+        try {
+            const result = await origSalva(record);
+            await _renderEvCollegatiVerbale(verbaleId);
+            return result;
+        } finally {
+            // Ripristino garantito anche in caso di eccezione (Issue #5)
+            window.salvaEvento = origSalva;
+        }
     };
     _apriFormEvento(null, prefill);
 }
