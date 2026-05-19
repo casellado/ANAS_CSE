@@ -467,7 +467,7 @@ function rimuoviPresenteSicurezza(idx) {
 }
 async function usaFirmaPermanenteSicurezza(idx) {
     const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => null) : null;
-    const firma = imp?.firmaDigitale || imp?.firmaCse || null;
+    const firma = imp?.firmaImmagine || null;
     if (!firma) { showToast('Nessuna firma permanente in Impostazioni.', 'warning'); return; }
     currentPresentiSicurezza[idx].firma = firma;
     renderPresentiSicurezza();
@@ -678,7 +678,7 @@ function confermFirmaCSECanvas_RC() {
 }
 async function usaFirmaPermanenteCSE_RC() {
     const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => null) : null;
-    const firma = imp?.firmaDigitale || imp?.firmaCse || null;
+    const firma = imp?.firmaImmagine || null;
     if (!firma) { showToast('Nessuna firma permanente in Impostazioni.', 'warning'); return; }
     window._rcFirmaCse = firma;
     _aggiornaPreviewFirmaCSE_RC(firma);
@@ -883,13 +883,14 @@ async function _generaDocxRiunione(verbale) {
         tipo_corso_opera:    checkbox('corso_opera'),
         tipo_nuove_imprese:  checkbox('nuove_imprese'),
         tipo_rls:            checkbox('rls'),
-        presenti_sicurezza: (verbale.presentiSicurezza || []).map(p => ({ nome_cognome: p.nomeCognome || '—' })),
-        presenti_imprese:   (verbale.presentiImprese   || []).map(p => ({ ragione_sociale: p.ragioneSociale || '—' })),
+        presenti_sicurezza: (verbale.presentiSicurezza || []).map(p => ({ nome_cognome: p.nomeCognome || '—', firma_image: p.firma || null })),
+        presenti_imprese:   (verbale.presentiImprese   || []).map(p => ({ ragione_sociale: p.ragioneSociale || '—', firma_image: p.firma || null })),
         impresa_pos:            (verbale.argomentiChecklist || []).includes('pos_impresa') ? (verbale.impresaPos || '—') : '',
         note_argomenti:         verbale.noteArgomenti         || '',
         criticita_osservazioni: verbale.criticitaOsservazioni || '',
         istruzioni_operative:   verbale.istruzioniOperative   || '',
-        nome_cse:               verbale.nomeCse || '—'
+        nome_cse:               verbale.nomeCse || '—',
+        firma_cse:              verbale.firmaCseImage || null
     });
     doc.render();
     return doc.getZip().generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });

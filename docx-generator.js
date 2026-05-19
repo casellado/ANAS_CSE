@@ -208,7 +208,9 @@ const DocxGenerator = {
             header_destro:  imp.header_destro  || '',
             footer_centrale: imp.footer_centrale || 'CSE SafeHub',
             modulo_codice:  imp.modulo_codice  || '',
-            modulo_versione: imp.modulo_versione || ''
+            modulo_versione: imp.modulo_versione || '',
+            firmaImmagine:  imp.firmaImmagine || null,
+            firmaNome:      imp.firmaNome || ''
         };
     },
 

@@ -431,7 +431,7 @@ function confermaFirmaVistoCanvas() {
 }
 async function usaFirmaPermanenteVisto() {
     const imp = typeof caricaImpostazioni === 'function' ? await caricaImpostazioni().catch(() => null) : null;
-    const firma = imp?.firmaDigitale || imp?.firmaCse || imp?.firmaImmagine || null;
+    const firma = imp?.firmaImmagine || null;
     if (!firma) { showToast('Nessuna firma permanente in Impostazioni.', 'warning'); return; }
     window._vsVistoFirma = firma;
     _aggiornaPreviewFirmaVisto(firma);
