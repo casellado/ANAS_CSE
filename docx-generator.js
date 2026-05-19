@@ -164,6 +164,8 @@ const DocxGenerator = {
                 throw new Error("ImageModule non caricato. Controlla la connessione internet per il CDN.");
             }
             const imageOptions = {
+                centered: false,
+                fileType: 'docx',   // necessario per la gestione corretta dei .rels DOCX
                 getImage(tagValue) {
                     return DocxGenerator.base64ToBinary(tagValue);
                 },
